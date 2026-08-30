@@ -85,13 +85,13 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 7.9 Phase gate; commit `phase-7 complete`.
 
 ## Phase 8 — Generation hub
-- [ ] 8.1 generation/base.py + fal.py + replicate_provider.py + wavespeed.py (submit/poll/download; test_connection D10). ✓: mocked tests per provider incl. error modes.
-- [ ] 8.2 pricing.py: pricing.json seed (image per-image, video per-second×res), DATA_DIR copy, GUI-editable API. ✓: estimate math tests image+video.
-- [ ] 8.3 router.py: cheapest-connected-provider auto-route + override + per-model price list for dropdown. ✓: routing tests.
-- [ ] 8.4 Generate API: estimate → queue → worker → provider → download → ingest(origin=generated, links) → learn; WS progress; spend totals per provider; no double-charge on error. ✓: mocked E2E test.
-- [ ] 8.5 Settings UI: AI Providers cards (fal/replicate/wavespeed) guided setup + test; spend totals. ✓: manual smoke.
-- [ ] 8.6 Generate UI: from Studio + "Recreate" in drawer; recommended model preselected; price-per-model dropdown; off-recommendation note; queue progress. ✓: manual smoke (mock provider in dev).
-- [ ] 8.7 Phase gate; commit `phase-8 complete`.
+- [x] 8.1 generation/base.py + fal.py + replicate_provider.py + wavespeed.py (submit/poll/download; test_connection D10). ✓: mocked tests per provider incl. error modes.
+- [x] 8.2 pricing.py: pricing.json seed (image per-image, video per-second×res), DATA_DIR copy, GUI-editable API. ✓: estimate math tests image+video.
+- [x] 8.3 router.py: cheapest-connected-provider auto-route + override + per-model price list for dropdown. ✓: routing tests.
+- [x] 8.4 Generate API: estimate → queue → worker → provider → download → ingest(origin=generated, links) → learn; WS progress; spend totals per provider; no double-charge on error. ✓: mocked E2E test.
+- [x] 8.5 Settings UI: AI Providers cards (fal/replicate/wavespeed) guided setup + test; spend totals. ✓: manual smoke.
+- [x] 8.6 Generate UI: from Studio + "Recreate" in drawer; recommended model preselected; price-per-model dropdown; off-recommendation note; queue progress. ✓: manual smoke (mock provider in dev).
+- [x] 8.7 Phase gate; commit `phase-8 complete`.
 
 ## Phase 9 — companion app + Unraid packaging + Discord rules panel
 - [ ] 9.1 companion server side: pairing (code issue/verify TTL/single-use, token sha256, list/revoke), WS hub (auth, hello/models, request/response, heartbeat), llm_jobs queue + drain on reconnect + cloud fallback toggle. ✓: pytest incl. bad-token reject, queue+drain.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 8, task 8.1 (generation providers).
+Phase 9, task 9.1 (companion server side).

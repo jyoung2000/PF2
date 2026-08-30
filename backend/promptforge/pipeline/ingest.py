@@ -55,7 +55,8 @@ def _sniff_media_type(head: bytes, fallback: str) -> str:
     return fallback or "image"
 
 
-def ingest_one(sp: ScrapedPost, client: httpx.Client) -> int | None:
+def ingest_one(sp: ScrapedPost, client: httpx.Client,
+               origin: str = "scraped") -> int | None:
     """Download, compress, store one post. Returns new post id or None
     (duplicate/skipped). Raises on hard failure (caller counts it)."""
     cfg = get_config()
@@ -142,7 +143,7 @@ def ingest_one(sp: ScrapedPost, client: httpx.Client) -> int | None:
                 source_url=sp.source_url,
                 posted_at=sp.posted_at,
                 nsfw=sp.nsfw,
-                origin="scraped",
+                origin=origin,
             )
             s.add(post)
             s.flush()

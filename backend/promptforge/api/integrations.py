@@ -126,6 +126,41 @@ def discord_invite(db: Session = Depends(get_db)):
         raise HTTPException(400, detail={"step": e.step, "message": str(e)})
 
 
+# ------------------------------------------------------ generation providers
+@router.post("/providers/{name}/test")
+def provider_test(name: str, db: Session = Depends(get_db)):
+    from ..generation import router as gen_router
+    provider = gen_router.get_provider(name)
+    if provider is None:
+        raise HTTPException(404, f"Unknown provider '{name}'")
+    result = provider.test_connection(provider.get_key(db))
+    _record_test(db, f"provider_{name}_last_test", bool(result.get("ok")))
+    if not result.get("ok"):
+        raise HTTPException(400, detail={"step": "auth",
+                                         "message": result.get("detail")})
+    return result
+
+
+@router.get("/providers")
+def providers_status(db: Session = Depends(get_db)):
+    from ..generation import router as gen_router
+    out = []
+    for name, provider in gen_router.all_providers().items():
+        tested = settings_store.get(db, f"provider_{name}_last_test") or {}
+        out.append({
+            "name": name,
+            "label": provider.label,
+            "key_setting": provider.key_setting,
+            "key_url": provider.key_url,
+            "configured": provider.is_configured(db),
+            "status": tested.get("status",
+                                 "configured" if provider.is_configured(db)
+                                 else "not_configured"),
+            "last_tested": tested.get("at"),
+        })
+    return {"providers": out}
+
+
 @router.get("/discord/rules")
 def get_discord_rules(db: Session = Depends(get_db)):
     return {"rules": discord_rules.get_rules(db),

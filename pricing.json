@@ -1,0 +1,116 @@
+{
+  "_comment": "Seeded model catalog + pricing. Copied to /data/pricing.json on first boot; edit there or via Settings → AI providers. Prices in USD: images per image (or per megapixel via price_per_mp), video per second by resolution.",
+  "families": {
+    "flux": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/flux/dev", "price_per_image": 0.025},
+        "replicate": {"model_id": "black-forest-labs/flux-dev", "price_per_image": 0.025},
+        "wavespeed": {"model_id": "wavespeed-ai/flux-dev", "price_per_image": 0.0197}
+      }
+    },
+    "flux-pro": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/flux-pro/v1.1", "price_per_image": 0.04},
+        "replicate": {"model_id": "black-forest-labs/flux-1.1-pro", "price_per_image": 0.04}
+      }
+    },
+    "sdxl": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/fast-sdxl", "price_per_mp": 0.0025},
+        "replicate": {"model_id": "stability-ai/sdxl", "price_per_image": 0.0032}
+      }
+    },
+    "sd3": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/stable-diffusion-v35-large", "price_per_image": 0.065},
+        "replicate": {"model_id": "stability-ai/stable-diffusion-3.5-large", "price_per_image": 0.065}
+      }
+    },
+    "seedream": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/bytedance/seedream/v4/text-to-image", "price_per_image": 0.03},
+        "wavespeed": {"model_id": "bytedance/seedream-v4", "price_per_image": 0.027},
+        "replicate": {"model_id": "bytedance/seedream-4", "price_per_image": 0.03}
+      }
+    },
+    "qwen-image": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/qwen-image", "price_per_image": 0.02},
+        "wavespeed": {"model_id": "wavespeed-ai/qwen-image/text-to-image", "price_per_image": 0.018}
+      }
+    },
+    "ideogram": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/ideogram/v3", "price_per_image": 0.06},
+        "replicate": {"model_id": "ideogram-ai/ideogram-v3-turbo", "price_per_image": 0.03}
+      }
+    },
+    "recraft": {
+      "kind": "image",
+      "providers": {
+        "fal": {"model_id": "fal-ai/recraft/v3/text-to-image", "price_per_image": 0.04},
+        "replicate": {"model_id": "recraft-ai/recraft-v3", "price_per_image": 0.04}
+      }
+    },
+    "kling": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/kling-video/v2.1/standard/text-to-video", "price_per_second": {"720p": 0.05, "1080p": 0.09}},
+        "wavespeed": {"model_id": "kwaivgi/kling-v2.1-t2v", "price_per_second": {"720p": 0.046, "1080p": 0.084}},
+        "replicate": {"model_id": "kwaivgi/kling-v2.1", "price_per_second": {"720p": 0.05, "1080p": 0.09}}
+      }
+    },
+    "wan": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/wan/v2.2-a14b/text-to-video", "price_per_second": {"480p": 0.04, "720p": 0.08, "1080p": 0.16}},
+        "wavespeed": {"model_id": "wavespeed-ai/wan-2.2/t2v-720p", "price_per_second": {"480p": 0.035, "720p": 0.07, "1080p": 0.14}},
+        "replicate": {"model_id": "wan-video/wan-2.2-t2v-fast", "price_per_second": {"480p": 0.04, "720p": 0.075, "1080p": 0.15}}
+      }
+    },
+    "veo": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/veo3", "price_per_second": {"720p": 0.4, "1080p": 0.4}},
+        "replicate": {"model_id": "google/veo-3", "price_per_second": {"720p": 0.4, "1080p": 0.4}}
+      }
+    },
+    "hailuo": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/minimax/hailuo-02/standard/text-to-video", "price_per_second": {"512p": 0.017, "768p": 0.045, "1080p": 0.08}},
+        "replicate": {"model_id": "minimax/hailuo-02", "price_per_second": {"512p": 0.017, "768p": 0.045, "1080p": 0.08}},
+        "wavespeed": {"model_id": "minimax/hailuo-02/t2v-standard", "price_per_second": {"512p": 0.015, "768p": 0.042, "1080p": 0.075}}
+      }
+    },
+    "seedance": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/bytedance/seedance/v1/lite/text-to-video", "price_per_second": {"480p": 0.031, "720p": 0.062, "1080p": 0.124}},
+        "wavespeed": {"model_id": "bytedance/seedance-v1-lite-t2v-720p", "price_per_second": {"480p": 0.028, "720p": 0.056, "1080p": 0.112}},
+        "replicate": {"model_id": "bytedance/seedance-1-lite", "price_per_second": {"480p": 0.031, "720p": 0.062, "1080p": 0.124}}
+      }
+    },
+    "ltx-video": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/ltx-video-13b-distilled", "price_per_second": {"480p": 0.01, "720p": 0.02}},
+        "replicate": {"model_id": "lightricks/ltx-video", "price_per_second": {"480p": 0.011, "720p": 0.022}}
+      }
+    },
+    "hunyuan": {
+      "kind": "video",
+      "providers": {
+        "fal": {"model_id": "fal-ai/hunyuan-video", "price_per_second": {"720p": 0.08}},
+        "replicate": {"model_id": "tencent/hunyuan-video", "price_per_second": {"720p": 0.085}}
+      }
+    }
+  }
+}
