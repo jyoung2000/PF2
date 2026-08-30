@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Runtime data (dev)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Env / secrets
+.env
+!.env.example
+
+# Build artifacts
+companion/build/
+companion/dist/
+*.spec.bak
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,4 @@
+# Browser-based (Tier 2) scraping stack. Installed in the Docker image and only
+# needed in dev when working on Tier 2 adapters — the core app and the test
+# suite run without it (adapters lazy-import crawl4ai).
+crawl4ai==0.6.3

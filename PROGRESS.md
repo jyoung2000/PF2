@@ -4,11 +4,11 @@ Rules: work top to bottom; check a box ONLY when its acceptance check passes; up
 commit per sub-task or logical unit; end each phase with its gate (full test suite + phase verify + commit `phase-N complete`).
 
 ## Phase 1 — scaffold, data model, pipeline, Tier 1 adapters, minimal API
-- [ ] 1.1 Repo scaffold: .gitignore, .env.example, scripts/dev_setup.sh, backend venv (py3.12), pinned requirements{,-dev}.txt install clean. ✓: `dev_setup.sh` exits 0; `python -c "import fastapi"` works.
-- [ ] 1.2 config.py (env + DATA_DIR resolution) + db.py (WAL SQLite engine/session) + logbus.py. ✓: unit test creates tmp DB, WAL mode on.
-- [ ] 1.3 models.py: all tables from spec (posts, tags, post_tags, collections, collection_posts, reference_images, ref_links, saved_prompts, templates, generations, settings, companions, llm_jobs) + create_all + FTS5 DDL in fts.py. ✓: test creates schema, inserts + FTS round-trip.
-- [ ] 1.4 settings_store.py: DB>env>default merge, secret masking, live updates. ✓: unit tests.
-- [ ] 1.5 aliases.py: normalization + seeded defaults + user rules. ✓: unit tests (flux variants → "flux").
+- [x] 1.1 Repo scaffold: .gitignore, .env.example, scripts/dev_setup.sh, backend venv (py3.12), pinned requirements{,-dev}.txt install clean. ✓: `dev_setup.sh` exits 0; `python -c "import fastapi"` works.
+- [x] 1.2 config.py (env + DATA_DIR resolution) + db.py (WAL SQLite engine/session) + logbus.py. ✓: unit test creates tmp DB, WAL mode on.
+- [x] 1.3 models.py: all tables from spec (posts, tags, post_tags, collections, collection_posts, reference_images, ref_links, saved_prompts, templates, generations, settings, companions, llm_jobs) + create_all + FTS5 DDL in fts.py. ✓: test creates schema, inserts + FTS round-trip.
+- [x] 1.4 settings_store.py: DB>env>default merge, secret masking, live updates. ✓: unit tests.
+- [x] 1.5 aliases.py: normalization + seeded defaults + user rules. ✓: unit tests (flux variants → "flux").
 - [ ] 1.6 pipeline/metadata.py: PNG text-chunk (A1111 params, ComfyUI workflow) + EXIF parse. ✓: fixture PNGs parse.
 - [ ] 1.7 pipeline/media.py: download (same-session client), compress image→WebP(q82,max2048), video→H264 CRF27 max1080p, thumbs (ffmpeg frame-grab for video), byte stats. ✓: tests with generated media; output smaller+valid; metadata extracted BEFORE compression.
 - [ ] 1.8 scrapers/base.py (SourceAdapter, ScrapedPost, registry) + pipeline/ingest.py (normalize→dedupe→download→meta→compress→store→learn hook→autopush hook). ✓: ingest test with fake adapter: dedupe works, files land in DATA_DIR.
