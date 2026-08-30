@@ -33,3 +33,4 @@ Thumbs.db
 
 # Companion pairing token (never commit)
 companion/companion_token.json
+.sandbox-ca.crt

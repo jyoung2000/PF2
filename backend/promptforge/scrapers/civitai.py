@@ -16,6 +16,12 @@ from .base import USER_AGENT, ScrapedPost, SourceAdapter
 
 API_URL = "https://civitai.com/api/v1/images"
 
+
+def _api_url() -> str:
+    """Overridable for stand-in servers in tests/smoke runs (PF_CIVITAI_API_URL)."""
+    import os
+    return os.environ.get("PF_CIVITAI_API_URL", API_URL)
+
 _META_PARAM_KEYS = {
     "seed": "seed", "steps": "steps", "sampler": "sampler",
     "cfgScale": "cfg_scale", "Size": "size", "Clip skip": "clip_skip",
@@ -120,7 +126,7 @@ class CivitaiAdapter(SourceAdapter):
             params: dict[str, Any] = {"limit": page_limit, "sort": "Newest"}
             if cursor:
                 params["cursor"] = cursor
-            resp = client.get(API_URL, params=params)
+            resp = client.get(_api_url(), params=params)
             resp.raise_for_status()
             data = resp.json()
             items = data.get("items") or []
