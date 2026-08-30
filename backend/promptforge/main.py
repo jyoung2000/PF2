@@ -42,7 +42,10 @@ def _optional_startup(app: FastAPI) -> None:
     except ImportError:
         pass
     try:
+        import asyncio as _asyncio
+
         from .integrations import discord_bot
+        discord_bot.manager.attach_loop(_asyncio.get_running_loop())
         discord_bot.manager.sync_from_settings()
     except ImportError:
         pass

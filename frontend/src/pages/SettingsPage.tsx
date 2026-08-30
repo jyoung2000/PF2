@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BaserowCard, DiscordCard } from '../components/IntegrationCards'
 import { api } from '../api'
 import { Field, NumberSetting, Section, TextSetting, ToggleSetting } from '../components/SettingsKit'
 import { ConfirmModal, Spinner } from '../components/Primitives'
@@ -212,7 +213,23 @@ export function SettingsPage() {
   )
 }
 
-/** Integration setup cards land in Phase 4/6/8/9 — placeholder keeps order stable. */
-function IntegrationsSections(_props: { settings: Record<string, unknown>; save: (v: Record<string, unknown>) => Promise<boolean> }) {
-  return null
+interface IntegrationStatuses {
+  baserow: { status: string; last_tested?: string }
+  discord: { status: string; last_tested?: string; gateway?: boolean }
+}
+
+function IntegrationsSections({
+  settings,
+  save,
+}: {
+  settings: Record<string, unknown>
+  save: (v: Record<string, unknown>) => Promise<boolean>
+}) {
+  const { data, reload } = useFetch(() => api.get<IntegrationStatuses>('/api/integrations/status'))
+  return (
+    <>
+      <BaserowCard settings={settings} save={save} status={data?.baserow} reloadStatus={reload} />
+      <DiscordCard settings={settings} save={save} status={data?.discord} reloadStatus={reload} />
+    </>
+  )
 }

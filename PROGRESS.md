@@ -42,14 +42,14 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 3.11 Phase gate; commit `phase-3 complete`.
 
 ## Phase 4 — Baserow + Discord (guided setup + test flows)
-- [ ] 4.1 Baserow client: token check, list tables, find/create PromptForge table + fields, row push w/ file upload (compressed), sync tracking. ✓: mocked-httpx tests incl. each error mode (401 token, no-perm, network).
-- [ ] 4.2 POST /api/integrations/baserow/test full E2E check + specific errors; auto-sync toggle honored by pipeline. ✓: pytest.
-- [ ] 4.3 Discord REST helpers: token validate, guilds/channels list, send test embed (delete after 10s), invite URL from client id. ✓: mocked tests each failure mode.
-- [ ] 4.4 discord.py bot manager: start/stop on settings change, embeds, slash commands /latest /random /search, auto-post w/ throttle. ✓: unit tests on command handlers w/ mocked interactions; bot object not connected in tests.
-- [ ] 4.5 POST /api/integrations/discord/test + status endpoints. ✓: pytest.
-- [ ] 4.6 Settings UI: Baserow + Discord guided setup cards (steppers, live status badges, test buttons, last-tested, header indicators). ✓: manual smoke vs mocked backend errors.
-- [ ] 4.7 Per-post actions Send to Baserow / Post to Discord wired (toasts on error). ✓: pytest + manual.
-- [ ] 4.8 Phase gate; commit `phase-4 complete`.
+- [x] 4.1 Baserow client: token check, list tables, find/create PromptForge table + fields, row push w/ file upload (compressed), sync tracking. ✓: mocked-httpx tests incl. each error mode (401 token, no-perm, network).
+- [x] 4.2 POST /api/integrations/baserow/test full E2E check + specific errors; auto-sync toggle honored by pipeline. ✓: pytest.
+- [x] 4.3 Discord REST helpers: token validate, guilds/channels list, send test embed (delete after 10s), invite URL from client id. ✓: mocked tests each failure mode.
+- [x] 4.4 discord.py bot manager: start/stop on settings change, embeds, slash commands /latest /random /search, auto-post w/ throttle. ✓: unit tests on command handlers w/ mocked interactions; bot object not connected in tests.
+- [x] 4.5 POST /api/integrations/discord/test + status endpoints. ✓: pytest.
+- [x] 4.6 Settings UI: Baserow + Discord guided setup cards (steppers, live status badges, test buttons, last-tested, header indicators). ✓: manual smoke vs mocked backend errors.
+- [x] 4.7 Per-post actions Send to Baserow / Post to Discord wired (toasts on error). ✓: pytest + manual.
+- [x] 4.8 Phase gate; commit `phase-4 complete`.
 
 ## Phase 5 — Tier 2 browser adapters
 - [ ] 5.1 browser_base.py: crawl4ai runner (stealth, rate limiter, network capture, storage_state, one-at-a-time), lazy imports, session status (valid/expired/missing). ✓: unit tests with crawl4ai mocked.
@@ -99,7 +99,7 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 9.3 companion desktop app: ws client, ollama proxy (tags/generate/chat ONLY), tray UX (pystray; --headless), start-with-Windows toggle, mini log, reconnect w/ backoff. ✓: pytest against mocked ollama + real server TestClient/live WS.
 - [ ] 9.4 Packaging: PyInstaller spec + build_companion.ps1 + GH Actions workflow; Settings serves source zip download + pairing UI w/ live status. ✓: zip download works; exe build documented (deferred: no Windows in build env — D8).
 - [ ] 9.5 Unraid: unraid-template.xml (port 5643, /data→/mnt/user/appdata/promptforge, icon, description), PUID/PGID/TZ entrypoint handling, idle-RAM check. ✓: template validates (xmllint), entrypoint chowns as PUID.
-- [ ] 9.6 Discord "What gets posted" rules panel: modes, filters, delivery (individual/digest), channel routing, throttle, 24h preview endpoint. ✓: rules engine tests every mode+filter+routing+digest+throttle; preview test.
+- [x] 9.6 (done early, Phase 4) Discord "What gets posted" rules panel: modes, filters, delivery (individual/digest), channel routing, throttle, 24h preview endpoint. ✓: rules engine tests every mode+filter+routing+digest+throttle; preview test.
 - [ ] 9.7 Rules UI panel in Settings→Discord. ✓: manual smoke.
 - [ ] 9.8 Phase gate; commit `phase-9 complete`.
 
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 4, task 4.1 (Baserow client).
+Phase 5, task 5.1 (browser_base).

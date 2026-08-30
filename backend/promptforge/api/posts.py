@@ -136,6 +136,25 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
     return {"deleted": post_id}
 
 
+@router.post("/{post_id}/push/{target}")
+def push_post(post_id: int, target: str, db: Session = Depends(get_db)):
+    if db.get(Post, post_id) is None:
+        raise HTTPException(404, "Post not found")
+    if target == "baserow":
+        from ..integrations import baserow
+        try:
+            return baserow.push_post_id(post_id, force=True)
+        except baserow.BaserowError as e:
+            raise HTTPException(400, str(e))
+    if target == "discord":
+        from ..integrations import discord_bot, discord_rest
+        try:
+            return discord_bot.post_by_id(post_id)
+        except discord_rest.DiscordError as e:
+            raise HTTPException(400, str(e))
+    raise HTTPException(404, f"Unknown push target '{target}'")
+
+
 @router.get("/{post_id}/tags/autocomplete")
 def tag_autocomplete(post_id: int, q: str = "", db: Session = Depends(get_db)):
     stmt = select(Tag.name).order_by(Tag.name).limit(15)
