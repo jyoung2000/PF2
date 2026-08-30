@@ -114,5 +114,38 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 10.8 Design polish pass (empty states, focus, motion restraint, no ad-hoc hex). 
 - [x] 10.9 Final commit `phase-10 complete — v1.0`.
 
+## Phase X1 — X.com adapter (freeform parsing, browser-based)
+- [ ] X1.1 capture_login.py `x` target; XAdapter skeleton (BrowserAdapter, requires_auth, session status, GraphQL wants_response). ✓: session status flows to /api/scrapers.
+- [ ] X1.2 x_text.py deterministic prompt/model extraction (labels, fences, quotes, model keywords, hashtags, t.co strip, confidence high/low). ✓: unit tests hits+misses.
+- [ ] X1.3 GraphQL tweet parsing: walk timeline JSON → media variants (highest quality: orig photos, top-bitrate mp4), text, author, engagement, reply/quote handling; one Post per media item (tweet id dedupe key). ✓: fixture tests.
+- [ ] X1.4 Scope controls (settings): search terms, max/run, min engagement, media filter, skip replies; fetch_recent rotates terms via X search crawl. ✓: filter tests.
+- [ ] X1.5 Low-confidence prompts weighted down by knowledge engine (stats+analysis skip low-conf text; post still counted). ✓: pytest.
+- [ ] X1.6 Registry + Settings UI (X source card: session status, scope controls); ToS note in README. ✓: /api/scrapers lists x; manual smoke.
+- [ ] X1.7 Phase gate: full suite green; commit `phase-X1 complete`.
+
+## Phase X2 — follow list / page monitoring
+- [ ] X2.1 monitored_accounts table + handle normalization (@handle / bare / profile URL, bulk paste). ✓: unit tests.
+- [ ] X2.2 monitoring.py: run_account (timeline via XAdapter.fetch_account, stop at last_post_id cursor, advance after ingest), per-account auto-tag + auto-collection (family scoping respected), failure isolation. ✓: pytest w/ mocked adapter.
+- [ ] X2.3 Scheduler tick (due accounts by interval, serialized with scrape lock) + pause/resume-all. ✓: pytest.
+- [ ] X2.4 Monitoring API: list w/ status, bulk add, patch, delete (posts kept), run-now, pause/resume-all. ✓: pytest.
+- [ ] X2.5 Monitoring UI: account cards (handle, last-checked, new-since, status), add box w/ bulk paste, per-account controls, recent-finds strip, run-now. ✓: manual smoke.
+- [ ] X2.6 Phase gate; commit `phase-X2 complete`.
+
+## Phase X3 — Grok integration (find, curate, monitor)
+- [ ] X3.1 integrations/grok.py: xAI OpenAI-compatible client (chat + live X search params), test_connection (validate key, list models), own daily budget + usage counters. ✓: mocked tests incl. failure modes.
+- [ ] X3.2 "grok" selectable as knowledge-engine LLM provider (factory case, budget applies). ✓: pytest.
+- [ ] X3.3 Discover creators: POST /api/grok/discover {interest} → reviewable candidates (reason+sample), de-duped vs monitored; add-to-follow-list flow (added_by=grok, never silent). ✓: mocked tests.
+- [ ] X3.4 Curate: batched budgeted pass over fresh X posts → ai-media check, inferred-vs-stated model, technique/tag suggestions written to existing fields; scheduler job; no-op without key. ✓: mocked tests.
+- [ ] X3.5 Digest: periodic Grok summary of monitored accounts (new+notable, trending models/techniques) surfaced in-app + optional Discord routing. ✓: mocked tests.
+- [ ] X3.6 Settings UI: X.com & Grok group (session+scope, Grok key/test/model picker, per-feature toggles+budgets, monitoring defaults). ✓: manual smoke.
+- [ ] X3.7 Phase gate; commit `phase-X3 complete`.
+
+## Phase X4 — quality bar for the X feature
+- [ ] X4.1 Full suite green (all new tests: parser hits/misses, variants, dedupe, cursor, failure isolation, auto-tag/collection, grok mocked paths + key-missing no-ops).
+- [ ] X4.2 npm build clean; monitoring + settings UI checked desktop+mobile.
+- [ ] X4.3 Live smoke: real X session if present, else mocked account-poll E2E (stand-in per D46) — ingests+compresses a post through the full pipeline; documented.
+- [ ] X4.4 README updates (X session capture, monitored accounts, Grok enablement, ToS note).
+- [ ] X4.5 Final commit `phase-X4 complete — X feature v1`.
+
 ## Next up
-Nothing — v1.0 complete. Future sessions: see README "Adding a new scraper site" + CLAUDE.md conventions.
+Phase X1, task X1.1.
