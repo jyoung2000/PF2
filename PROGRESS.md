@@ -18,15 +18,15 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 1.12 Phase gate: full pytest green; commit `phase-1 complete`.
 
 ## Phase 2 — frontend gallery + detail + search
-- [ ] 2.1 Vite+React+TS+Tailwind scaffold with design tokens (colors #0E0F12 base, accent, spacing, radius), fonts (@fontsource Inter + Space Grotesk), dark-first. ✓: `npm run build` clean.
-- [ ] 2.2 App shell: header (wordmark, nav, integration status dots), responsive, focus states, reduced-motion. ✓: renders at 375px & desktop.
-- [ ] 2.3 api.ts typed client + useApi hooks + toast store + Skeleton/EmptyState components. ✓: tsc clean.
-- [ ] 2.4 Masonry gallery (grid row-span via media dims), blur-up thumbs, video hover-preview + duration badge, infinite scroll. ✓: manual check vs seeded data.
-- [ ] 2.5 Search bar (debounced FTS + `tag:`/`model:` qualifiers + type-ahead for models/tags) + filter bar (platform, model, media, technique, NSFW, favorites, date). ✓: API search tests + UI check.
-- [ ] 2.6 Backend /api/search (FTS + qualifiers + filters + collection scope) + /api/suggest. ✓: pytest incl. qualifiers.
-- [ ] 2.7 Detail drawer: media viewer, prompt + copy, negative, param chips, tag editor w/ autocomplete, source/author, actions (favorite, save-to-collection, baserow, discord, delete) — actions stubbed where later. ✓: favorite/delete/tag flows work end-to-end in UI.
-- [ ] 2.8 FastAPI serves built frontend (SPA fallback). ✓: `curl /` returns app HTML after build.
-- [ ] 2.9 Phase gate: pytest + npm build + manual smoke; commit `phase-2 complete`.
+- [x] 2.1 Vite+React+TS+Tailwind scaffold with design tokens (colors #0E0F12 base, accent, spacing, radius), fonts (@fontsource Inter + Space Grotesk), dark-first. ✓: `npm run build` clean.
+- [x] 2.2 App shell: header (wordmark, nav, integration status dots), responsive, focus states, reduced-motion. ✓: renders at 375px & desktop.
+- [x] 2.3 api.ts typed client + useApi hooks + toast store + Skeleton/EmptyState components. ✓: tsc clean.
+- [x] 2.4 Masonry gallery (grid row-span via media dims), blur-up thumbs, video hover-preview + duration badge, infinite scroll. ✓: manual check vs seeded data.
+- [x] 2.5 Search bar (debounced FTS + `tag:`/`model:` qualifiers + type-ahead for models/tags) + filter bar (platform, model, media, technique, NSFW, favorites, date). ✓: API search tests + UI check.
+- [x] 2.6 Backend /api/search (FTS + qualifiers + filters + collection scope) + /api/suggest. ✓: pytest incl. qualifiers.
+- [x] 2.7 Detail drawer: media viewer, prompt + copy, negative, param chips, tag editor w/ autocomplete, source/author, actions (favorite, save-to-collection, baserow, discord, delete) — actions stubbed where later. ✓: favorite/delete/tag flows work end-to-end in UI.
+- [x] 2.8 FastAPI serves built frontend (SPA fallback). ✓: `curl /` returns app HTML after build.
+- [x] 2.9 Phase gate: pytest + npm build + manual smoke; commit `phase-2 complete`.
 
 ## Phase 3 — collections, tags, scrapers dashboard, scheduler, settings, WS logs
 - [ ] 3.1 Collections API: CRUD, save/remove post, model-family scoping (block cross-family w/ clear error unless allow_mixed), covers, counts. ✓: pytest incl. scoping cases.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 2, task 2.1 (frontend scaffold).
+Phase 3, task 3.1 (collections API).
