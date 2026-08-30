@@ -1,0 +1,43 @@
+{
+  "checkpoint": null,
+  "jobs": [
+    {
+      "id": "aa11bb22-3344-4c55-8d66-77e888f99900",
+      "enqueue_time": "2026-08-29T19:04:11.000Z",
+      "job_type": "v7_diffusion",
+      "event_type": "imagine",
+      "full_command": "hyperreal studio portrait of a falconer in brass armor, overcast rim light --ar 2:3 --v 7 --s 250 --sref 918811223",
+      "prompt": "hyperreal studio portrait of a falconer in brass armor, overcast rim light",
+      "width": 1024,
+      "height": 1536,
+      "username": "atlas_frames",
+      "image_paths": [
+        "https://cdn.midjourney.com/aa11bb22-3344-4c55-8d66-77e888f99900/0_0.png"
+      ],
+      "isNsfw": false
+    },
+    {
+      "id": "bb22cc33-4455-4d66-9e77-88f999001111",
+      "enqueue_time": "2026-08-29T18:57:40.000Z",
+      "job_type": "niji_diffusion",
+      "full_command": "a rainy osaka arcade at night, girl with a clear umbrella --niji 6 --ar 9:16",
+      "prompt": "a rainy osaka arcade at night, girl with a clear umbrella",
+      "width": 896,
+      "height": 1600,
+      "username": "inkwash",
+      "image_paths": [
+        "https://cdn.midjourney.com/bb22cc33-4455-4d66-9e77-88f999001111/0_0.png"
+      ]
+    },
+    {
+      "id": "cc33dd44-5566-4e77-af88-99001122aaaa",
+      "enqueue_time": "2026-08-29T18:50:02.000Z",
+      "job_type": "video_diffusion",
+      "full_command": "slow dolly-in on a candlelit alchemist workshop, floating dust --v 7 --motion high",
+      "prompt": "slow dolly-in on a candlelit alchemist workshop, floating dust",
+      "username": "motionsmith",
+      "video_url": "https://cdn.midjourney.com/video/cc33dd44-5566-4e77-af88-99001122aaaa/0.mp4",
+      "isNsfw": false
+    }
+  ]
+}

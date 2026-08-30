@@ -23,9 +23,13 @@ def _adapter_info(adapter, s: Session) -> dict:
         next_run = scheduler.next_run_time(adapter.name)
     except Exception:
         pass
+    session_status = None
+    if getattr(adapter, "requires_auth", False) and hasattr(adapter, "session_status"):
+        session_status = adapter.session_status(s)
     return {
         "name": adapter.name,
         "label": adapter.label,
+        "session_status": session_status,
         "tier": adapter.tier,
         "experimental": adapter.experimental,
         "requires_auth": adapter.requires_auth,

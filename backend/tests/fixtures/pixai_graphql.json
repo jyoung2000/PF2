@@ -1,0 +1,43 @@
+{
+  "data": {
+    "artworks": {
+      "edges": [
+        {
+          "node": {
+            "id": "1893344556677",
+            "title": "glasshouse witch",
+            "prompts": "1girl, glasshouse full of rare plants, dappled light, intricate",
+            "createdAt": "2026-08-29T14:40:00.000Z",
+            "authorName": "lumenfox",
+            "isNsfw": false,
+            "media": {
+              "width": 768,
+              "height": 1280,
+              "urls": [
+                {"variant": "PUBLIC", "url": "https://images-ng.pixai.art/images/orig/1893-full.png"},
+                {"variant": "THUMBNAIL", "url": "https://images-ng.pixai.art/images/thumb/1893.png"}
+              ]
+            },
+            "parameters": {
+              "samplingSteps": 25,
+              "samplingMethod": "Euler a",
+              "seed": 552211,
+              "cfgScale": 6,
+              "negativePrompts": "worst quality, watermark",
+              "modelName": "Moonbeam v3"
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "1893344556688",
+            "title": "no params piece",
+            "prompts": null,
+            "authorName": "quietkid",
+            "media": {"width": 512, "height": 512, "urls": [{"variant": "PUBLIC", "url": "https://images-ng.pixai.art/images/orig/1894.png"}]}
+          }
+        }
+      ]
+    }
+  }
+}

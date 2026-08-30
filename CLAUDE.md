@@ -115,4 +115,8 @@ Dockerfile docker-compose.yml unraid-template.xml pricing.json .env.example
 - D44: Time in DB = UTC ISO strings via SQLAlchemy DateTime(timezone=True); `TZ` env honored for APScheduler display only.
 - D45: Deleting a post removes DB row + media files; collection covers fall back to next newest member.
 
-*(append new decisions here as D46, D47, …)*
+- D46: The remote build environment's egress proxy blocks all art-site hosts (403 CONNECT even to civitai.com — verified via `$HTTPS_PROXY/__agentproxy/status`, policy denial). Consequences: (a) Tier 2 adapters are built against fixture JSON encoding the sites' known internal API shapes with deliberately defensive multi-shape parsers; (b) the Phase 10 "live Civitai smoke test" runs the full Docker stack against a local Civitai API stand-in (same wire format), and true live verification is a documented first-boot step for the user's own network (their Unraid has open egress). Never "fix" scrape failures in this sandbox by weakening adapters — the code targets the real sites.
+- D47: Tier-2 media downloads reuse the login session: BrowserAdapter.make_client() loads cookies out of the site's Playwright storage_state JSON into the httpx client jar.
+- D48: crawl4ai runner bridge: sync `fetch_recent` → `asyncio.run()` of one `arun()` per run inside the scheduler's worker thread; response bodies captured via `on_page_context_created` hook attaching `page.on("response")` (capture_network_requests alone doesn't keep bodies). 429/503 → exponential backoff persisted in ScraperState.state["backoff_until"].
+
+*(append new decisions here as D49, D50, …)*

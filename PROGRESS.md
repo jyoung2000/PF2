@@ -52,14 +52,14 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 4.8 Phase gate; commit `phase-4 complete`.
 
 ## Phase 5 — Tier 2 browser adapters
-- [ ] 5.1 browser_base.py: crawl4ai runner (stealth, rate limiter, network capture, storage_state, one-at-a-time), lazy imports, session status (valid/expired/missing). ✓: unit tests with crawl4ai mocked.
-- [ ] 5.2 scripts/capture_login.py (headed login → storage_state export). ✓: script runs `--help`; manual-use documented.
-- [ ] 5.3 Midjourney adapter (VirtualScroll, intercept JSON, requires session). ✓: parser tests on fixture JSON.
-- [ ] 5.4 TensorArt adapter (network capture JSON). ✓: parser tests on fixture JSON.
-- [ ] 5.5 SeaArt adapter. ✓: parser fixture tests.
-- [ ] 5.6 PixAI adapter. ✓: parser fixture tests.
-- [ ] 5.7 GUI: session status per site, experimental badges, graceful degradation. ✓: manual smoke w/o sessions.
-- [ ] 5.8 Phase gate; commit `phase-5 complete`.
+- [x] 5.1 browser_base.py: crawl4ai runner (stealth, rate limiter, network capture, storage_state, one-at-a-time), lazy imports, session status (valid/expired/missing). ✓: unit tests with crawl4ai mocked.
+- [x] 5.2 scripts/capture_login.py (headed login → storage_state export). ✓: script runs `--help`; manual-use documented.
+- [x] 5.3 Midjourney adapter (VirtualScroll, intercept JSON, requires session). ✓: parser tests on fixture JSON.
+- [x] 5.4 TensorArt adapter (network capture JSON). ✓: parser tests on fixture JSON.
+- [x] 5.5 SeaArt adapter. ✓: parser fixture tests.
+- [x] 5.6 PixAI adapter. ✓: parser fixture tests.
+- [x] 5.7 GUI: session status per site, experimental badges, graceful degradation. ✓: manual smoke w/o sessions.
+- [x] 5.8 Phase gate; commit `phase-5 complete`.
 
 ## Phase 6 — knowledge engine
 - [ ] 6.1 Write foundation.md (prompt anatomy, shots/angles/movement, composition, lighting, color, styles, motion/pacing, audio cues, consistency incl. seeds/srefs/LoRAs, negative prompting, cinematic heuristics). ✓: file ships, <16KB, copied to DATA_DIR on boot.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 5, task 5.1 (browser_base).
+Phase 6, task 6.1 (foundation.md).

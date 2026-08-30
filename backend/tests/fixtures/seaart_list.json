@@ -1,0 +1,35 @@
+{
+  "status": {"code": 200},
+  "data": {
+    "items": [
+      {
+        "id": "cqk88aa11",
+        "create_time": "2026-08-29T15:11:00Z",
+        "is_nsfw": false,
+        "author": {"name": "driftline"},
+        "banner": {
+          "url": "https://cdn.seaart.me/artworks/cqk88aa11/hd.webp",
+          "width": 1024,
+          "height": 1536
+        },
+        "meta": {
+          "prompt": "bioluminescent tidepool macro, glassy reflections",
+          "negative_prompt": "blurry",
+          "model": "SDXL DreamShaper",
+          "sampler_name": "DPM++ 2M",
+          "seed": 91442,
+          "steps": 30,
+          "cfg_scale": 7
+        }
+      },
+      {
+        "id": "cqk88bb22",
+        "create_time": 1756479600,
+        "author": {"nick_name": "mirrorfall"},
+        "banner": {"url": "https://cdn.seaart.me/artworks/cqk88bb22/loop.mp4", "width": 720, "height": 720},
+        "meta": {"prompt": "seamless loop of ink blooming in water", "model_no": "kling-1.6"},
+        "is_video": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "postId": "882299110044",
+        "title": "Chrome Oni",
+        "createdTime": "2026-08-29T16:20:00Z",
+        "isNsfw": false,
+        "user": {"username": "voidbloom"},
+        "images": [
+          {
+            "id": "img-1",
+            "url": "https://image.tensorartassets.com/posts/882299110044/main.webp",
+            "width": 832,
+            "height": 1216
+          }
+        ],
+        "diffusionInfo": {
+          "prompt": "chrome oni mask, wet market neon, 85mm, hyperdetailed",
+          "negativePrompt": "lowres, extra fingers",
+          "models": [
+            {"type": "CHECKPOINT", "label": "Illustrious XL v1.0"},
+            {"type": "LORA", "label": "NeonRim v2"}
+          ],
+          "samplerName": "Euler a",
+          "seed": 44821,
+          "steps": 26,
+          "cfgScale": 5.5
+        }
+      },
+      {
+        "postId": "882299110055",
+        "createdTime": 1756483200000,
+        "user": {"nickName": "papercut"},
+        "images": [
+          {
+            "id": "img-2",
+            "url": "https://image.tensorartassets.com/posts/882299110055/clip.mp4",
+            "width": 720,
+            "height": 1280,
+            "isVideo": true
+          }
+        ],
+        "diffusionInfo": {
+          "prompt": "paper cutout ocean waves, stop motion timelapse",
+          "models": [{"type": "CHECKPOINT", "label": "Wan 2.2 T2V"}]
+        }
+      },
+      {"postId": "brokenNoImages", "images": []}
+    ]
+  }
+}
