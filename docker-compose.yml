@@ -1,0 +1,18 @@
+services:
+  promptforge:
+    build: .
+    image: promptforge:latest
+    container_name: promptforge
+    ports:
+      - "5643:5643"
+    volumes:
+      - ./data:/data
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - PUID=${PUID:-99}
+      - PGID=${PGID:-100}
+      - TZ=${TZ:-America/New_York}
+    shm_size: "1gb"          # Chromium crashes without it
+    restart: unless-stopped

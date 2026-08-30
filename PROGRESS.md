@@ -94,14 +94,14 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 8.7 Phase gate; commit `phase-8 complete`.
 
 ## Phase 9 — companion app + Unraid packaging + Discord rules panel
-- [ ] 9.1 companion server side: pairing (code issue/verify TTL/single-use, token sha256, list/revoke), WS hub (auth, hello/models, request/response, heartbeat), llm_jobs queue + drain on reconnect + cloud fallback toggle. ✓: pytest incl. bad-token reject, queue+drain.
-- [ ] 9.2 llm/companion_client.py implements LLM interface via hub. ✓: mocked-hub test.
-- [ ] 9.3 companion desktop app: ws client, ollama proxy (tags/generate/chat ONLY), tray UX (pystray; --headless), start-with-Windows toggle, mini log, reconnect w/ backoff. ✓: pytest against mocked ollama + real server TestClient/live WS.
-- [ ] 9.4 Packaging: PyInstaller spec + build_companion.ps1 + GH Actions workflow; Settings serves source zip download + pairing UI w/ live status. ✓: zip download works; exe build documented (deferred: no Windows in build env — D8).
-- [ ] 9.5 Unraid: unraid-template.xml (port 5643, /data→/mnt/user/appdata/promptforge, icon, description), PUID/PGID/TZ entrypoint handling, idle-RAM check. ✓: template validates (xmllint), entrypoint chowns as PUID.
+- [x] 9.1 companion server side: pairing (code issue/verify TTL/single-use, token sha256, list/revoke), WS hub (auth, hello/models, request/response, heartbeat), llm_jobs queue + drain on reconnect + cloud fallback toggle. ✓: pytest incl. bad-token reject, queue+drain.
+- [x] 9.2 llm/companion_client.py implements LLM interface via hub. ✓: mocked-hub test.
+- [x] 9.3 companion desktop app: ws client, ollama proxy (tags/generate/chat ONLY), tray UX (pystray; --headless), start-with-Windows toggle, mini log, reconnect w/ backoff. ✓: pytest against mocked ollama + real server TestClient/live WS.
+- [x] 9.4 Packaging: PyInstaller spec + build_companion.ps1 + GH Actions workflow; Settings serves source zip download + pairing UI w/ live status. ✓: zip download works; exe build documented (deferred: no Windows in build env — D8).
+- [x] 9.5 Unraid: unraid-template.xml (port 5643, /data→/mnt/user/appdata/promptforge, icon, description), PUID/PGID/TZ entrypoint handling, idle-RAM check. ✓: template validates (xmllint), entrypoint chowns as PUID.
 - [x] 9.6 (done early, Phase 4) Discord "What gets posted" rules panel: modes, filters, delivery (individual/digest), channel routing, throttle, 24h preview endpoint. ✓: rules engine tests every mode+filter+routing+digest+throttle; preview test.
-- [ ] 9.7 Rules UI panel in Settings→Discord. ✓: manual smoke.
-- [ ] 9.8 Phase gate; commit `phase-9 complete`.
+- [x] 9.7 Rules UI panel in Settings→Discord. ✓: manual smoke.
+- [x] 9.8 Phase gate; commit `phase-9 complete`.
 
 ## Phase 10 — quality bar
 - [ ] 10.1 Full pytest suite green, no skips-as-workaround, no xfail dodges. ✓: `pytest -q` all pass.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 9, task 9.1 (companion server side).
+Phase 10 — quality bar (docker build, smoke, README).

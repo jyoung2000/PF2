@@ -30,3 +30,6 @@ companion/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Companion pairing token (never commit)
+companion/companion_token.json

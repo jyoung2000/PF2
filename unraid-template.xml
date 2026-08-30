@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>PromptForge</Name>
+  <Repository>promptforge:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/jyoung2000/pf2</Support>
+  <Project>https://github.com/jyoung2000/pf2</Project>
+  <Overview>PromptForge — AI prompt intelligence, library &amp; generation studio. Scrapes AI-art galleries (Civitai, Lexica, Midjourney, TensorArt, ...), curates a Pinterest-style prompt library, learns per-model prompting knowledge, generates via fal.ai/Replicate/WaveSpeed with price-aware routing, and syncs to Baserow/Discord. Pairs with a desktop companion app to use your PC's GPU (Ollama) for free AI analysis. WebUI on port 5643.</Overview>
+  <Category>MediaApp:Photos Productivity Tools:</Category>
+  <WebUI>http://[IP]:[PORT:5643]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/jyoung2000/pf2/main/frontend/public/icon.png</Icon>
+  <ExtraParams>--shm-size=1g</ExtraParams>
+  <PostArgs/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="5643" Default="5643" Mode="tcp" Description="PromptForge web interface" Type="Port" Display="always" Required="true" Mask="false">5643</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/promptforge" Mode="rw" Description="Database, media library, knowledge files, login sessions" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/promptforge</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="File owner user id (99 = nobody)" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="File owner group id (100 = users)" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="TZ" Target="TZ" Default="America/New_York" Mode="" Description="Timezone" Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
+  <Config Name="Civitai API Key" Target="CIVITAI_API_KEY" Default="" Mode="" Description="Optional — higher rate limits + NSFW. Can also be set later in the GUI." Type="Variable" Display="always" Required="false" Mask="true"/>
+</Container>
