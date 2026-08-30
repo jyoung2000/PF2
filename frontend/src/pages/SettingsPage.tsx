@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BaserowCard, DiscordCard } from '../components/IntegrationCards'
+import { KnowledgeCard } from '../components/KnowledgeCard'
 import { api } from '../api'
 import { Field, NumberSetting, Section, TextSetting, ToggleSetting } from '../components/SettingsKit'
 import { ConfirmModal, Spinner } from '../components/Primitives'
@@ -228,6 +229,7 @@ function IntegrationsSections({
   const { data, reload } = useFetch(() => api.get<IntegrationStatuses>('/api/integrations/status'))
   return (
     <>
+      <KnowledgeCard settings={settings} save={save} />
       <BaserowCard settings={settings} save={save} status={data?.baserow} reloadStatus={reload} />
       <DiscordCard settings={settings} save={save} status={data?.discord} reloadStatus={reload} />
     </>

@@ -62,16 +62,16 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 5.8 Phase gate; commit `phase-5 complete`.
 
 ## Phase 6 — knowledge engine
-- [ ] 6.1 Write foundation.md (prompt anatomy, shots/angles/movement, composition, lighting, color, styles, motion/pacing, audio cues, consistency incl. seeds/srefs/LoRAs, negative prompting, cinematic heuristics). ✓: file ships, <16KB, copied to DATA_DIR on boot.
-- [ ] 6.2 llm/client.py interface + factory + MockLLM + anthropic/openai/ollama clients + budget guard (D12) + usage counter. ✓: mocked tests; budget respected.
-- [ ] 6.3 stats.py deterministic layer: term/descriptor freq, length dist, param histograms per family, updated on every ingest. ✓: pytest exact numbers.
-- [ ] 6.4 files.py: knowledge md read/write, YAML frontmatter, 16KB cap, section merge; models/{family}.md auto-created on first sighting. ✓: pytest (create-on-first-sight, update-in-place, cap enforced).
-- [ ] 6.5 engine.py: scheduled learning pass (batch ≤50/family), generation-event learning, prompt-cluster distillation into workflow notes. ✓: mocked-LLM tests.
-- [ ] 6.6 techniques.py taxonomy + deterministic keyword pass + LLM refinement; technique facet in search API. ✓: pytest.
-- [ ] 6.7 styles/{collection}.md profiles built/refreshed on demand + on collection change. ✓: mocked tests.
-- [ ] 6.8 Knowledge packs .pfpack export/import (merge newer-wins, logged). ✓: round-trip test identical.
-- [ ] 6.9 Knowledge API + Settings UI (LLM provider picker + test, budget, usage counter) + models page knowledge view. ✓: pytest + manual.
-- [ ] 6.10 Phase gate; commit `phase-6 complete`.
+- [x] 6.1 Write foundation.md (prompt anatomy, shots/angles/movement, composition, lighting, color, styles, motion/pacing, audio cues, consistency incl. seeds/srefs/LoRAs, negative prompting, cinematic heuristics). ✓: file ships, <16KB, copied to DATA_DIR on boot.
+- [x] 6.2 llm/client.py interface + factory + MockLLM + anthropic/openai/ollama clients + budget guard (D12) + usage counter. ✓: mocked tests; budget respected.
+- [x] 6.3 stats.py deterministic layer: term/descriptor freq, length dist, param histograms per family, updated on every ingest. ✓: pytest exact numbers.
+- [x] 6.4 files.py: knowledge md read/write, YAML frontmatter, 16KB cap, section merge; models/{family}.md auto-created on first sighting. ✓: pytest (create-on-first-sight, update-in-place, cap enforced).
+- [x] 6.5 engine.py: scheduled learning pass (batch ≤50/family), generation-event learning, prompt-cluster distillation into workflow notes. ✓: mocked-LLM tests.
+- [x] 6.6 techniques.py taxonomy + deterministic keyword pass + LLM refinement; technique facet in search API. ✓: pytest.
+- [x] 6.7 styles/{collection}.md profiles built/refreshed on demand + on collection change. ✓: mocked tests.
+- [x] 6.8 Knowledge packs .pfpack export/import (merge newer-wins, logged). ✓: round-trip test identical.
+- [x] 6.9 Knowledge API + Settings UI (LLM provider picker + test, budget, usage counter) + models page knowledge view. ✓: pytest + manual.
+- [x] 6.10 Phase gate; commit `phase-6 complete`.
 
 ## Phase 7 — Prompt Studio
 - [ ] 7.1 template_gen.py: style profile → template (schema_json slots from learned vocab, text_template, ref_slots, recommended_model); refresh on profile update. ✓: mocked tests.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 6, task 6.1 (foundation.md).
+Phase 7, task 7.1 (template generation).
