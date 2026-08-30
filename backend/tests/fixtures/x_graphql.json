@@ -1,0 +1,246 @@
+{
+  "data": {
+    "search_by_raw_query": {
+      "search_timeline": {
+        "timeline": {
+          "instructions": [
+            {
+              "type": "TimelineAddEntries",
+              "entries": [
+                {
+                  "entryId": "tweet-1960000000000000001",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000001",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "auroraforge", "name": "Aurora Forge"}}}},
+                          "legacy": {
+                            "full_text": "new one tonight 🌊\n\nPrompt: a lighthouse keeper wading through bioluminescent surf, hand-held lantern, 85mm, volumetric fog\n\nNegative: blurry, text\n#flux #AIart https://t.co/abc123",
+                            "created_at": "Sat Aug 30 18:02:11 +0000 2025",
+                            "favorite_count": 812, "retweet_count": 141, "reply_count": 23, "quote_count": 9,
+                            "possibly_sensitive": false,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "photo", "id_str": "m1",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXaaa111.jpg",
+                                 "original_info": {"width": 1664, "height": 2432}}
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000002",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000002",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "motionmuse", "name": "Motion Muse"}}}},
+                          "legacy": {
+                            "full_text": "kling 2.1 handles water physics so well — orbit shot around a glass koi pond, golden hour",
+                            "created_at": "Sat Aug 30 17:40:00 +0000 2025",
+                            "favorite_count": 2405, "retweet_count": 512, "reply_count": 88, "quote_count": 41,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "video", "id_str": "m2",
+                                 "media_url_https": "https://pbs.twimg.com/ext_tw_video_thumb/222/pu/img/th.jpg",
+                                 "original_info": {"width": 1280, "height": 720},
+                                 "video_info": {"variants": [
+                                   {"content_type": "application/x-mpegURL", "url": "https://video.twimg.com/ext_tw_video/222/pu/pl/master.m3u8"},
+                                   {"content_type": "video/mp4", "bitrate": 632000, "url": "https://video.twimg.com/ext_tw_video/222/pu/vid/avc1/480x270/low.mp4"},
+                                   {"content_type": "video/mp4", "bitrate": 2176000, "url": "https://video.twimg.com/ext_tw_video/222/pu/vid/avc1/1280x720/high.mp4"}
+                                 ]}}
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000003",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000003",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "replyguy", "name": "Reply Guy"}}}},
+                          "legacy": {
+                            "full_text": "@auroraforge this is stunning! what sampler?",
+                            "created_at": "Sat Aug 30 18:10:00 +0000 2025",
+                            "in_reply_to_status_id_str": "1960000000000000001",
+                            "favorite_count": 3, "retweet_count": 0, "reply_count": 1, "quote_count": 0,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "photo", "id_str": "m3",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXccc333.jpg",
+                                 "original_info": {"width": 1024, "height": 1024}}
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000004",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000004",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "papercut_ai", "name": "Papercut"}}}},
+                          "legacy": {
+                            "full_text": "both frames from one run:\n```\npapercraft diorama of a night train crossing a gorge, layered card stock, warm interior light\n```\n#midjourney v7",
+                            "created_at": "Sat Aug 30 16:05:00 +0000 2025",
+                            "favorite_count": 96, "retweet_count": 12, "reply_count": 4, "quote_count": 1,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "photo", "id_str": "m4a",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXddd444.jpg",
+                                 "original_info": {"width": 1456, "height": 816}},
+                                {"type": "photo", "id_str": "m4b",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXddd445.jpg",
+                                 "original_info": {"width": 1456, "height": 816}}
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000005",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000005",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "quietposter", "name": "Quiet"}}}},
+                          "legacy": {
+                            "full_text": "sparkling water on the influx of tourists, shot on my phone lol",
+                            "created_at": "Sat Aug 30 15:00:00 +0000 2025",
+                            "favorite_count": 2, "retweet_count": 0, "reply_count": 0, "quote_count": 0,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "photo", "id_str": "m5",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXeee555.jpg",
+                                 "original_info": {"width": 800, "height": 600}}
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000006",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000006",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "rt_account", "name": "RT Bot"}}}},
+                          "legacy": {
+                            "full_text": "RT @seedream_fan: this model is unreal",
+                            "created_at": "Sat Aug 30 14:00:00 +0000 2025",
+                            "favorite_count": 0, "retweet_count": 0, "reply_count": 0, "quote_count": 0,
+                            "retweeted_status_result": {
+                              "result": {
+                                "rest_id": "1959999999000000001",
+                                "core": {"user_results": {"result": {"legacy": {"screen_name": "seedream_fan", "name": "Seedream Fan"}}}},
+                                "legacy": {
+                                  "full_text": "seedream 4 nailed the typography test.\n\nPrompt: vintage travel poster for a floating city, art deco lettering reading \"NIMBUS\"",
+                                  "created_at": "Sat Aug 30 13:00:00 +0000 2025",
+                                  "favorite_count": 1500, "retweet_count": 260, "reply_count": 31, "quote_count": 12,
+                                  "extended_entities": {
+                                    "media": [
+                                      {"type": "photo", "id_str": "m6",
+                                       "media_url_https": "https://pbs.twimg.com/media/GXfff666.jpg",
+                                       "original_info": {"width": 1024, "height": 1536}}
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-1960000000000000007",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000007",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "curator_x", "name": "Curator"}}}},
+                          "legacy": {
+                            "full_text": "sharing because the prompt is a masterclass 👇",
+                            "created_at": "Sat Aug 30 12:30:00 +0000 2025",
+                            "favorite_count": 310, "retweet_count": 55, "reply_count": 3, "quote_count": 2,
+                            "extended_entities": {
+                              "media": [
+                                {"type": "photo", "id_str": "m7",
+                                 "media_url_https": "https://pbs.twimg.com/media/GXggg777.jpg?format=jpg",
+                                 "original_info": {"width": 832, "height": 1216}}
+                              ]
+                            }
+                          },
+                          "quoted_status_result": {
+                            "result": {
+                              "rest_id": "1959999999000000002",
+                              "core": {"user_results": {"result": {"legacy": {"screen_name": "orig_artist", "name": "Orig"}}}},
+                              "legacy": {
+                                "full_text": "Prompt: brutalist cathedral interior flooded with amber dust light, lone figure for scale, 24mm",
+                                "created_at": "Sat Aug 30 11:00:00 +0000 2025",
+                                "favorite_count": 90, "retweet_count": 10, "reply_count": 2, "quote_count": 0
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "tweet-textonly",
+                  "content": {
+                    "itemContent": {
+                      "tweet_results": {
+                        "result": {
+                          "rest_id": "1960000000000000008",
+                          "core": {"user_results": {"result": {"legacy": {"screen_name": "no_media", "name": "Text Only"}}}},
+                          "legacy": {
+                            "full_text": "hot take: prompts are the new sketchbooks",
+                            "created_at": "Sat Aug 30 10:00:00 +0000 2025",
+                            "favorite_count": 40, "retweet_count": 2, "reply_count": 8, "quote_count": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "entryId": "cursor-bottom",
+                  "content": {"cursorType": "Bottom", "value": "scroll:deadbeef"}
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

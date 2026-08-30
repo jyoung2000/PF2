@@ -86,7 +86,7 @@ export interface ScraperInfo {
   last_new: number
   next_run_at: string | null
   running: boolean
-  session_status?: 'valid' | 'missing' | 'unknown' | null
+  session_status?: 'valid' | 'expired' | 'missing' | 'unknown' | null
 }
 
 export interface Suggestions {

@@ -8,7 +8,8 @@ from .base import ScrapedPost, SourceAdapter  # noqa: F401
 def _adapter_classes() -> list[type[SourceAdapter]]:
     from .civitai import CivitaiAdapter
     from .lexica import LexicaAdapter
-    classes: list[type[SourceAdapter]] = [CivitaiAdapter, LexicaAdapter]
+    from .x import XAdapter
+    classes: list[type[SourceAdapter]] = [CivitaiAdapter, LexicaAdapter, XAdapter]
     try:
         from .midjourney import MidjourneyAdapter
         from .tensorart import TensorArtAdapter

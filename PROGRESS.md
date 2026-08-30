@@ -115,13 +115,13 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Phase X1 — X.com adapter (freeform parsing, browser-based)
-- [ ] X1.1 capture_login.py `x` target; XAdapter skeleton (BrowserAdapter, requires_auth, session status, GraphQL wants_response). ✓: session status flows to /api/scrapers.
-- [ ] X1.2 x_text.py deterministic prompt/model extraction (labels, fences, quotes, model keywords, hashtags, t.co strip, confidence high/low). ✓: unit tests hits+misses.
-- [ ] X1.3 GraphQL tweet parsing: walk timeline JSON → media variants (highest quality: orig photos, top-bitrate mp4), text, author, engagement, reply/quote handling; one Post per media item (tweet id dedupe key). ✓: fixture tests.
-- [ ] X1.4 Scope controls (settings): search terms, max/run, min engagement, media filter, skip replies; fetch_recent rotates terms via X search crawl. ✓: filter tests.
-- [ ] X1.5 Low-confidence prompts weighted down by knowledge engine (stats+analysis skip low-conf text; post still counted). ✓: pytest.
-- [ ] X1.6 Registry + Settings UI (X source card: session status, scope controls); ToS note in README. ✓: /api/scrapers lists x; manual smoke.
-- [ ] X1.7 Phase gate: full suite green; commit `phase-X1 complete`.
+- [x] X1.1 capture_login.py `x` target; XAdapter skeleton (BrowserAdapter, requires_auth, session status, GraphQL wants_response). ✓: session status flows to /api/scrapers.
+- [x] X1.2 x_text.py deterministic prompt/model extraction (labels, fences, quotes, model keywords, hashtags, t.co strip, confidence high/low). ✓: unit tests hits+misses.
+- [x] X1.3 GraphQL tweet parsing: walk timeline JSON → media variants (highest quality: orig photos, top-bitrate mp4), text, author, engagement, reply/quote handling; one Post per media item (tweet id dedupe key). ✓: fixture tests.
+- [x] X1.4 Scope controls (settings): search terms, max/run, min engagement, media filter, skip replies; fetch_recent rotates terms via X search crawl. ✓: filter tests.
+- [x] X1.5 Low-confidence prompts weighted down by knowledge engine (stats+analysis skip low-conf text; post still counted). ✓: pytest.
+- [x] X1.6 Registry + Settings UI (X source card: session status, scope controls); ToS note in README. ✓: /api/scrapers lists x; manual smoke.
+- [x] X1.7 Phase gate: full suite green; commit `phase-X1 complete`.
 
 ## Phase X2 — follow list / page monitoring
 - [ ] X2.1 monitored_accounts table + handle normalization (@handle / bare / profile URL, bulk paste). ✓: unit tests.
@@ -148,4 +148,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] X4.5 Final commit `phase-X4 complete — X feature v1`.
 
 ## Next up
-Phase X1, task X1.1.
+Phase X2, task X2.1 (monitored_accounts).

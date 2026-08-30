@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 SITES = {
+    "x": "https://x.com/login",
     "midjourney": "https://www.midjourney.com/explore",
     "tensorart": "https://tensor.art/",
     "seaart": "https://www.seaart.ai/",

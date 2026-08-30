@@ -42,6 +42,8 @@ def _on_post_ingested(post_id: int) -> None:
             post.technique_tags = sorted(set((post.technique_tags or []) + detected))
         family = post.model_family
         prompt, params, media_type = post.prompt, dict(post.params or {}), post.media_type
+        if params.get("prompt_confidence") == "low":
+            prompt = None  # freeform low-confidence text never pollutes the vocabulary (D51)
     if family:
         data = stats.update_family_stats(family, prompt, params, media_type, post_id)
         files.update_stats_block(family, stats.render_stats_section(data))
@@ -117,12 +119,22 @@ def analyze_family(family: str, batch: int = ANALYSIS_BATCH) -> int:
     data = stats.load_stats(family)
     last_id = int(data.get("last_analyzed_post_id", 0))
     with session_scope() as s:
-        rows = s.execute(
-            select(Post.id, Post.prompt, Post.media_type, Post.favorite)
+        raw_rows = s.execute(
+            select(Post.id, Post.prompt, Post.media_type, Post.favorite,
+                   Post.params)
             .where(Post.model_family == family, Post.id > last_id,
                    Post.prompt.is_not(None))
             .order_by(Post.id).limit(batch)).all()
+    # low-confidence freeform prompts (X posts) are excluded from analysis but
+    # still advance the watermark (D51)
+    rows = [(pid, prompt, mt, fav) for pid, prompt, mt, fav, params in raw_rows
+            if not (isinstance(params, dict)
+                    and params.get("prompt_confidence") == "low")]
+    if not raw_rows:
+        return 0
     if not rows:
+        data["last_analyzed_post_id"] = max(pid for pid, *_ in raw_rows)
+        stats.save_stats(family, data)
         return 0
 
     prompts_block = "\n".join(
@@ -156,7 +168,7 @@ Update the model knowledge. Reply with JSON:
 Allowed technique slugs: {', '.join(techniques.all_slugs())}"""
 
     raw = _llm("model-analysis", SYSTEM_PROMPT, user)
-    max_seen = max(pid for pid, *_ in rows)
+    max_seen = max(pid for pid, *_ in raw_rows)
     if raw is None:
         # deterministic-only progress: cluster notes still get recorded
         notes = _cluster_notes([p for _, p, _, _ in rows])

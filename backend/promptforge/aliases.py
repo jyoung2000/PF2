@@ -46,6 +46,12 @@ DEFAULT_RULES: list[tuple[str, str]] = [
     ("kolors", "kolors"),
     ("playground", "playground"),
     ("hidream", "hidream"),
+    ("grok imagine", "grok-imagine"),
+    ("grok image", "grok-imagine"),
+    ("aurora", "grok-imagine"),
+    ("nano banana", "nano-banana"),
+    ("nanobanana", "nano-banana"),
+    ("firefly", "firefly"),
     ("lumina", "lumina"),
     ("pixart", "pixart"),
     ("sana", "sana"),
@@ -86,6 +92,8 @@ DISPLAY_NAMES = {
     "ltx-video": "LTX Video", "cogvideo": "CogVideo",
     "animatediff": "AnimateDiff", "svd": "SVD",
     "stable-cascade": "Stable Cascade",
+    "grok-imagine": "Grok Imagine", "nano-banana": "Nano Banana",
+    "firefly": "Firefly",
 }
 
 _clean_re = re.compile(r"[^a-z0-9]+")

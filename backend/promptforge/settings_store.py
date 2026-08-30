@@ -19,7 +19,7 @@ UNCHANGED = "__unchanged__"
 SECRET_KEYS = {
     "civitai_api_key", "anthropic_api_key", "openai_api_key",
     "fal_api_key", "replicate_api_token", "wavespeed_api_key",
-    "baserow_token", "discord_bot_token",
+    "baserow_token", "discord_bot_token", "grok_api_key",
 }
 
 # setting key -> env var that provides its default
@@ -48,6 +48,7 @@ ENV_MAP = {
     "video_crf": "PF_VIDEO_CRF",
     "video_max_height": "PF_VIDEO_MAX_HEIGHT",
     "keep_originals": "PF_KEEP_ORIGINALS",
+    "grok_api_key": "GROK_API_KEY",
 }
 
 DEFAULTS: dict[str, Any] = {
@@ -80,6 +81,25 @@ DEFAULTS: dict[str, Any] = {
     "video_max_height": 1080,
     "keep_originals": False,
     "nsfw_default_show": False,       # D40
+    # X.com source scope (Phase X1)
+    "x_search_terms": "#midjourney, #AIart, #aivideo, #flux",
+    "x_max_per_run": 40,
+    "x_min_engagement": 0,
+    "x_media_filter": "both",         # images | videos | both
+    "x_skip_replies": True,
+    # Monitoring defaults (Phase X2)
+    "monitor_default_interval": 60,   # minutes
+    "monitor_default_tag": "",
+    # Grok / xAI (Phase X3)
+    "grok_api_key": "",
+    "grok_base_url": "https://api.x.ai/v1",
+    "grok_model": "grok-3-mini",
+    "grok_discover_enabled": True,
+    "grok_curate_enabled": False,
+    "grok_curate_daily_budget": 100,
+    "grok_digest_enabled": False,
+    "grok_digest_hours": 24,
+    "grok_digest_to_discord": False,
     "model_aliases": {},              # user rules: {"substring": "family"}
     "auto_add_generated_to_collection": True,
 }

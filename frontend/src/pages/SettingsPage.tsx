@@ -3,6 +3,7 @@ import { BaserowCard, DiscordCard } from '../components/IntegrationCards'
 import { KnowledgeCard } from '../components/KnowledgeCard'
 import { ProvidersCard } from '../components/ProvidersCard'
 import { CompanionCard } from '../components/CompanionCard'
+import { GrokCard, XSourceCard } from '../components/XGrokCard'
 import { api } from '../api'
 import { Field, NumberSetting, Section, TextSetting, ToggleSetting } from '../components/SettingsKit'
 import { ConfirmModal, Spinner } from '../components/Primitives'
@@ -234,6 +235,8 @@ function IntegrationsSections({
       <KnowledgeCard settings={settings} save={save} />
       <ProvidersCard settings={settings} save={save} />
       <CompanionCard settings={settings} save={save} />
+      <XSourceCard settings={settings} save={save} />
+      <GrokCard settings={settings} save={save} />
       <BaserowCard settings={settings} save={save} status={data?.baserow} reloadStatus={reload} />
       <DiscordCard settings={settings} save={save} status={data?.discord} reloadStatus={reload} />
     </>
