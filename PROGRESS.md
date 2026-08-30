@@ -74,15 +74,15 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 6.10 Phase gate; commit `phase-6 complete`.
 
 ## Phase 7 — Prompt Studio
-- [ ] 7.1 template_gen.py: style profile → template (schema_json slots from learned vocab, text_template, ref_slots, recommended_model); refresh on profile update. ✓: mocked tests.
-- [ ] 7.2 Templates API CRUD + render/assemble endpoint (slots→prompt). ✓: pytest round-trip schema→form→prompt.
-- [ ] 7.3 Template export/import JSON + written-text format. ✓: round-trip identical test.
-- [ ] 7.4 Studio UI: Templates tab (cards by collection, visual form from schema_json, ref-image slots w/ drag-drop, live preview, Copy/Save/Generate). ✓: manual smoke.
-- [ ] 7.5 Enhance: backend (foundation+model+style context, before/after + why-notes) + UI tab w/ diff highlights; 409 when no LLM (D41). ✓: mocked tests + manual.
-- [ ] 7.6 Saved prompts: API (save/star/search across saved+scraped, filters) + UI tab. ✓: pytest.
-- [ ] 7.7 reference_images: upload/dedupe(sha256)/roles, linked to saved prompts + generations. ✓: pytest.
-- [ ] 7.8 Template editor UI (slots/options/defaults/skeleton/refs/model). ✓: manual smoke.
-- [ ] 7.9 Phase gate; commit `phase-7 complete`.
+- [x] 7.1 template_gen.py: style profile → template (schema_json slots from learned vocab, text_template, ref_slots, recommended_model); refresh on profile update. ✓: mocked tests.
+- [x] 7.2 Templates API CRUD + render/assemble endpoint (slots→prompt). ✓: pytest round-trip schema→form→prompt.
+- [x] 7.3 Template export/import JSON + written-text format. ✓: round-trip identical test.
+- [x] 7.4 Studio UI: Templates tab (cards by collection, visual form from schema_json, ref-image slots w/ drag-drop, live preview, Copy/Save/Generate). ✓: manual smoke.
+- [x] 7.5 Enhance: backend (foundation+model+style context, before/after + why-notes) + UI tab w/ diff highlights; 409 when no LLM (D41). ✓: mocked tests + manual.
+- [x] 7.6 Saved prompts: API (save/star/search across saved+scraped, filters) + UI tab. ✓: pytest.
+- [x] 7.7 reference_images: upload/dedupe(sha256)/roles, linked to saved prompts + generations. ✓: pytest.
+- [x] 7.8 Template editor UI (slots/options/defaults/skeleton/refs/model). ✓: manual smoke.
+- [x] 7.9 Phase gate; commit `phase-7 complete`.
 
 ## Phase 8 — Generation hub
 - [ ] 8.1 generation/base.py + fal.py + replicate_provider.py + wavespeed.py (submit/poll/download; test_connection D10). ✓: mocked tests per provider incl. error modes.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 7, task 7.1 (template generation).
+Phase 8, task 8.1 (generation providers).

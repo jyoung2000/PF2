@@ -136,6 +136,18 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
     return {"deleted": post_id}
 
 
+@router.get("/{post_id}/thumb")
+def post_thumb(post_id: int, db: Session = Depends(get_db)):
+    from fastapi.responses import FileResponse
+    post = db.get(Post, post_id)
+    if post is None or not post.thumb_path:
+        raise HTTPException(404, "No thumbnail")
+    f = get_config().data_dir / post.thumb_path
+    if not f.exists():
+        raise HTTPException(404, "Thumbnail missing on disk")
+    return FileResponse(f)
+
+
 @router.post("/{post_id}/push/{target}")
 def push_post(post_id: int, target: str, db: Session = Depends(get_db)):
     if db.get(Post, post_id) is None:
