@@ -29,17 +29,17 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 2.9 Phase gate: pytest + npm build + manual smoke; commit `phase-2 complete`.
 
 ## Phase 3 — collections, tags, scrapers dashboard, scheduler, settings, WS logs
-- [ ] 3.1 Collections API: CRUD, save/remove post, model-family scoping (block cross-family w/ clear error unless allow_mixed), covers, counts. ✓: pytest incl. scoping cases.
-- [ ] 3.2 Model collections (automatic, from alias map) + /api/models/meta (counts, first/last seen, New badge). ✓: pytest.
-- [ ] 3.3 Collections UI: index (model + user sections, mosaic covers), collection page = full gallery experience (scoped search, image/video filter, prompt-caption hover, remove-from-collection). ✓: manual smoke.
-- [ ] 3.4 Save-to-collection popover (matching-family first, inline new collection, mixed-model message). ✓: manual + API tests.
-- [ ] 3.5 Tags API (add/remove, autocomplete) wired into FTS. ✓: pytest.
-- [ ] 3.6 APScheduler: per-adapter interval jobs, one-at-a-time lock, run-now, next-run times. ✓: pytest (fake clock/short interval).
-- [ ] 3.7 WS /api/ws/logs live scraper tail via logbus. ✓: TestClient WS test.
-- [ ] 3.8 Scrapers dashboard UI: adapter cards (status/last run/items/next run/toggle/interval/run-now) + live log tail. ✓: manual smoke.
-- [ ] 3.9 Settings backend: GET/PUT with masking, storage stats endpoint, purge tool. ✓: pytest.
-- [ ] 3.10 Settings UI: scraper keys (Civitai, Lexica terms), NSFW default, compression quality, storage stats + purge. ✓: manual smoke.
-- [ ] 3.11 Phase gate; commit `phase-3 complete`.
+- [x] 3.1 Collections API: CRUD, save/remove post, model-family scoping (block cross-family w/ clear error unless allow_mixed), covers, counts. ✓: pytest incl. scoping cases.
+- [x] 3.2 Model collections (automatic, from alias map) + /api/models/meta (counts, first/last seen, New badge). ✓: pytest.
+- [x] 3.3 Collections UI: index (model + user sections, mosaic covers), collection page = full gallery experience (scoped search, image/video filter, prompt-caption hover, remove-from-collection). ✓: manual smoke.
+- [x] 3.4 Save-to-collection popover (matching-family first, inline new collection, mixed-model message). ✓: manual + API tests.
+- [x] 3.5 Tags API (add/remove, autocomplete) wired into FTS. ✓: pytest.
+- [x] 3.6 APScheduler: per-adapter interval jobs, one-at-a-time lock, run-now, next-run times. ✓: pytest (fake clock/short interval).
+- [x] 3.7 WS /api/ws/logs live scraper tail via logbus. ✓: TestClient WS test.
+- [x] 3.8 Scrapers dashboard UI: adapter cards (status/last run/items/next run/toggle/interval/run-now) + live log tail. ✓: manual smoke.
+- [x] 3.9 Settings backend: GET/PUT with masking, storage stats endpoint, purge tool. ✓: pytest.
+- [x] 3.10 Settings UI: scraper keys (Civitai, Lexica terms), NSFW default, compression quality, storage stats + purge. ✓: manual smoke.
+- [x] 3.11 Phase gate; commit `phase-3 complete`.
 
 ## Phase 4 — Baserow + Discord (guided setup + test flows)
 - [ ] 4.1 Baserow client: token check, list tables, find/create PromptForge table + fields, row push w/ file upload (compressed), sync tracking. ✓: mocked-httpx tests incl. each error mode (401 token, no-perm, network).
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 3, task 3.1 (collections API).
+Phase 4, task 4.1 (Baserow client).

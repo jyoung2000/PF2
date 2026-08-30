@@ -1,6 +1,10 @@
 import { Route, Routes } from 'react-router-dom'
 import { Shell } from './components/Shell'
-import { CollectionsPage } from './pages/CollectionsPage'
+import {
+  CollectionDetailPage,
+  CollectionsPage,
+  ModelCollectionPage,
+} from './pages/CollectionsPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { ModelsPage } from './pages/ModelsPage'
 import { ScrapersPage } from './pages/ScrapersPage'
@@ -13,7 +17,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<GalleryPage />} />
         <Route path="/collections" element={<CollectionsPage />} />
-        <Route path="/collections/:id" element={<CollectionsPage />} />
+        <Route path="/collections/model/:family" element={<ModelCollectionPage />} />
+        <Route path="/collections/:id" element={<CollectionDetailPage />} />
         <Route path="/models" element={<ModelsPage />} />
         <Route path="/studio/*" element={<StudioPage />} />
         <Route path="/scrapers" element={<ScrapersPage />} />

@@ -13,6 +13,8 @@ for var in ("CIVITAI_API_KEY", "DISCORD_BOT_TOKEN", "BASEROW_TOKEN", "FAL_API_KE
             "BASEROW_URL", "BASEROW_TABLE_ID", "DISCORD_CHANNEL_ID"):
     os.environ.pop(var, None)
 
+os.environ["PF_DISABLE_SCHEDULER"] = "1"
+
 from promptforge import config as cfg_mod  # noqa: E402
 from promptforge import db as db_mod  # noqa: E402
 

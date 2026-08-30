@@ -41,3 +41,14 @@ export function formatMoney(v: number | null | undefined): string {
   if (v == null || !isFinite(v)) return '—'
   return v < 0.1 ? `$${v.toFixed(3)}` : `$${v.toFixed(2)}`
 }
+
+export function timeUntil(iso: string | null | undefined): string {
+  if (!iso) return '\u2014'
+  const then = new Date(iso).getTime()
+  if (isNaN(then)) return '\u2014'
+  const sec = (then - Date.now()) / 1000
+  if (sec <= 5) return 'due now'
+  if (sec < 60) return `in ${Math.round(sec)}s`
+  if (sec < 3600) return `in ${Math.round(sec / 60)}m`
+  return `in ${(sec / 3600).toFixed(1)}h`
+}
