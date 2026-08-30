@@ -104,15 +104,15 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 9.8 Phase gate; commit `phase-9 complete`.
 
 ## Phase 10 — quality bar
-- [ ] 10.1 Full pytest suite green, no skips-as-workaround, no xfail dodges. ✓: `pytest -q` all pass.
-- [ ] 10.2 `npm run build` clean (no TS errors); UI checked at desktop + 375px.
-- [ ] 10.3 `docker compose up --build`: healthcheck passes; `/` serves gallery; live Civitai scrape ingests real posts E2E; media compressed + thumbs; detail renders; stats populate model knowledge file; template renders form + assembles prompt.
-- [ ] 10.4 LLM live pass if key/Ollama present, else mocked verification documented.
-- [ ] 10.5 Failure paths: boot with empty .env (runs, Needs-setup states, no crash); network kill mid-scrape (job error logged+shown, app up).
-- [ ] 10.6 README.md: Unraid install path, Windows/PowerShell dev quick-start, capture_login walkthrough, companion download+pair, Baserow/Discord hookup, adapter-stub extension guide, launch checklist of what was verified.
-- [ ] 10.7 Companion verified: pairs against running container and proxies mocked Ollama (exe build deferred per D8 — source-run verified).
-- [ ] 10.8 Design polish pass (empty states, focus, motion restraint, no ad-hoc hex). 
+- [x] 10.1 Full pytest suite green, no skips-as-workaround, no xfail dodges. ✓: `pytest -q` all pass.
+- [x] 10.2 `npm run build` clean (no TS errors); UI checked at desktop + 375px.
+- [x] 10.3 (via sandbox image variant per D50 — real Dockerfile ships unmodified) `docker compose up --build`: healthcheck passes; `/` serves gallery; live Civitai scrape ingests real posts E2E; media compressed + thumbs; detail renders; stats populate model knowledge file; template renders form + assembles prompt.
+- [x] 10.4 LLM live pass: no cloud key in build env; mocked verification in tests + REAL companion→Ollama bridge tested live (pair, proxy, offline). 
+- [x] 10.5 Failure paths: boot with empty .env (runs, Needs-setup states, no crash); network kill mid-scrape (job error logged+shown, app up).
+- [x] 10.6 README.md: Unraid install path, Windows/PowerShell dev quick-start, capture_login walkthrough, companion download+pair, Baserow/Discord hookup, adapter-stub extension guide, launch checklist of what was verified.
+- [x] 10.7 Companion verified: pairs against running container and proxies mocked Ollama (exe build deferred per D8 — source-run verified).
+- [x] 10.8 Design polish pass (empty states, focus, motion restraint, no ad-hoc hex). 
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 10 — quality bar (docker build, smoke, README).
+Nothing — v1.0 complete. Future sessions: see README "Adding a new scraper site" + CLAUDE.md conventions.
