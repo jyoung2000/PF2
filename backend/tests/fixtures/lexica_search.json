@@ -1,0 +1,34 @@
+{
+  "images": [
+    {
+      "id": "0a1b2c3d-1111-4222-8333-944455566677",
+      "gallery": "https://image.lexica.art/md/0a1b2c3d-1111-4222-8333-944455566677",
+      "src": "https://image.lexica.art/full_jpg/0a1b2c3d-1111-4222-8333-944455566677",
+      "srcSmall": "https://image.lexica.art/sm2/0a1b2c3d-1111-4222-8333-944455566677",
+      "prompt": "isometric cutaway of a cozy bookshop at night, warm lamplight, ultra detailed",
+      "width": 768,
+      "height": 1152,
+      "seed": "2905871142",
+      "grid": false,
+      "model": "lexica-aperture-v3.5",
+      "promptid": "aabbccdd-2222-4333-8444-955566677788",
+      "nsfw": false
+    },
+    {
+      "id": "1b2c3d4e-5555-4666-8777-988899900011",
+      "src": "https://image.lexica.art/full_jpg/1b2c3d4e-5555-4666-8777-988899900011",
+      "prompt": "studio product shot of a translucent mechanical watch, dark background, caustics",
+      "width": 1024,
+      "height": 1024,
+      "seed": "77413359",
+      "grid": false,
+      "model": "stable-diffusion-xl",
+      "promptid": "bbccddee-3333-4444-8555-966677788899",
+      "nsfw": false
+    },
+    {
+      "id": "broken-item-no-src",
+      "prompt": "this one has no src and must be skipped"
+    }
+  ]
+}

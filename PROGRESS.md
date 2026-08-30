@@ -9,13 +9,13 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 1.3 models.py: all tables from spec (posts, tags, post_tags, collections, collection_posts, reference_images, ref_links, saved_prompts, templates, generations, settings, companions, llm_jobs) + create_all + FTS5 DDL in fts.py. ✓: test creates schema, inserts + FTS round-trip.
 - [x] 1.4 settings_store.py: DB>env>default merge, secret masking, live updates. ✓: unit tests.
 - [x] 1.5 aliases.py: normalization + seeded defaults + user rules. ✓: unit tests (flux variants → "flux").
-- [ ] 1.6 pipeline/metadata.py: PNG text-chunk (A1111 params, ComfyUI workflow) + EXIF parse. ✓: fixture PNGs parse.
-- [ ] 1.7 pipeline/media.py: download (same-session client), compress image→WebP(q82,max2048), video→H264 CRF27 max1080p, thumbs (ffmpeg frame-grab for video), byte stats. ✓: tests with generated media; output smaller+valid; metadata extracted BEFORE compression.
-- [ ] 1.8 scrapers/base.py (SourceAdapter, ScrapedPost, registry) + pipeline/ingest.py (normalize→dedupe→download→meta→compress→store→learn hook→autopush hook). ✓: ingest test with fake adapter: dedupe works, files land in DATA_DIR.
-- [ ] 1.9 Civitai adapter (cursor pagination, meta mapping D27, video detection, ≥5m poll). ✓: parser tests on fixture JSON incl. video item + null meta.
-- [ ] 1.10 Lexica adapter (search terms from settings, graceful-down D21). ✓: parser tests on fixture JSON.
-- [ ] 1.11 Minimal API: /api/health, /api/posts (cursor, filters), /api/posts/{id} (detail incl. media URLs), /api/scrapers + run-now (sync run in thread), /media static. ✓: TestClient tests green.
-- [ ] 1.12 Phase gate: full pytest green; commit `phase-1 complete`.
+- [x] 1.6 pipeline/metadata.py: PNG text-chunk (A1111 params, ComfyUI workflow) + EXIF parse. ✓: fixture PNGs parse.
+- [x] 1.7 pipeline/media.py: download (same-session client), compress image→WebP(q82,max2048), video→H264 CRF27 max1080p, thumbs (ffmpeg frame-grab for video), byte stats. ✓: tests with generated media; output smaller+valid; metadata extracted BEFORE compression.
+- [x] 1.8 scrapers/base.py (SourceAdapter, ScrapedPost, registry) + pipeline/ingest.py (normalize→dedupe→download→meta→compress→store→learn hook→autopush hook). ✓: ingest test with fake adapter: dedupe works, files land in DATA_DIR.
+- [x] 1.9 Civitai adapter (cursor pagination, meta mapping D27, video detection, ≥5m poll). ✓: parser tests on fixture JSON incl. video item + null meta.
+- [x] 1.10 Lexica adapter (search terms from settings, graceful-down D21). ✓: parser tests on fixture JSON.
+- [x] 1.11 Minimal API: /api/health, /api/posts (cursor, filters), /api/posts/{id} (detail incl. media URLs), /api/scrapers + run-now (sync run in thread), /media static. ✓: TestClient tests green.
+- [x] 1.12 Phase gate: full pytest green; commit `phase-1 complete`.
 
 ## Phase 2 — frontend gallery + detail + search
 - [ ] 2.1 Vite+React+TS+Tailwind scaffold with design tokens (colors #0E0F12 base, accent, spacing, radius), fonts (@fontsource Inter + Space Grotesk), dark-first. ✓: `npm run build` clean.
@@ -115,4 +115,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
-Phase 1, task 1.1.
+Phase 2, task 2.1 (frontend scaffold).

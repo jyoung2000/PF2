@@ -33,3 +33,35 @@ def app_env(tmp_path):
 def db_session(app_env):
     with db_mod.session_scope() as s:
         yield s
+
+
+@pytest.fixture()
+def client(app_env):
+    """TestClient over a fresh app bound to this test's DATA_DIR."""
+    from fastapi.testclient import TestClient
+
+    from promptforge.main import create_app
+    with TestClient(create_app()) as c:
+        yield c
+
+
+def seed_post(**kw):
+    """Insert a Post row (+FTS) directly; returns the post id."""
+    from promptforge import fts
+    from promptforge.models import Post
+
+    defaults = dict(platform="civitai", media_type="image", prompt="a red fox",
+                    model_name="flux.1-dev", model_family="flux",
+                    media_path="media/civitai/x.webp",
+                    thumb_path="media/civitai/thumbs/x.webp",
+                    media_width=512, media_height=768, params={})
+    defaults.update(kw)
+    if "platform_post_id" not in defaults:
+        import uuid
+        defaults["platform_post_id"] = uuid.uuid4().hex[:12]
+    with db_mod.session_scope() as s:
+        p = Post(**defaults)
+        s.add(p)
+        s.flush()
+        fts.index_post(s, p.id, p.prompt, p.model_name, [])
+        return p.id

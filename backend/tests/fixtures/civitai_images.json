@@ -1,0 +1,71 @@
+{
+  "items": [
+    {
+      "id": 91001001,
+      "url": "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/aa11bb22-cc33-dd44-ee55-ff6677889900/width=1024/example1.jpeg",
+      "hash": "UBL_:rOpGG",
+      "width": 1024,
+      "height": 1536,
+      "nsfwLevel": 1,
+      "type": "image",
+      "createdAt": "2026-08-29T18:12:45.000Z",
+      "postId": 5551001,
+      "username": "auroraforge",
+      "baseModel": "Flux.1 D",
+      "stats": {"likeCount": 210, "heartCount": 88},
+      "meta": {
+        "prompt": "cinematic portrait of a weathered lighthouse keeper, dramatic rim lighting, 85mm lens, film grain",
+        "negativePrompt": "blurry, deformed hands, watermark",
+        "seed": 3407221156,
+        "steps": 30,
+        "sampler": "Euler a",
+        "cfgScale": 3.5,
+        "Size": "1024x1536",
+        "Model": "flux.1-dev",
+        "Clip skip": 2,
+        "resources": [
+          {"type": "lora", "name": "FilmGrainFlux", "weight": 0.7},
+          {"type": "model", "name": "flux.1-dev"}
+        ]
+      }
+    },
+    {
+      "id": 91001002,
+      "url": "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/bb22cc33-dd44-ee55-ff66-778899001122/transcode=true,width=1080/clip2.mp4",
+      "hash": "U9AB=x00Rj",
+      "width": 1080,
+      "height": 1920,
+      "nsfwLevel": 1,
+      "type": "video",
+      "createdAt": "2026-08-29T17:58:02.000Z",
+      "postId": 5551002,
+      "username": "motionmuse",
+      "baseModel": "Wan Video 2.2",
+      "meta": {
+        "prompt": "FPV drone shot racing through a slot canyon at golden hour, motion blur, dust particles",
+        "seed": 88121,
+        "steps": 25,
+        "cfgScale": 6.0,
+        "Size": "1080x1920"
+      }
+    },
+    {
+      "id": 91001003,
+      "url": "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/cc33dd44-ee55-ff66-7788-99001122aabb/width=832/mystery.jpeg",
+      "hash": "UCC9m#01x=",
+      "width": 832,
+      "height": 1216,
+      "nsfwLevel": 4,
+      "type": "image",
+      "createdAt": "2026-08-29T17:31:11.000Z",
+      "postId": 5551003,
+      "username": "no_meta_poster",
+      "baseModel": "SDXL 1.0",
+      "meta": null
+    }
+  ],
+  "metadata": {
+    "nextCursor": "91001003|2026-08-29T17:31:11.000Z",
+    "nextPage": "https://civitai.com/api/v1/images?cursor=91001003%7C2026-08-29T17%3A31%3A11.000Z&limit=100&sort=Newest"
+  }
+}
