@@ -112,7 +112,7 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] 10.6 README.md: Unraid install path, Windows/PowerShell dev quick-start, capture_login walkthrough, companion download+pair, Baserow/Discord hookup, adapter-stub extension guide, launch checklist of what was verified.
 - [x] 10.7 Companion verified: pairs against running container and proxies mocked Ollama (exe build deferred per D8 — source-run verified).
 - [x] 10.8 Design polish pass (empty states, focus, motion restraint, no ad-hoc hex). 
-- [ ] 10.9 Final commit `phase-10 complete — v1.0`.
+- [x] 10.9 Final commit `phase-10 complete — v1.0`.
 
 ## Next up
 Nothing — v1.0 complete. Future sessions: see README "Adding a new scraper site" + CLAUDE.md conventions.
