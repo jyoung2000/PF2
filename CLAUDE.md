@@ -1,0 +1,118 @@
+# PromptForge — project conventions (read me first, every session)
+
+PromptForge is a self-hosted AI prompt intelligence, library & generation studio.
+Docker container on port **5643**, Unraid-ready (amd64, CPU-only), data under `/data`.
+
+## Session protocol
+1. Read this file and `PROGRESS.md`.
+2. `git log --oneline -15` to see where things stand.
+3. Run the test suite (see Commands). Trust green tests + checked boxes; never re-plan or redo done work.
+4. Resume from the first unchecked item in `PROGRESS.md`. Mark items done ONLY when their acceptance check passes; update `PROGRESS.md` immediately per item.
+5. Commit small and often. Never leave the repo broken: when context runs low, finish the current piece, commit, add a "Next up:" note to `PROGRESS.md`, stop.
+
+## Stack (exact)
+- Backend: Python 3.12 (dev box has 3.11 + 3.12 — venv uses `/usr/bin/python3.12`), FastAPI, SQLAlchemy 2.x **sync** ORM + SQLite (WAL), APScheduler (BackgroundScheduler), httpx, crawl4ai+Playwright (Tier 2 only, lazy-imported), ffmpeg + Pillow.
+- Frontend: React 18 + Vite + TypeScript + Tailwind CSS 3.4, built at image build time, served by FastAPI as static files. WebSocket for live scraper logs + generation progress.
+- Integrations: Baserow via httpx; discord.py bot as background asyncio task in the same process.
+- LLM client (knowledge/studio ONLY — never for scraping/parsing): Anthropic API, OpenAI-compatible, Ollama (direct URL or via desktop companion GPU bridge).
+- Generation providers: fal.ai, Replicate, WaveSpeed AI — one adapter file each under `backend/promptforge/generation/`.
+
+## Iron rules
+- **Deterministic scraping — AI only for analysis.** Scrapers/parsers use JSON APIs, CSS selectors, regex. The LLM client is exclusively for the knowledge engine and Prompt Studio.
+- Adapters fail independently; unconfigured ⇒ "Needs setup" in GUI, never an error.
+- No captcha solving / challenge evasion. Interactive challenge ⇒ log + back off.
+- All config via env / `.env` (defaults) overridden by GUI-editable `settings` table (live, no restart). Secrets write-only in UI (masked `••••1234`).
+- Media: parse embedded metadata (PNG chunks/EXIF) BEFORE lossy compression. Images→WebP q82 max 2048px; videos→H.264 CRF27 max 1080p; thumbnails for both.
+- Never hardcode credentials. Port 5643 everywhere.
+
+## Directory layout
+```
+backend/
+  requirements.txt          # pinned core deps
+  requirements-browser.txt  # crawl4ai/playwright (Docker + Tier 2 dev only)
+  requirements-dev.txt      # pytest, respx, ...
+  promptforge/
+    main.py        # app factory, static serving, lifespan (scheduler, discord, companion)
+    config.py      # env config; DATA_DIR resolution (/data if writable else ./data)
+    db.py models.py schemas.py settings_store.py aliases.py fts.py logbus.py scheduler.py
+    api/           # one router file per area: posts, search, collections, tags, scrapers,
+                   # settings, integrations, knowledge, studio, generation, companion, models_meta, ws
+    pipeline/      # ingest.py (normalize→dedupe→download→metadata→compress→store→learn),
+                   # media.py (download/compress/thumbs), metadata.py (PNG/EXIF parsing)
+    scrapers/      # base.py (SourceAdapter, ScrapedPost), registry in __init__.py,
+                   # civitai.py lexica.py browser_base.py midjourney.py tensorart.py seaart.py pixai.py
+    knowledge/     # engine.py stats.py files.py techniques.py packs.py template_gen.py enhance.py
+                   # foundation.md (shipped)
+    llm/           # client.py (interface+factory), anthropic_client.py openai_client.py
+                   # ollama_client.py companion_client.py
+    generation/    # base.py fal.py replicate_provider.py wavespeed.py pricing.py router.py
+    integrations/  # baserow.py discord_bot.py discord_rules.py
+    companion/     # pairing.py manager.py (server-side WS hub + offline job queue)
+  tests/           # pytest; fixtures under tests/fixtures/
+frontend/          # Vite app (src/pages, src/components, src/api.ts, src/theme via Tailwind tokens)
+companion/         # desktop tray app (Python): app.py, tray, ws client, ollama proxy; PyInstaller spec
+scripts/capture_login.py
+Dockerfile docker-compose.yml unraid-template.xml pricing.json .env.example
+```
+
+## Commands
+- Dev setup (one command): `bash scripts/dev_setup.sh` (creates `backend/.venv` with python3.12, installs core+dev reqs, `npm ci` in frontend/)
+- Backend dev server: `cd backend && .venv/bin/uvicorn promptforge.main:app --port 5643 --reload`
+- Tests: `cd backend && .venv/bin/python -m pytest -q`  (browser deps NOT required)
+- Frontend dev: `cd frontend && npm run dev` (proxies /api → :5643); build: `npm run build` (output `frontend/dist`, served by FastAPI when present)
+- Container: `docker compose up --build` → http://localhost:5643 ; healthcheck `/api/health`
+- Companion (from source): `python companion/app.py --server http://HOST:5643 --code XXXXXX`; `--headless` for no tray.
+
+## Testing conventions
+- Adapter parsers tested against saved fixture JSON/HTML in `backend/tests/fixtures/` — never live HTTP in tests. httpx mocked with `respx` (or transport MockTransport).
+- LLM + generation providers + Baserow + Discord REST all mocked. `tests/conftest.py` provides tmp DATA_DIR + fresh DB per test.
+- ffmpeg IS available in dev and image; compression tests use tiny generated media.
+
+## Decisions
+- D1: Dev venv uses python3.12 to match container image (`python:3.12-slim-bookworm`).
+- D2: Sync SQLAlchemy + sync `def` FastAPI endpoints (threadpool). Async only for WebSockets, Discord bot, companion hub, generation queue worker.
+- D3: FTS5 contentless tables (`posts_fts`, `saved_prompts_fts`) maintained by explicit code in `fts.py` (called from ingest/tag/collection/saved-prompt writes) — no SQL triggers, keeps it testable.
+- D4: Masonry uses real media dimensions: `media_width`/`media_height` columns added to `posts` (captured during compression) → CSS grid row-span masonry (true left-to-right order).
+- D5: crawl4ai + playwright isolated in `requirements-browser.txt`, lazily imported inside browser adapters, so the core app + tests run without them; Docker image installs them (`crawl4ai-setup` → Chromium).
+- D6: Search qualifiers `tag:x model:y platform:z` parsed in `search.py`; free text → FTS MATCH (prefix `*` on last term for as-you-type); qualifiers → SQL filters w/ alias normalization for model.
+- D7: Model alias map: seeded defaults in `aliases.py`, user rules in settings key `model_aliases` (JSON {pattern→canonical family}); normalization = lowercase, strip punctuation, then rule match, else first token heuristic.
+- D8: Companion .exe cannot be cross-compiled from this Linux build env (PyInstaller limitation). Ship: companion source + `companion/build_companion.ps1` + PyInstaller spec + GH Actions workflow `build-companion.yml`; Settings serves a source zip download and points at the release exe. Marked experimental/deferred in PROGRESS/README.
+- D9: Baserow database tokens can't always create tables (depends on instance/permissions): client tries `all-tables` listing + table create, and on 401/403 returns actionable guidance to paste an existing Table ID (field shown in the card). Contract encoded in mocked tests.
+- D10: fal.ai test-connection = GET queue status for a nonexistent request id (401 ⇒ bad key; 404/422 ⇒ key OK) — never charges. Replicate = GET /v1/account. WaveSpeed = GET /api/v3/predictions/{fake}/result with same 401-vs-404 logic.
+- D11: Knowledge files: markdown + YAML frontmatter under DATA_DIR/knowledge (`foundation.md` copied from package on first boot; `models/{family}.md`; `styles/collection-{id}.md`), hard cap 16KB enforced on write (sections trimmed oldest-exemplar-first). Deterministic stats live in `DATA_DIR/knowledge/stats/{family}.json` and are re-rendered into the md on update.
+- D12: LLM analysis budget = settings `llm_daily_budget` (calls/day, default 200) + persisted counter keyed by UTC date; ignored when provider is ollama/companion (free/local).
+- D13: Technique tags: deterministic keyword pass on every video ingest (free) + LLM batch refinement when budget allows. Taxonomy fixed in `knowledge/techniques.py`.
+- D14: Generation flow is async in-process queue (`generation/queue` in router.py): estimate → create `generations` row → worker calls provider adapter → poll → download output → ingest pipeline (`origin=generated`) → learning event. Progress via WS `/api/ws/generation`.
+- D15: Discord bot runs only when token present; started/stopped from settings changes via `integrations/discord_bot.py` manager. Channel listing/test via Discord REST (httpx), bot gateway via discord.py.
+- D16: `pricing.json` seeded at repo root, copied to DATA_DIR on first boot (GUI-editable copy wins).
+- D17: Frontend fonts self-hosted via @fontsource (Space Grotesk display, Inter body) — offline-friendly.
+- D18: Dedupe key `(platform, platform_post_id)` UNIQUE; re-scrape updates mutable fields (favorite/tags/collections preserved).
+- D19: Media on disk: `DATA_DIR/media/{platform}/{post_uuid}.{ext}`, thumbs `DATA_DIR/media/{platform}/thumbs/{post_uuid}.webp`; served at `/media/*` by FastAPI StaticFiles.
+- D20: Tests use `TestClient` (starlette) — covers WS endpoints too. pytest-asyncio only where an event loop is unavoidable (companion manager unit tests).
+- D21: Lexica API can be flaky/down: adapter marks itself "experimental-degraded" health on repeated 5xx but stays enabled; errors never raise out of `run_scraper`.
+- D22: All scraper runs execute in a single worker thread (`scheduler.py` global lock) — one site at a time, Chromium only during browser runs.
+- D23: Settings GET masks secret keys (list in `settings_store.SECRET_KEYS`) as `••••` + last4; PUT with value `"__unchanged__"` keeps stored secret.
+- D24: Videos: `technique_tags` JSON column on posts (list[str]); images may also get technique tags from LLM pass but facet UI targets videos primarily.
+- D25: Companion WS protocol (JSON): client→ `{t:"hello", name, ollama_models:[...]}`, `{t:"pong"}`, `{t:"result", id, ok, data|error}`, `{t:"chunk", id, data}`; server→ `{t:"ping"}`, `{t:"request", id, method:"ollama.generate"|"ollama.chat"|"ollama.tags", payload}`. Auth: `?token=` query param checked against sha256 of stored pairing tokens.
+- D26: In tests and dev without real keys, LLM factory returns `MockLLM` when settings `llm_provider="mock"` — deterministic canned outputs; never selectable in UI (tests/dev only).
+- D27: Civitai adapter maps meta keys: prompt, negativePrompt, seed, steps, sampler, cfgScale, Size, Model + resources/civitaiResources when present; items with null meta skipped unless settings `civitai_keep_metaless=true` (then media-only).
+- D28: Cursor pagination everywhere: `/api/posts` & search return `{items, next_cursor}` with cursor = last post id (descending id order).
+- D29: Generation "recommended model" = template.recommended_model or collection model_family; provider auto-pick = min cost among **connected** providers offering that family (pricing.py); override allowed, UI shows gentle note when off-recommendation.
+- D30: Companion job queue = DB table `llm_jobs` (kind, payload JSON, status queued|running|done|error, result) drained by scheduler when companion online or when cloud fallback enabled+configured.
+- D31: Baserow media upload uses the **compressed** local file via user-files upload endpoint; sync tracks `synced_to_baserow`, never double-pushes (skip already-synced unless "force").
+- D32: Discord rules stored in settings `discord_rules` (JSON, see integrations/discord_rules.py DEFAULT_RULES); evaluation is pure function `select_posts(rules, posts)` — unit-tested for every mode/filter/routing/digest/throttle combo.
+- D33: `.pfpack` = zip with `manifest.json` {kind, family/collection, exported_at, versions} + `model.md`/`style.md` + `template.json` + `template.txt` + optional `exemplars/*.webp`; import merges newer-wins per file mtime in manifest, logged to `DATA_DIR/knowledge/import.log`.
+- D34: Frontend state: no heavy state lib; small `useApi` hooks + module-level caches; react-router v6; toasts via tiny custom store.
+- D35: Scheduler default intervals: civitai 10m, lexica 15m, browser sites 60m (min civitai 5m enforced); learning pass hourly; digest per rules; all editable in GUI.
+- D36: `posts.params` JSON also holds `_original_bytes`/`_stored_bytes` per post for storage-savings stats.
+- D37: Replicate adapter file named `replicate_provider.py` to avoid shadowing the (unused) `replicate` pip package name.
+- D38: Version endpoint `/api/health` returns {status:"ok", version, db:"ok", data_dir, ffmpeg:bool}; docker HEALTHCHECK curls it.
+- D39: Model catalog page = `/api/models/meta` aggregation (family, versions seen, counts, first/last seen, is_new<14d) — purely data-driven from posts.
+- D40: NSFW default filter = hide NSFW in gallery unless toggled; per-request override param; setting `nsfw_default_show` (bool, default false).
+- D41: Studio Enhance without configured LLM returns 409 `llm_not_configured` with guidance; UI shows setup pointer instead of error toast.
+- D42: Companion pairing codes: 6 digits, TTL 10 min, single-use, issued from Settings; token = `pfc_` + 32 hex; server stores sha256(token) in `companions` table with name + last_seen; revoke deletes row and closes WS.
+- D43: WS auth for scraper logs/generation progress: same-origin only, no token (read-only logs); companion WS requires token (D25).
+- D44: Time in DB = UTC ISO strings via SQLAlchemy DateTime(timezone=True); `TZ` env honored for APScheduler display only.
+- D45: Deleting a post removes DB row + media files; collection covers fall back to next newest member.
+
+*(append new decisions here as D46, D47, …)*
