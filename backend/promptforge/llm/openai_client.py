@@ -13,9 +13,11 @@ class OpenAIClient(LLMClient):
     def __init__(self, base_url: str, api_key: str, model: str,
                  transport: httpx.BaseTransport | None = None):
         if not api_key:
-            raise LLMNotConfigured(
-                "OpenAI-compatible API key missing — paste it in Settings → "
-                "Knowledge engine.")
+            hint = ("Grok (xAI) API key missing — paste it in Settings → Grok."
+                    if "x.ai" in (base_url or "")
+                    else "OpenAI-compatible API key missing — paste it in "
+                         "Settings → Knowledge engine.")
+            raise LLMNotConfigured(hint)
         self.base = (base_url or "https://api.openai.com/v1").rstrip("/")
         self.api_key = api_key
         self.model = model or "gpt-4o-mini"

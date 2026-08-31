@@ -21,6 +21,7 @@ const PROVIDERS = [
   { value: '', label: 'None (deterministic stats only)' },
   { value: 'anthropic', label: 'Anthropic API' },
   { value: 'openai', label: 'OpenAI-compatible endpoint' },
+  { value: 'grok', label: 'Grok (xAI) — key from the Grok section below' },
   { value: 'ollama', label: 'Ollama (direct URL) — free' },
   { value: 'companion', label: 'Companion (desktop GPU) — free' },
 ]

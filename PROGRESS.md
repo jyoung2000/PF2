@@ -132,13 +132,13 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] X2.6 Phase gate; commit `phase-X2 complete`.
 
 ## Phase X3 — Grok integration (find, curate, monitor)
-- [ ] X3.1 integrations/grok.py: xAI OpenAI-compatible client (chat + live X search params), test_connection (validate key, list models), own daily budget + usage counters. ✓: mocked tests incl. failure modes.
-- [ ] X3.2 "grok" selectable as knowledge-engine LLM provider (factory case, budget applies). ✓: pytest.
-- [ ] X3.3 Discover creators: POST /api/grok/discover {interest} → reviewable candidates (reason+sample), de-duped vs monitored; add-to-follow-list flow (added_by=grok, never silent). ✓: mocked tests.
-- [ ] X3.4 Curate: batched budgeted pass over fresh X posts → ai-media check, inferred-vs-stated model, technique/tag suggestions written to existing fields; scheduler job; no-op without key. ✓: mocked tests.
-- [ ] X3.5 Digest: periodic Grok summary of monitored accounts (new+notable, trending models/techniques) surfaced in-app + optional Discord routing. ✓: mocked tests.
-- [ ] X3.6 Settings UI: X.com & Grok group (session+scope, Grok key/test/model picker, per-feature toggles+budgets, monitoring defaults). ✓: manual smoke.
-- [ ] X3.7 Phase gate; commit `phase-X3 complete`.
+- [x] X3.1 integrations/grok.py: xAI OpenAI-compatible client (chat + live X search params), test_connection (validate key, list models), own daily budget + usage counters. ✓: mocked tests incl. failure modes.
+- [x] X3.2 "grok" selectable as knowledge-engine LLM provider (factory case, budget applies). ✓: pytest.
+- [x] X3.3 Discover creators: POST /api/grok/discover {interest} → reviewable candidates (reason+sample), de-duped vs monitored; add-to-follow-list flow (added_by=grok, never silent). ✓: mocked tests.
+- [x] X3.4 Curate: batched budgeted pass over fresh X posts → ai-media check, inferred-vs-stated model, technique/tag suggestions written to existing fields; scheduler job; no-op without key. ✓: mocked tests.
+- [x] X3.5 Digest: periodic Grok summary of monitored accounts (new+notable, trending models/techniques) surfaced in-app + optional Discord routing. ✓: mocked tests.
+- [x] X3.6 Settings UI: X.com & Grok group (session+scope, Grok key/test/model picker, per-feature toggles+budgets, monitoring defaults). ✓: manual smoke.
+- [x] X3.7 Phase gate; commit `phase-X3 complete`.
 
 ## Phase X4 — quality bar for the X feature
 - [ ] X4.1 Full suite green (all new tests: parser hits/misses, variants, dedupe, cursor, failure isolation, auto-tag/collection, grok mocked paths + key-missing no-ops).
@@ -148,4 +148,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] X4.5 Final commit `phase-X4 complete — X feature v1`.
 
 ## Next up
-Phase X3, task X3.1 (integrations/grok.py).
+Phase X4 (quality bar for the X feature).

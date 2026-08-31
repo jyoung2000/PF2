@@ -108,8 +108,8 @@ def build_client(s: Session) -> LLMClient:
     if not provider:
         raise LLMNotConfigured(
             "No AI provider configured — pick one in Settings → Knowledge "
-            "engine (Anthropic, OpenAI-compatible, Ollama, or the desktop "
-            "companion).")
+            "engine (Anthropic, OpenAI-compatible, Grok, Ollama, or the "
+            "desktop companion).")
     if provider == "mock":
         return mock_instance
     if provider == "anthropic":
@@ -121,6 +121,13 @@ def build_client(s: Session) -> LLMClient:
         return OpenAIClient(settings_store.get(s, "openai_base_url"),
                             settings_store.get(s, "openai_api_key"),
                             settings_store.get(s, "openai_model"))
+    if provider == "grok":
+        from .openai_client import OpenAIClient
+        client = OpenAIClient(settings_store.get(s, "grok_base_url"),
+                              settings_store.get(s, "grok_api_key"),
+                              settings_store.get(s, "grok_model"))
+        client.name = "grok"
+        return client
     if provider == "ollama":
         from .ollama_client import OllamaClient
         return OllamaClient(settings_store.get(s, "ollama_base_url"),
@@ -155,7 +162,8 @@ def provider_status(s: Session, provider: str) -> dict:
                     "provider": "companion", **st}
         except ImportError:
             return {"status": "offline", "provider": "companion"}
-    key_map = {"anthropic": "anthropic_api_key", "openai": "openai_api_key"}
+    key_map = {"anthropic": "anthropic_api_key", "openai": "openai_api_key",
+               "grok": "grok_api_key"}
     if provider in key_map and not settings_store.get(s, key_map[provider]):
         return {"status": "not_configured", "provider": provider}
     return {"status": "configured", "provider": provider,
