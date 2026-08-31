@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError, listCollections, searchPosts } from '../api'
+import { ConnectModal } from '../components/ConnectModal'
 import { ConfirmModal, EmptyState, Modal, Spinner, StatusDot } from '../components/Primitives'
 import { timeAgo } from '../lib/format'
 import { useFetch } from '../lib/hooks'
@@ -420,6 +421,7 @@ export function MonitoringPage() {
   const { data, loading, reload } = useFetch(() => api.get<MonitoringData>('/api/monitoring'))
   const { data: collectionsData } = useFetch(listCollections)
   const [digest, setDigest] = useState<{ at: string; text: string } | null>(null)
+  const [connecting, setConnecting] = useState(false)
 
   useEffect(() => {
     const t = window.setInterval(reload, 20_000)
@@ -472,13 +474,18 @@ export function MonitoringPage() {
       </div>
 
       {data && !data.x_session_ok && (
-        <p className="text-[12.5px] text-amber-200 bg-amber-400/10 border border-amber-400/30 rounded-el px-3 py-2">
-          No X login session yet — polls will wait until you capture one.{' '}
-          <Link to="/settings#x-source" className="underline underline-offset-2">
-            Settings → X.com source
-          </Link>{' '}
-          has the two-command walkthrough.
-        </p>
+        <div className="text-[12.5px] text-amber-200 bg-amber-400/10 border border-amber-400/30 rounded-el px-3 py-2 flex items-center gap-2.5 flex-wrap">
+          <span>No X login session yet — polls will wait until you connect.</span>
+          <button className="btn-accent !py-1 !px-2.5 text-[12px]" onClick={() => setConnecting(true)}>
+            Connect X account
+          </button>
+          <Link to="/settings#x-source" className="underline underline-offset-2 text-[12px]">
+            other options in Settings
+          </Link>
+        </div>
+      )}
+      {connecting && (
+        <ConnectModal platform="x" label="X.com" onClose={() => setConnecting(false)} onConnected={reload} />
       )}
 
       {digest && (

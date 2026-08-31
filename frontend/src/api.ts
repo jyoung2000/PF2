@@ -168,6 +168,19 @@ export const removeTag = (postId: number, name: string) =>
 export const listTags = (q = '') => api.get<{ tags: { name: string; count: number }[] }>(`/api/tags${qs({ q })}`)
 export const listScrapers = () => api.get<{ scrapers: ScraperInfo[] }>('/api/scrapers')
 
+// ---- Login sessions (X5 one-click connect) ----
+export const uploadScraperSession = async (name: string, file: File): Promise<ScraperInfo> => {
+  const form = new FormData()
+  form.append('file', file)
+  const resp = await fetch(`/api/scrapers/${name}/session`, { method: 'POST', body: form })
+  const body = await resp.json()
+  if (!resp.ok) {
+    throw new ApiError(resp.status, typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail ?? body))
+  }
+  return body as ScraperInfo
+}
+export const deleteScraperSession = (name: string) => api.delete<ScraperInfo>(`/api/scrapers/${name}/session`)
+
 // ---- Collections ----
 export const listCollections = () =>
   api.get<{ model_collections: CollectionSummary[]; user_collections: CollectionSummary[] }>(

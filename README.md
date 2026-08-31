@@ -69,7 +69,7 @@ Native development (hot reload):
 bash scripts/dev_setup.sh                 # backend venv + frontend deps
 cd backend && .venv/bin/uvicorn promptforge.main:app --port 5643 --reload
 cd frontend && npm run dev                # Vite on :5173, proxies /api
-cd backend && .venv/bin/python -m pytest  # 159-test suite
+cd backend && .venv/bin/python -m pytest  # 167-test suite
 ```
 
 ## First hour with PromptForge
@@ -116,11 +116,18 @@ confidence flag: clearly labelled prompts ("Prompt:", code fences) count fully,
 loose guesses stay on the post but are excluded from model learning so they
 never pollute the knowledge files.
 
-1. **Capture a session** — X requires login; it's the same flow as Midjourney:
-   `python scripts/capture_login.py x`, log in in the window, press Enter →
-   `./data/sessions/x.json`, copy to
-   `/mnt/user/appdata/promptforge/sessions/x.json`. The X card on the Scrapers
-   page and the Monitoring-page banner flip to "session: valid".
+1. **Connect your account (one click)** — hit **Connect X account** in
+   Settings → X.com source (or on the Monitoring page banner): a window
+   streams your *server's own* browser, you log in exactly as usual — clicks
+   and keystrokes go straight to the page, are never stored, and the moment
+   the login lands the session saves itself to `/data/sessions/x.json`. If a
+   verification step appears, you complete it yourself — PromptForge never
+   automates or evades any of that. The same Connect button sits on every
+   browser-site card (Midjourney & co use the modal's "Save session now"
+   button once logged in). Fallbacks: upload an `x.json` exported by
+   `python scripts/capture_login.py x` from your desktop, or copy that file
+   to `/mnt/user/appdata/promptforge/sessions/x.json` by hand; a Disconnect
+   button forgets the session any time (posts are kept).
 2. **Search crawls** — the X card in Settings has its own search terms
    (`#midjourney, #AIart, #aivideo, #flux` by default), a minimum-engagement
    filter, images/videos/both, skip-replies, and a max-per-run cap. The site
@@ -133,8 +140,9 @@ never pollute the knowledge files.
    Accounts fail independently — a renamed or dead account flips to "not
    found" on its row without stopping the rest, and pause-all/resume-all is
    one click.
-4. **Optional: Grok** — paste an xAI API key (console.x.ai) in Settings →
-   Grok and hit Test:
+4. **Optional: Grok (one paste)** — click **Get an API key ↗** on the Grok
+   card (console.x.ai), paste it into the key field, done: pasting saves the
+   key, runs the connection test, and loads the live model picker by itself:
    - **Discover** — describe an interest on the Monitoring page ("cinematic
      AI video creators") and Grok live-searches X for candidate accounts,
      each with a why-them note. Every candidate is review-before-add: you
@@ -268,6 +276,18 @@ integrations. Everything configurable from the GUI at runtime.
   sandbox, so the E2E smoke ran the mocked account-poll path through the real
   pipeline (download → compress → thumbs → FTS → knowledge); the first live
   poll with your own session is a first-boot step, same as the Civitai one.
+- ✅ One-click connect (v1.2, +8 tests → 167): the in-app X login (server-side
+  Chromium screencast over a same-origin WebSocket with forwarded input,
+  auto-save on X's session cookie, manual save for other browser sites,
+  busy-lock, idle/hard timeouts, cross-origin rejection) proven three ways —
+  fake-browser protocol tests, a real-Chromium integration test driving the
+  whole loop against a local stand-in login page, and a Playwright run through
+  the actual UI (click Connect → type the password into the streamed page →
+  session file written, card flips to Connected). Session upload/disconnect
+  endpoints tested; Grok paste-to-connect verified in-browser against a local
+  xAI stand-in (paste → saved → tested → live model list). x.com itself is
+  unreachable from the sandbox, so the first real X login through the modal is
+  a first-boot step; the desktop-capture and upload fallbacks remain.
 - ⏸ Deferred (documented): Windows `.exe` is built per-machine via the included
   PyInstaller script/workflow (no Windows builder in the dev environment);
   SeaArt + PixAI adapters are marked *experimental* in the GUI (their internal

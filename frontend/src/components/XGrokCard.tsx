@@ -1,10 +1,11 @@
-// Settings → X.com & Grok (X1.6, X3.6): X login-session status + scope
-// controls; Grok (xAI) guided setup with test + model picker + per-feature
-// toggles/budgets; monitoring defaults.
+// Settings → X.com & Grok (X1.6, X3.6, X5.4): one-click X connect (in-app
+// login) + scope controls; Grok (xAI) quick-connect (paste key → auto-test →
+// model picker) with per-feature toggles/budgets; monitoring defaults.
 import { useState } from 'react'
 import { api, ApiError, listScrapers } from '../api'
 import { useFetch } from '../lib/hooks'
 import { SettingsMap } from '../lib/settings'
+import { ConnectModal, DisconnectButton, SessionUploadButton } from './ConnectModal'
 import { Spinner } from './Primitives'
 import { ConnBadge, Field, NumberSetting, Section, TextSetting, ToggleSetting } from './SettingsKit'
 
@@ -15,7 +16,8 @@ export function XSourceCard({
   settings: SettingsMap
   save: (v: SettingsMap) => Promise<boolean>
 }) {
-  const { data } = useFetch(listScrapers)
+  const { data, reload } = useFetch(listScrapers)
+  const [connecting, setConnecting] = useState(false)
   const x = data?.scrapers.find((s) => s.name === 'x')
   const session = x?.session_status ?? 'missing'
 
@@ -29,16 +31,36 @@ export function XSourceCard({
         <ConnBadge status={session === 'valid' ? 'connected' : session === 'expired' ? 'error' : 'not_configured'} />
         <span className="text-[12px] text-faint">login session: {session}</span>
       </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <button className={session === 'valid' ? 'btn' : 'btn-accent'} onClick={() => setConnecting(true)}>
+          {session === 'valid' ? 'Reconnect X account' : 'Connect X account'}
+        </button>
+        {session === 'valid' ? (
+          <DisconnectButton platform="x" onDone={reload} />
+        ) : (
+          <SessionUploadButton platform="x" onDone={reload}>
+            or upload x.json…
+          </SessionUploadButton>
+        )}
+      </div>
       {session !== 'valid' && (
-        <div className="text-[12.5px] text-mute bg-well/50 border border-line rounded-el p-3 space-y-1">
-          <p className="font-medium text-fg">Capture your X login once (on a desktop):</p>
-          <p className="font-mono text-[12px]">pip install playwright && playwright install chromium</p>
-          <p className="font-mono text-[12px]">python scripts/capture_login.py x</p>
-          <p>
-            Log in in the window, press Enter, then copy the exported file to your server at{' '}
-            <span className="font-mono text-[12px]">/data/sessions/x.json</span> (appdata/promptforge/sessions).
-          </p>
-        </div>
+        <details className="text-[12.5px] text-mute">
+          <summary className="cursor-pointer hover:text-fg">
+            Prefer to log in on your desktop instead? (classic walkthrough)
+          </summary>
+          <div className="bg-well/50 border border-line rounded-el p-3 space-y-1 mt-1.5">
+            <p className="font-mono text-[12px]">pip install playwright && playwright install chromium</p>
+            <p className="font-mono text-[12px]">python scripts/capture_login.py x</p>
+            <p>
+              Log in in the window, press Enter, then upload the exported file with the button above (or copy it to{' '}
+              <span className="font-mono text-[12px]">/data/sessions/x.json</span>).
+            </p>
+          </div>
+        </details>
+      )}
+      {connecting && (
+        <ConnectModal platform="x" label="X.com" onClose={() => setConnecting(false)} onConnected={reload} />
       )}
       <p className="text-[11.5px] text-faint">
         Heads-up: logged-in scraping is subject to X's Terms of Service and runs on <em>your</em> account —
@@ -95,6 +117,53 @@ interface GrokTestResult {
   models?: string[]
 }
 
+/** Paste-to-connect key input: committing a key (paste/Enter/blur) saves it
+ * and immediately runs the connection test — one paste and Grok is live. */
+function GrokKeyInput({
+  settings,
+  save,
+  onSaved,
+}: {
+  settings: SettingsMap
+  save: (v: SettingsMap) => Promise<boolean>
+  onSaved: () => void
+}) {
+  const stored = String(settings.grok_api_key ?? '')
+  const [value, setValue] = useState('')
+
+  const commit = async (raw?: string) => {
+    const v = (raw ?? value).trim()
+    if (!v) return
+    if (await save({ grok_api_key: v })) {
+      setValue('')
+      onSaved()
+    }
+  }
+
+  return (
+    <input
+      id="setting-grok_api_key"
+      type="text"
+      autoComplete="off"
+      spellCheck={false}
+      className="input font-mono"
+      placeholder={stored ? `${stored} (stored — paste to replace)` : 'xai-… (paste to connect)'}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onPaste={(e) => {
+        const text = e.clipboardData.getData('text').trim()
+        if (text) {
+          e.preventDefault()
+          setValue(text)
+          void commit(text)
+        }
+      }}
+      onBlur={() => void commit()}
+      onKeyDown={(e) => e.key === 'Enter' && void commit()}
+    />
+  )
+}
+
 export function GrokCard({
   settings,
   save,
@@ -133,24 +202,24 @@ export function GrokCard({
       hint="Optional intelligence layer on top of X: discover AI creators with live X search, verify + enrich scraped media, and get periodic digests of your follow list. Also selectable as the knowledge-engine provider."
       id="grok"
     >
-      <div className="flex items-center gap-2 -mt-1">
+      <div className="flex items-center gap-2 -mt-1 flex-wrap">
         <ConnBadge status={!configured ? 'not_configured' : result?.ok === false ? 'error' : 'connected'} />
+        <a
+          className="btn !py-1 !px-2.5 text-[12px]"
+          href="https://console.x.ai"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Get an API key ↗
+        </a>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
         <Field
           label="xAI API key"
           htmlFor="setting-grok_api_key"
-          hint={
-            <>
-              Create one at{' '}
-              <a className="underline underline-offset-2 hover:text-fg" href="https://console.x.ai" target="_blank" rel="noreferrer">
-                console.x.ai
-              </a>{' '}
-              (your Grok subscription).
-            </>
-          }
+          hint="Pasting a key connects immediately — it saves and tests itself."
         >
-          <TextSetting settings={settings} k="grok_api_key" save={save} secret placeholder="xai-…" />
+          <GrokKeyInput settings={settings} save={save} onSaved={runTest} />
         </Field>
         <Field label="Model" htmlFor="setting-grok-model" hint="Test connection to fetch the live list.">
           {models.length > 0 ? (

@@ -1,9 +1,11 @@
-"""Scrapers API: adapter cards for the dashboard + run-now + enable/interval."""
+"""Scrapers API: adapter cards for the dashboard + run-now + enable/interval
++ login-session install/remove for browser sites (X5)."""
 from __future__ import annotations
 
+import json
 import threading
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,8 @@ from ..logbus import bus
 from ..scrapers import all_adapters, get_adapter
 
 router = APIRouter(prefix="/api/scrapers", tags=["scrapers"])
+
+MAX_SESSION_BYTES = 2 * 1024 * 1024
 
 
 def _adapter_info(adapter, s: Session) -> dict:
@@ -79,6 +83,51 @@ def run_now(name: str, db: Session = Depends(get_db)):
 def _run_direct(name: str) -> None:
     from ..scrapers.runner import run_scraper
     run_scraper(name, manual=True)
+
+
+def _browser_adapter_or_404(name: str):
+    adapter = get_adapter(name)
+    if adapter is None or not hasattr(adapter, "storage_state_path"):
+        raise HTTPException(404, f"'{name}' is not a browser-login site")
+    return adapter
+
+
+@router.post("/{name}/session")
+async def upload_session(name: str, file: UploadFile, db: Session = Depends(get_db)):
+    """Install a Playwright storage_state JSON (exported by capture_login.py
+    or the in-app connect flow on another box) as this site's login session."""
+    adapter = _browser_adapter_or_404(name)
+    raw = await file.read()
+    if len(raw) > MAX_SESSION_BYTES:
+        raise HTTPException(422, "That file is too large to be a session export.")
+    try:
+        state = json.loads(raw)
+        assert isinstance(state, dict) and isinstance(state.get("cookies"), list)
+    except (ValueError, AssertionError):
+        raise HTTPException(
+            422, "That doesn't look like a Playwright storage_state export — "
+                 "expected JSON with a top-level \"cookies\" list.")
+    from ..scrapers.connect import save_storage_state_sync
+    save_storage_state_sync(name, state)
+    db.expire_all()
+    bus.info(f"scraper.{name}", "login session installed via upload")
+    return _adapter_info(adapter, db)
+
+
+@router.delete("/{name}/session")
+def delete_session(name: str, db: Session = Depends(get_db)):
+    """Disconnect: forget the stored login session (posts are untouched)."""
+    adapter = _browser_adapter_or_404(name)
+    path = adapter.storage_state_path()
+    if path.is_file():
+        path.unlink()
+    st = adapter.get_state(db)
+    state = dict(st.state or {})
+    if state.pop("session_expired", None) is not None:
+        st.state = state
+        db.flush()
+    bus.info(f"scraper.{name}", "login session removed")
+    return _adapter_info(adapter, db)
 
 
 class ScraperPatch(BaseModel):

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, listScrapers, ScraperInfo } from '../api'
+import { ConnectModal, DisconnectButton } from '../components/ConnectModal'
 import { Spinner, StatusDot } from '../components/Primitives'
 import { timeAgo, timeUntil } from '../lib/format'
 import { useFetch } from '../lib/hooks'
@@ -83,6 +84,7 @@ function LogPanel() {
 
 function ScraperCard({ s, onChanged }: { s: ScraperInfo; onChanged: () => void }) {
   const [running, setRunning] = useState(false)
+  const [connecting, setConnecting] = useState(false)
   const [interval, setIntervalMin] = useState(s.interval_minutes)
 
   const runNow = async () => {
@@ -137,12 +139,23 @@ function ScraperCard({ s, onChanged }: { s: ScraperInfo; onChanged: () => void }
 
       {s.status_detail && <p className="text-[12px] text-mute -mt-1.5">{s.status_detail}</p>}
       {s.session_status && s.session_status !== 'unknown' && (
-        <p className="text-[12px] -mt-1.5">
-          <span className="text-faint">Login session: </span>
-          <span className={s.session_status === 'valid' ? 'text-emerald-300' : 'text-amber-300'}>
-            {s.session_status}
+        <div className="text-[12px] -mt-1.5 flex items-center gap-2 flex-wrap">
+          <span>
+            <span className="text-faint">Login session: </span>
+            <span className={s.session_status === 'valid' ? 'text-emerald-300' : 'text-amber-300'}>
+              {s.session_status}
+            </span>
           </span>
-        </p>
+          <button className="btn !py-0.5 !px-2 !text-[11.5px]" onClick={() => setConnecting(true)}>
+            {s.session_status === 'valid' ? 'Reconnect' : 'Connect'}
+          </button>
+          {s.session_status === 'valid' && (
+            <DisconnectButton platform={s.name} onDone={onChanged} className="btn !py-0.5 !px-2 !text-[11.5px]" />
+          )}
+        </div>
+      )}
+      {connecting && (
+        <ConnectModal platform={s.name} label={s.label} onClose={() => setConnecting(false)} onConnected={onChanged} />
       )}
 
       <dl className="grid grid-cols-3 gap-2 text-[12px]">
