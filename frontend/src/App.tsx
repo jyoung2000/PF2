@@ -7,6 +7,7 @@ import {
 } from './pages/CollectionsPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { ModelsPage } from './pages/ModelsPage'
+import { MonitoringPage } from './pages/MonitoringPage'
 import { ScrapersPage } from './pages/ScrapersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { StudioPage } from './pages/StudioPage'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/models" element={<ModelsPage />} />
         <Route path="/studio/*" element={<StudioPage />} />
         <Route path="/scrapers" element={<ScrapersPage />} />
+        <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </Shell>

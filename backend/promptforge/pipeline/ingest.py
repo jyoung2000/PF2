@@ -28,6 +28,7 @@ class IngestStats:
     skipped: int = 0
     errors: int = 0
     error_messages: list[str] = field(default_factory=list)
+    new_ids: list[int] = field(default_factory=list)
 
 
 def _is_duplicate(platform: str, platform_post_id: str) -> bool:
@@ -170,6 +171,7 @@ def ingest_batch(source: str, posts: list[ScrapedPost],
                 stats.duplicates += 1
             else:
                 stats.new += 1
+                stats.new_ids.append(result)
         except Exception as e:
             stats.errors += 1
             msg = f"{sp.platform}:{sp.platform_post_id}: {type(e).__name__}: {e}"

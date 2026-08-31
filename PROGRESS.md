@@ -124,12 +124,12 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] X1.7 Phase gate: full suite green; commit `phase-X1 complete`.
 
 ## Phase X2 — follow list / page monitoring
-- [ ] X2.1 monitored_accounts table + handle normalization (@handle / bare / profile URL, bulk paste). ✓: unit tests.
-- [ ] X2.2 monitoring.py: run_account (timeline via XAdapter.fetch_account, stop at last_post_id cursor, advance after ingest), per-account auto-tag + auto-collection (family scoping respected), failure isolation. ✓: pytest w/ mocked adapter.
-- [ ] X2.3 Scheduler tick (due accounts by interval, serialized with scrape lock) + pause/resume-all. ✓: pytest.
-- [ ] X2.4 Monitoring API: list w/ status, bulk add, patch, delete (posts kept), run-now, pause/resume-all. ✓: pytest.
-- [ ] X2.5 Monitoring UI: account cards (handle, last-checked, new-since, status), add box w/ bulk paste, per-account controls, recent-finds strip, run-now. ✓: manual smoke.
-- [ ] X2.6 Phase gate; commit `phase-X2 complete`.
+- [x] X2.1 monitored_accounts table + handle normalization (@handle / bare / profile URL, bulk paste). ✓: unit tests.
+- [x] X2.2 monitoring.py: run_account (timeline via XAdapter.fetch_account, stop at last_post_id cursor, advance after ingest), per-account auto-tag + auto-collection (family scoping respected), failure isolation. ✓: pytest w/ mocked adapter.
+- [x] X2.3 Scheduler tick (due accounts by interval, serialized with scrape lock) + pause/resume-all. ✓: pytest.
+- [x] X2.4 Monitoring API: list w/ status, bulk add, patch, delete (posts kept), run-now, pause/resume-all. ✓: pytest.
+- [x] X2.5 Monitoring UI: account cards (handle, last-checked, new-since, status), add box w/ bulk paste, per-account controls, recent-finds strip, run-now. ✓: manual smoke.
+- [x] X2.6 Phase gate; commit `phase-X2 complete`.
 
 ## Phase X3 — Grok integration (find, curate, monitor)
 - [ ] X3.1 integrations/grok.py: xAI OpenAI-compatible client (chat + live X search params), test_connection (validate key, list models), own daily budget + usage counters. ✓: mocked tests incl. failure modes.
@@ -148,4 +148,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] X4.5 Final commit `phase-X4 complete — X feature v1`.
 
 ## Next up
-Phase X2, task X2.1 (monitored_accounts).
+Phase X3, task X3.1 (integrations/grok.py).

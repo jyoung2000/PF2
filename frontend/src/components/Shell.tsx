@@ -17,6 +17,7 @@ const NAV = [
   { to: '/models', label: 'Models' },
   { to: '/studio', label: 'Studio' },
   { to: '/scrapers', label: 'Scrapers' },
+  { to: '/monitoring', label: 'Monitoring' },
   { to: '/settings', label: 'Settings' },
 ]
 

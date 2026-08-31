@@ -57,6 +57,21 @@ def start() -> None:
     except ImportError:
         pass
     try:
+        from . import monitoring
+        _scheduler.add_job(monitoring.monitor_tick, "interval",
+                           minutes=2, id="monitoring", max_instances=1,
+                           coalesce=True)
+    except ImportError:
+        pass
+    try:
+        from .integrations import grok
+        _scheduler.add_job(grok.curate_tick, "interval", minutes=10,
+                           id="grok_curate", max_instances=1, coalesce=True)
+        _scheduler.add_job(grok.digest_tick, "interval", minutes=30,
+                           id="grok_digest", max_instances=1, coalesce=True)
+    except ImportError:
+        pass
+    try:
         from .companion import manager as companion_manager
         _scheduler.add_job(companion_manager.drain_job_queue, "interval",
                            minutes=2, id="llm_jobs", max_instances=1, coalesce=True)

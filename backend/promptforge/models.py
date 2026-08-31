@@ -195,6 +195,32 @@ class LlmJob(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
+class MonitoredAccount(Base):
+    """Follow list (Phase X2): accounts the app polls for new media posts."""
+    __tablename__ = "monitored_accounts"
+    __table_args__ = (
+        UniqueConstraint("platform", "handle", name="uq_monitored_handle"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    handle: Mapped[str] = mapped_column(String(50))          # lowercase, no @
+    display_name: Mapped[str | None] = mapped_column(String(200))
+    platform: Mapped[str] = mapped_column(String(20), default="x")
+    added_by: Mapped[str] = mapped_column(String(12), default="manual")  # manual | grok
+    notes: Mapped[str | None] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_checked: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_post_id: Mapped[str | None] = mapped_column(String(40))  # cursor (tweet id)
+    check_interval: Mapped[int] = mapped_column(Integer, default=60)  # minutes
+    media_only: Mapped[bool] = mapped_column(Boolean, default=True)
+    auto_tag: Mapped[str | None] = mapped_column(String(100))
+    auto_collection_id: Mapped[int | None] = mapped_column(
+        ForeignKey("collections.id", ondelete="SET NULL"))
+    status: Mapped[str | None] = mapped_column(String(20))   # ok | error | not_found
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_new: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ScraperState(Base):
     """Per-adapter persisted state: enable flag, interval, last run stats, cursors."""
     __tablename__ = "scraper_state"
