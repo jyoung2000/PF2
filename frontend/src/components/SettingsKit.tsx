@@ -115,7 +115,7 @@ export function ToggleSetting({
         className={`relative w-9 h-5 rounded-full transition-colors duration-fast ${on ? 'bg-ember' : 'bg-well border border-line'}`}
       >
         <span
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-fg transition-transform duration-fast ${on ? 'translate-x-4' : 'translate-x-0.5'}`}
+          className={`absolute left-0 top-0.5 w-4 h-4 rounded-full bg-fg transition-transform duration-fast ${on ? 'translate-x-4' : 'translate-x-0.5'}`}
         />
       </span>
       {label}

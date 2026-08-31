@@ -141,11 +141,11 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] X3.7 Phase gate; commit `phase-X3 complete`.
 
 ## Phase X4 — quality bar for the X feature
-- [ ] X4.1 Full suite green (all new tests: parser hits/misses, variants, dedupe, cursor, failure isolation, auto-tag/collection, grok mocked paths + key-missing no-ops).
-- [ ] X4.2 npm build clean; monitoring + settings UI checked desktop+mobile.
-- [ ] X4.3 Live smoke: real X session if present, else mocked account-poll E2E (stand-in per D46) — ingests+compresses a post through the full pipeline; documented.
-- [ ] X4.4 README updates (X session capture, monitored accounts, Grok enablement, ToS note).
-- [ ] X4.5 Final commit `phase-X4 complete — X feature v1`.
+- [x] X4.1 Full suite green (all new tests: parser hits/misses, variants, dedupe, cursor, failure isolation, auto-tag/collection, grok mocked paths + key-missing no-ops). ✓: 159 passed.
+- [x] X4.2 npm build clean; monitoring + settings UI checked desktop+mobile. ✓: `✓ built in 2.55s`; Playwright screenshots at 1440px + 375px (Monitoring w/ seeded ok/grok/not-found accounts + recent finds, Settings X+Grok cards); switch-knob overlap found by geometry measurement and fixed (`left-0` on knob spans in ScrapersPage/MonitoringPage/SettingsKit).
+- [x] X4.3 Live smoke: no X session/key exists in this sandbox (and art-site egress is blocked, D46), so per spec the mocked paths ran: seeded-server demo + test_monitoring cursor test both push account-poll posts through the real pipeline (download → compress → thumbs → FTS → knowledge exclusion); documented in README launch checklist — first live poll with the user's own session is a first-boot step.
+- [x] X4.4 README updates (X session capture, monitored accounts, Grok enablement, ToS note — "logged-in scraping is subject to X's ToS and your own account is the thing at risk; keep polling gentle"). ✓: new "X.com: monitored creators + Grok curation" section, Collects blurb, 159-test count, launch-checklist entry.
+- [x] X4.5 Final commit `phase-X4 complete — X feature v1`.
 
 ## Next up
-Phase X4 (quality bar for the X feature).
+Nothing — v1.0 (phases 1–10) and the X feature (phases X1–X4) are complete: 159 tests green, frontend builds clean, all work pushed. First-boot steps for the user remain documented in the README launch checklist (live Civitai scrape; capture an X session and run a live account poll).

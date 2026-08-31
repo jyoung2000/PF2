@@ -172,7 +172,7 @@ function ScraperCard({ s, onChanged }: { s: ScraperInfo; onChanged: () => void }
           className={`shrink-0 relative w-9 h-5 rounded-full transition-colors duration-fast ${s.enabled ? 'bg-ember' : 'bg-well border border-line'}`}
         >
           <span
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-fg transition-transform duration-fast ${s.enabled ? 'translate-x-4' : 'translate-x-0.5'}`}
+            className={`absolute left-0 top-0.5 w-4 h-4 rounded-full bg-fg transition-transform duration-fast ${s.enabled ? 'translate-x-4' : 'translate-x-0.5'}`}
           />
         </button>
         <label className="flex items-center gap-1 text-[12px] text-mute">

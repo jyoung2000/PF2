@@ -11,7 +11,8 @@ self-hosted alternative to morphic.com's visual workflows, with browsing in the
 spirit of Pinterest and eyecannndy.com.
 
 - **Collects** — Civitai + Lexica out of the box (plain API, zero setup); Midjourney
-  Explore, TensorArt, SeaArt, PixAI via a stealth browser engine with your login session.
+  Explore, TensorArt, SeaArt, PixAI and X.com via a stealth browser engine with your
+  login session — X adds a per-creator follow list and optional Grok curation.
   Media is lossy-compressed (WebP / H.264) with thumbnails; embedded generation
   metadata (A1111 / ComfyUI PNG chunks) is parsed *before* compression.
 - **Curates** — masonry gallery with blur-up thumbs and hover-playing videos,
@@ -68,7 +69,7 @@ Native development (hot reload):
 bash scripts/dev_setup.sh                 # backend venv + frontend deps
 cd backend && .venv/bin/uvicorn promptforge.main:app --port 5643 --reload
 cd frontend && npm run dev                # Vite on :5173, proxies /api
-cd backend && .venv/bin/python -m pytest  # 129-test suite
+cd backend && .venv/bin/python -m pytest  # 159-test suite
 ```
 
 ## First hour with PromptForge
@@ -106,6 +107,53 @@ flips to "session: valid" and the adapter goes live. Same flow for
 helps). If a session expires the dashboard says so — re-run the script.
 PromptForge never solves captchas or evades blocks: if a site throws a
 challenge, the adapter logs it and backs off.
+
+## X.com: monitored creators + Grok curation
+
+X posts carry no structured generation metadata, so PromptForge mines prompts
+and model names straight out of tweet text — deterministically, with a
+confidence flag: clearly labelled prompts ("Prompt:", code fences) count fully,
+loose guesses stay on the post but are excluded from model learning so they
+never pollute the knowledge files.
+
+1. **Capture a session** — X requires login; it's the same flow as Midjourney:
+   `python scripts/capture_login.py x`, log in in the window, press Enter →
+   `./data/sessions/x.json`, copy to
+   `/mnt/user/appdata/promptforge/sessions/x.json`. The X card on the Scrapers
+   page and the Monitoring-page banner flip to "session: valid".
+2. **Search crawls** — the X card in Settings has its own search terms
+   (`#midjourney, #AIart, #aivideo, #flux` by default), a minimum-engagement
+   filter, images/videos/both, skip-replies, and a max-per-run cap. The site
+   joins the normal scheduler rotation.
+3. **Follow specific creators** — the **Monitoring** page: paste handles, @s,
+   or profile URLs (bulk paste works — commas or one per line). Each account
+   polls on its own interval with a per-account cursor, so only new posts are
+   fetched. Per-account switches: media-only, auto-tag every find, auto-file
+   into a collection (model-family scoping is honored, same as manual saves).
+   Accounts fail independently — a renamed or dead account flips to "not
+   found" on its row without stopping the rest, and pause-all/resume-all is
+   one click.
+4. **Optional: Grok** — paste an xAI API key (console.x.ai) in Settings →
+   Grok and hit Test:
+   - **Discover** — describe an interest on the Monitoring page ("cinematic
+     AI video creators") and Grok live-searches X for candidate accounts,
+     each with a why-them note. Every candidate is review-before-add: you
+     click Watch or Dismiss; nothing is ever followed silently.
+   - **Curate** — a budgeted background pass over unreviewed X finds: flags
+     AI-vs-not (non-AI posts are only marked, never deleted), fills in the
+     model where the text didn't state one (marked *inferred*, never
+     overwriting a *stated* model), and suggests technique tags (whitelisted
+     against the fixed taxonomy) plus ordinary tags you can remove like any
+     other. Daily call budget with a live counter.
+   - **Digest** — a periodic "what your monitored creators posted" summary on
+     the Monitoring page, optionally routed to Discord.
+   - Grok is also selectable as the knowledge-engine AI provider (Settings →
+     Knowledge engine), reusing the same key.
+
+Heads-up: logged-in scraping is subject to X's ToS and your own account is the
+thing at risk — keep polling gentle. The defaults are conservative (60-minute
+account interval, 5-minute floor, one browser run at a time), and the adapter
+backs off on rate limits like every other site.
 
 ## The companion app (desktop GPU bridge)
 
@@ -206,6 +254,20 @@ integrations. Everything configurable from the GUI at runtime.
   nothing errors); network killed mid-scrape → adapter records the error, app
   and healthcheck stay green.
 - ✅ `/data` files owned by `PUID:PGID` (99:100) for Unraid.
+- ✅ X feature (v1.1, +30 tests → 159): tweet-text prompt/model extraction
+  (labelled/fenced/quoted hits *and* the false-positive traps —
+  sparkling≠kling, influx≠flux, pikachu≠pika), GraphQL capture parse from a
+  saved fixture (full-res `?name=orig` photos, top-bitrate MP4, multi-image
+  tweets split into one post per media, retweet unwrap, quoted-tweet prompts),
+  scope filters, per-account cursor polls fetching only new posts, per-account
+  failure isolation, auto-tag/auto-collection with family scoping,
+  low-confidence prompts excluded from knowledge stats, and Grok
+  discover/curate/digest against a mocked xAI server — including inferred-vs-
+  stated model writes, technique whitelisting, budget stops, and clean
+  "Needs setup" no-ops with no key. No X login session exists in the build
+  sandbox, so the E2E smoke ran the mocked account-poll path through the real
+  pipeline (download → compress → thumbs → FTS → knowledge); the first live
+  poll with your own session is a first-boot step, same as the Civitai one.
 - ⏸ Deferred (documented): Windows `.exe` is built per-machine via the included
   PyInstaller script/workflow (no Windows builder in the dev environment);
   SeaArt + PixAI adapters are marked *experimental* in the GUI (their internal
