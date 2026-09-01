@@ -9,9 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from .. import settings_store
 from ..db import get_db
 from ..logbus import bus
 from ..scrapers import all_adapters, get_adapter
+from ..scrapers.connect import LOGIN_URLS
 
 router = APIRouter(prefix="/api/scrapers", tags=["scrapers"])
 
@@ -28,12 +30,20 @@ def _adapter_info(adapter, s: Session) -> dict:
     except Exception:
         pass
     session_status = None
-    if getattr(adapter, "requires_auth", False) and hasattr(adapter, "session_status"):
+    if hasattr(adapter, "session_status"):
         session_status = adapter.session_status(s)
+    auth_kind = getattr(adapter, "auth_kind", "none")
+    key_setting = getattr(adapter, "api_key_setting", None)
     return {
         "name": adapter.name,
         "label": adapter.label,
         "session_status": session_status,
+        "session_optional": auth_kind == "session" and not adapter.requires_auth,
+        "connectable": adapter.name in LOGIN_URLS,
+        "auth_kind": auth_kind,
+        "key_configured": bool(settings_store.get(s, key_setting)) if key_setting else None,
+        "key_setting": key_setting,
+        "key_url": getattr(adapter, "api_key_url", None),
         "tier": adapter.tier,
         "experimental": adapter.experimental,
         "requires_auth": adapter.requires_auth,
@@ -83,6 +93,15 @@ def run_now(name: str, db: Session = Depends(get_db)):
 def _run_direct(name: str) -> None:
     from ..scrapers.runner import run_scraper
     run_scraper(name, manual=True)
+
+
+@router.post("/{name}/test")
+def test_adapter(name: str, db: Session = Depends(get_db)):
+    """Paste-to-connect check for API-key sources (Civitai). {ok, detail}."""
+    adapter = get_adapter(name)
+    if adapter is None or not hasattr(adapter, "test_connection"):
+        raise HTTPException(404, f"'{name}' has nothing to test")
+    return adapter.test_connection(db)
 
 
 def _browser_adapter_or_404(name: str):

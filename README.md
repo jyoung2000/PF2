@@ -69,14 +69,14 @@ Native development (hot reload):
 bash scripts/dev_setup.sh                 # backend venv + frontend deps
 cd backend && .venv/bin/uvicorn promptforge.main:app --port 5643 --reload
 cd frontend && npm run dev                # Vite on :5173, proxies /api
-cd backend && .venv/bin/python -m pytest  # 167-test suite
+cd backend && .venv/bin/python -m pytest  # 172-test suite
 ```
 
 ## First hour with PromptForge
 
 1. **Scrapers** page → Civitai is already OK → **Run now**. Posts stream into
-   the gallery within a minute (watch the live log). Add a Civitai API key in
-   Settings for higher limits + NSFW.
+   the gallery within a minute (watch the live log). Paste a Civitai API key
+   (Connect on its card) for higher limits + NSFW.
 2. Save a few favorites into a **collection** (🔖 on any card). Collections
    adopt the model family of the first post — that's what keeps styles
    coherent (a per-collection "allow mixed models" toggle exists).
@@ -91,7 +91,21 @@ cd backend && .venv/bin/python -m pytest  # 167-test suite
 
 ## Logging into Midjourney (and other browser sites)
 
-Tier 2 sites scrape through a stealth Chromium with *your* login session:
+Every source connects in one click from its card on the Scrapers page:
+
+- **Browser sites** (X, Midjourney required; TensorArt / SeaArt / PixAI
+  optional — they scrape logged-out, a session just helps): click
+  **Connect**, log in inside the streamed server browser, and the session
+  saves itself. X and Midjourney finish the moment their login cookie appears;
+  the others save as soon as a login is detected and leave the window open in
+  case you weren't done ("Save session now" re-saves, "Done" closes).
+  **Reconnect** / **Disconnect** live next to the status once connected, and
+  an expired session says so on the card.
+- **Civitai** is an API key instead: click **Connect** on its card (or use the
+  Settings field), paste the key, done — it saves and tests itself.
+- **Lexica** needs nothing.
+
+The desktop route still works as a fallback for browser sites:
 
 ```bash
 # on your desktop (needs a display):
@@ -100,13 +114,10 @@ python scripts/capture_login.py midjourney
 # log in in the window that opens, press Enter →  ./data/sessions/midjourney.json
 ```
 
-Copy the exported file to your server at
-`/mnt/user/appdata/promptforge/sessions/midjourney.json`. The Scrapers page
-flips to "session: valid" and the adapter goes live. Same flow for
-`tensorart`, `seaart`, `pixai` (those work logged-out too; a session just
-helps). If a session expires the dashboard says so — re-run the script.
-PromptForge never solves captchas or evades blocks: if a site throws a
-challenge, the adapter logs it and backs off.
+Upload the exported file with the card's upload button (X card) or copy it to
+`/mnt/user/appdata/promptforge/sessions/midjourney.json`. PromptForge never
+solves captchas or evades blocks: if a site throws a challenge during a scrape,
+the adapter logs it and backs off — and in the Connect window, *you* answer it.
 
 ## X.com: monitored creators + Grok curation
 
@@ -288,6 +299,16 @@ integrations. Everything configurable from the GUI at runtime.
   xAI stand-in (paste → saved → tested → live model list). x.com itself is
   unreachable from the sandbox, so the first real X login through the modal is
   a first-boot step; the desktop-capture and upload fallbacks remain.
+- ✅ Connect everywhere (v1.3, +5 tests → 172): every source card carries its
+  connect state — Connect/Reconnect/Disconnect on all five browser sites
+  (optional logins labelled), Civitai key paste-to-connect with a real
+  connection test (401 vs 200 vs unreachable, mocked), Lexica "no login
+  needed". Login auto-detection covers every site: known cookie markers for X
+  and Midjourney finish the flow; the rest use generic detection (a new
+  auth-looking cookie/localStorage key after your first input → saved, window
+  stays open) — proven with fake browsers, and through the real UI against
+  stand-ins: Civitai inline paste → "Key accepted", TensorArt modal login →
+  "Login detected — session saved", Done → "session: valid".
 - ⏸ Deferred (documented): Windows `.exe` is built per-machine via the included
   PyInstaller script/workflow (no Windows builder in the dev environment);
   SeaArt + PixAI adapters are marked *experimental* in the GUI (their internal

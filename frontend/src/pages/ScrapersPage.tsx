@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, listScrapers, ScraperInfo } from '../api'
-import { ConnectModal, DisconnectButton } from '../components/ConnectModal'
+import { ApiKeyConnect, ConnectModal, DisconnectButton } from '../components/ConnectModal'
 import { Spinner, StatusDot } from '../components/Primitives'
 import { timeAgo, timeUntil } from '../lib/format'
 import { useFetch } from '../lib/hooks'
@@ -85,7 +85,18 @@ function LogPanel() {
 function ScraperCard({ s, onChanged }: { s: ScraperInfo; onChanged: () => void }) {
   const [running, setRunning] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [keyOpen, setKeyOpen] = useState(false)
   const [interval, setIntervalMin] = useState(s.interval_minutes)
+
+  const saveSetting = async (v: Record<string, unknown>) => {
+    try {
+      await api.put('/api/settings', v)
+      return true
+    } catch (e) {
+      toastError((e as Error).message)
+      return false
+    }
+  }
 
   const runNow = async () => {
     setRunning(true)
@@ -142,18 +153,49 @@ function ScraperCard({ s, onChanged }: { s: ScraperInfo; onChanged: () => void }
         <div className="text-[12px] -mt-1.5 flex items-center gap-2 flex-wrap">
           <span>
             <span className="text-faint">Login session: </span>
-            <span className={s.session_status === 'valid' ? 'text-emerald-300' : 'text-amber-300'}>
+            <span
+              className={
+                s.session_status === 'valid' ? 'text-emerald-300' : s.session_optional ? 'text-mute' : 'text-amber-300'
+              }
+            >
               {s.session_status}
+              {s.session_optional && s.session_status !== 'valid' ? ' (optional)' : ''}
             </span>
           </span>
-          <button className="btn !py-0.5 !px-2 !text-[11.5px]" onClick={() => setConnecting(true)}>
-            {s.session_status === 'valid' ? 'Reconnect' : 'Connect'}
-          </button>
+          {s.connectable && (
+            <button className="btn !py-0.5 !px-2 !text-[11.5px]" onClick={() => setConnecting(true)}>
+              {s.session_status === 'valid' ? 'Reconnect' : 'Connect'}
+            </button>
+          )}
           {s.session_status === 'valid' && (
             <DisconnectButton platform={s.name} onDone={onChanged} className="btn !py-0.5 !px-2 !text-[11.5px]" />
           )}
         </div>
       )}
+      {s.auth_kind === 'api_key' && (
+        <div className="text-[12px] -mt-1.5 flex items-center gap-2 flex-wrap">
+          <span>
+            <span className="text-faint">API key: </span>
+            <span className={s.key_configured ? 'text-emerald-300' : 'text-mute'}>
+              {s.key_configured ? 'connected' : 'none (optional)'}
+            </span>
+          </span>
+          <button className="btn !py-0.5 !px-2 !text-[11.5px]" onClick={() => setKeyOpen(!keyOpen)}>
+            {keyOpen ? 'Close' : s.key_configured ? 'Change key' : 'Connect'}
+          </button>
+        </div>
+      )}
+      {s.auth_kind === 'api_key' && keyOpen && s.key_setting && (
+        <ApiKeyConnect
+          platform={s.name}
+          settingKey={s.key_setting}
+          keyUrl={s.key_url}
+          configured={Boolean(s.key_configured)}
+          save={saveSetting}
+          onChanged={onChanged}
+        />
+      )}
+      {s.auth_kind === 'none' && <p className="text-[12px] -mt-1.5 text-faint">No login needed ✓</p>}
       {connecting && (
         <ConnectModal platform={s.name} label={s.label} onClose={() => setConnecting(false)} onConnected={onChanged} />
       )}

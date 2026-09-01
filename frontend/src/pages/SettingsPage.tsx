@@ -4,6 +4,7 @@ import { KnowledgeCard } from '../components/KnowledgeCard'
 import { ProvidersCard } from '../components/ProvidersCard'
 import { CompanionCard } from '../components/CompanionCard'
 import { GrokCard, XSourceCard } from '../components/XGrokCard'
+import { ApiKeyConnect } from '../components/ConnectModal'
 import { api } from '../api'
 import { Field, NumberSetting, Section, TextSetting, ToggleSetting } from '../components/SettingsKit'
 import { ConfirmModal, Spinner } from '../components/Primitives'
@@ -151,22 +152,16 @@ export function SettingsPage() {
         <Field
           label="Civitai API key (optional)"
           htmlFor="setting-civitai_api_key"
-          hint={
-            <>
-              Higher rate limits + NSFW access. Create one under{' '}
-              <a
-                className="underline underline-offset-2 hover:text-fg"
-                href="https://civitai.com/user/account"
-                target="_blank"
-                rel="noreferrer"
-              >
-                civitai.com → Account settings → API keys
-              </a>
-              .
-            </>
-          }
+          hint="Higher rate limits + NSFW access. Pasting a key connects immediately — it saves and tests itself (Account settings → API keys on civitai.com)."
         >
-          <TextSetting settings={settings} k="civitai_api_key" save={save} secret placeholder="Paste API key" />
+          <ApiKeyConnect
+            platform="civitai"
+            settingKey="civitai_api_key"
+            keyUrl="https://civitai.com/user/account"
+            configured={Boolean(settings.civitai_api_key)}
+            masked={String(settings.civitai_api_key ?? '')}
+            save={save}
+          />
         </Field>
         <ToggleSetting
           settings={settings}

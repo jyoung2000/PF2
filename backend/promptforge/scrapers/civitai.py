@@ -108,13 +108,40 @@ class CivitaiAdapter(SourceAdapter):
     requires_auth = False           # key optional
     default_interval_minutes = 10
     min_interval_minutes = 5        # respect their caching — never poll faster
+    auth_kind = "api_key"
+    api_key_setting = "civitai_api_key"
+    api_key_url = "https://civitai.com/user/account"
 
-    def make_client(self, s: Session) -> httpx.Client:
+    def make_client(self, s: Session, transport=None) -> httpx.Client:
         headers = {"User-Agent": USER_AGENT}
         key = settings_store.get(s, "civitai_api_key")
         if key:
             headers["Authorization"] = f"Bearer {key}"
-        return httpx.Client(headers=headers, timeout=60, follow_redirects=True)
+        return httpx.Client(headers=headers, timeout=60, follow_redirects=True,
+                            transport=transport)
+
+    def test_connection(self, s: Session, transport=None) -> dict:
+        """Paste-to-connect check: one authenticated 1-item request. Never
+        raises — {ok, detail} drives the GUI badge."""
+        if not settings_store.get(s, "civitai_api_key"):
+            return {"ok": False, "detail": "No API key stored — paste one from "
+                    "civitai.com → Account settings → API keys."}
+        try:
+            with self.make_client(s, transport=transport) as client:
+                resp = client.get(_api_url(), params={"limit": 1})
+        except httpx.HTTPError as e:
+            return {"ok": False,
+                    "detail": f"Can't reach Civitai ({type(e).__name__})."}
+        if resp.status_code in (401, 403):
+            return {"ok": False, "detail":
+                    f"Civitai rejected the key (HTTP {resp.status_code}) — "
+                    "create a fresh one under Account settings → API keys."}
+        if resp.status_code != 200:
+            return {"ok": False, "detail":
+                    f"Civitai answered HTTP {resp.status_code} — try again "
+                    "in a minute."}
+        return {"ok": True,
+                "detail": "Key accepted — higher rate limits + NSFW unlocked."}
 
     def fetch_recent(self, s: Session, client: httpx.Client,
                      limit: int = 100) -> list[ScrapedPost]:

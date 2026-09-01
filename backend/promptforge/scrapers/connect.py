@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import time
 from typing import Any
 
@@ -36,9 +37,21 @@ LOGIN_URLS = {
     "seaart": "https://www.seaart.ai/",
     "pixai": "https://pixai.art/",
 }
-# Cookie whose appearance means "logged in" → auto-save. Other sites use the
-# modal's manual "Save session now" button.
-SUCCESS_COOKIES = {"x": "auth_token"}
+# Cookie-name markers (substring match) that mean "logged in" on sites we
+# know: the flow saves and finishes by itself.
+KNOWN_LOGIN_MARKERS = {
+    "x": ("auth_token",),
+    "midjourney": ("Midjourney.AuthUserToken",),
+}
+# Everywhere else, generic detection: after the user's FIRST input, a new
+# cookie or localStorage key that looks like an auth artefact triggers a
+# NON-final save — the window stays open in case the login isn't finished,
+# and "Save session now" re-saves. Never fires on what the page set on load.
+AUTH_NAME_RE = re.compile(
+    r"auth|token|session|jwt|login|sid|uid|access|refresh|passport", re.I)
+NOT_AUTH_RE = re.compile(
+    r"csrf|xsrf|_ga|_gid|analytics|consent|cookieyes|__cf|cf_|_dd_|sentry", re.I)
+INPUT_EVENTS = {"click", "text", "key", "scroll"}
 
 VIEWPORT = {"width": 1280, "height": 800}
 RECV_TIMEOUT = 0.5          # seconds between ticks while idle
@@ -133,11 +146,45 @@ async def _save_session(platform: str, context: Any) -> None:
     bus.info(f"scraper.{platform}", "login session saved from in-app connect")
 
 
-def _has_success_cookie(platform: str, cookies: list[dict]) -> bool:
-    want = SUCCESS_COOKIES.get(platform)
-    if not want:
+def _known_login(platform: str, cookies: list[dict]) -> bool:
+    markers = KNOWN_LOGIN_MARKERS.get(platform)
+    if not markers:
         return False
-    return any(c.get("name") == want and c.get("value") for c in cookies)
+    return any(c.get("value") and any(m in (c.get("name") or "") for m in markers)
+               for c in cookies)
+
+
+def _auth_like(name: str) -> bool:
+    return bool(AUTH_NAME_RE.search(name)) and not NOT_AUTH_RE.search(name)
+
+
+async def _storage_names(handle: BrowserHandle) -> set[str]:
+    """Cookie names + localStorage keys of the current origin, prefixed so the
+    two namespaces can't collide."""
+    names: set[str] = set()
+    try:
+        for c in await handle.context.cookies():
+            names.add("c:" + (c.get("name") or ""))
+    except Exception:
+        pass
+    try:
+        keys = await handle.page.evaluate("() => Object.keys(window.localStorage)")
+        for k in keys or []:
+            names.add("l:" + str(k))
+    except Exception:
+        pass
+    return names
+
+
+def _generic_login(baseline: set[str], current: set[str]) -> bool:
+    return any(_auth_like(n[2:]) for n in current - baseline)
+
+
+async def _finish(ws: WebSocket, platform: str, handle: BrowserHandle) -> None:
+    await ws.send_json({"t": "status", "state": "saving",
+                        "message": "Login detected — saving your session…"})
+    await _save_session(platform, handle.context)
+    await ws.send_json({"t": "saved", "final": True})
 
 
 async def _handle_input(page: Any, msg: dict) -> bool:
@@ -210,6 +257,8 @@ async def run_connect(ws: WebSocket, platform: str) -> None:
         started = time.time()
         last_input = started
         last_frame = 0.0
+        baseline: set[str] | None = None   # storage names at first user input
+        auto_saved = False
         while True:
             now = time.time()
             if now - started > MAX_LIFETIME:
@@ -234,6 +283,8 @@ async def run_connect(ws: WebSocket, platform: str) -> None:
                     msg = {}
                 if msg.get("t") == "cancel":
                     return
+                if baseline is None and msg.get("t") in INPUT_EVENTS:
+                    baseline = await _storage_names(handle)
                 try:
                     save_requested = await _handle_input(handle.page, msg)
                 except Exception as e:
@@ -241,22 +292,29 @@ async def run_connect(ws: WebSocket, platform: str) -> None:
             except asyncio.TimeoutError:
                 idle_tick = True
 
-            done = save_requested
-            if not done and idle_tick:
+            if save_requested:
+                await _finish(ws, platform, handle)
+                return
+            if idle_tick:
                 # auto-detect only between input bursts, so every queued
                 # keystroke lands before the session is captured
-                try:
-                    cookies = await handle.context.cookies()
-                    done = _has_success_cookie(platform, cookies)
-                except Exception:
-                    done = False
-            if done:
-                await ws.send_json({"t": "status", "state": "saving",
-                                    "message": "Login detected — saving your "
-                                               "session…"})
-                await _save_session(platform, handle.context)
-                await ws.send_json({"t": "saved"})
-                return
+                if platform in KNOWN_LOGIN_MARKERS:
+                    try:
+                        cookies = await handle.context.cookies()
+                    except Exception:
+                        cookies = []
+                    if _known_login(platform, cookies):
+                        await _finish(ws, platform, handle)
+                        return
+                elif baseline is not None and not auto_saved:
+                    if _generic_login(baseline, await _storage_names(handle)):
+                        await _save_session(platform, handle.context)
+                        auto_saved = True
+                        await ws.send_json({
+                            "t": "saved", "final": False,
+                            "message": "Login detected — session saved ✓. "
+                                       "Not finished? Keep going, then hit "
+                                       "Save session now to re-save."})
 
             if time.time() - last_frame >= FRAME_INTERVAL:
                 try:

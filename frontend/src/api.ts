@@ -87,6 +87,12 @@ export interface ScraperInfo {
   next_run_at: string | null
   running: boolean
   session_status?: 'valid' | 'expired' | 'missing' | 'unknown' | null
+  session_optional?: boolean
+  connectable?: boolean
+  auth_kind?: 'session' | 'api_key' | 'none'
+  key_configured?: boolean | null
+  key_setting?: string | null
+  key_url?: string | null
 }
 
 export interface Suggestions {
@@ -180,6 +186,7 @@ export const uploadScraperSession = async (name: string, file: File): Promise<Sc
   return body as ScraperInfo
 }
 export const deleteScraperSession = (name: string) => api.delete<ScraperInfo>(`/api/scrapers/${name}/session`)
+export const testScraper = (name: string) => api.post<{ ok: boolean; detail: string }>(`/api/scrapers/${name}/test`)
 
 // ---- Collections ----
 export const listCollections = () =>

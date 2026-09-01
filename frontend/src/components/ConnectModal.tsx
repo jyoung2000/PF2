@@ -3,9 +3,119 @@
 // stored), and the session storage_state saves server-side. Auto-detects X
 // login; other sites use the "Save session now" button.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { deleteScraperSession, uploadScraperSession } from '../api'
+import { deleteScraperSession, testScraper, uploadScraperSession } from '../api'
 import { toastError, toastSuccess } from '../lib/toast'
 import { Spinner } from './Primitives'
+
+/** Paste-to-connect for API-key sources (Civitai): committing a key
+ * (paste / Enter / blur) saves it and immediately runs the site's connection
+ * test — one paste and the source is connected. */
+export function ApiKeyConnect({
+  platform,
+  settingKey,
+  keyUrl,
+  configured,
+  masked,
+  save,
+  onChanged,
+}: {
+  platform: string
+  settingKey: string
+  keyUrl?: string | null
+  configured: boolean
+  masked?: string
+  save: (v: Record<string, unknown>) => Promise<boolean>
+  onChanged?: () => void
+}) {
+  const [value, setValue] = useState('')
+  const [testing, setTesting] = useState(false)
+  const [result, setResult] = useState<{ ok: boolean; detail: string } | null>(null)
+
+  const runTest = async () => {
+    setTesting(true)
+    try {
+      const r = await testScraper(platform)
+      setResult(r)
+      if (r.ok) toastSuccess(`${platform} connected ✓`)
+    } catch (e) {
+      setResult({ ok: false, detail: (e as Error).message })
+    } finally {
+      setTesting(false)
+      onChanged?.()
+    }
+  }
+
+  const commit = async (raw?: string) => {
+    const v = (raw ?? value).trim()
+    if (!v) return
+    if (await save({ [settingKey]: v })) {
+      setValue('')
+      await runTest()
+    }
+  }
+
+  const forget = async () => {
+    if (await save({ [settingKey]: '' })) {
+      setResult(null)
+      toastSuccess('Key removed')
+      onChanged?.()
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          id={`setting-${settingKey}`}
+          type="text"
+          autoComplete="off"
+          spellCheck={false}
+          className="input font-mono flex-1 min-w-[220px]"
+          placeholder={configured ? `${masked || '••••'} stored — paste to replace` : 'paste API key to connect'}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onPaste={(e) => {
+            const text = e.clipboardData.getData('text').trim()
+            if (text) {
+              e.preventDefault()
+              setValue(text)
+              void commit(text)
+            }
+          }}
+          onBlur={() => void commit()}
+          onKeyDown={(e) => e.key === 'Enter' && void commit()}
+        />
+        {keyUrl && (
+          <a className="btn !py-1.5 text-[12px] whitespace-nowrap" href={keyUrl} target="_blank" rel="noreferrer">
+            Get an API key ↗
+          </a>
+        )}
+        {configured && (
+          <>
+            <button className="btn !py-1.5 text-[12px]" onClick={runTest} disabled={testing}>
+              {testing ? <Spinner /> : 'Test'}
+            </button>
+            <button className="btn !py-1.5 text-[12px]" onClick={forget}>
+              Remove key
+            </button>
+          </>
+        )}
+      </div>
+      {result && (
+        <p
+          className={`text-[12.5px] rounded-el px-3 py-2 border ${
+            result.ok
+              ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/30'
+              : 'text-red-300 bg-red-400/10 border-red-400/30'
+          }`}
+        >
+          {result.ok ? '✓ ' : ''}
+          {result.detail}
+        </p>
+      )}
+    </div>
+  )
+}
 
 const VIEW_W = 1280
 const VIEW_H = 800
@@ -35,6 +145,9 @@ export function ConnectModal({
   const wheelTimer = useRef<number | null>(null)
   const [state, setState] = useState<ConnState>('connecting')
   const [message, setMessage] = useState('')
+  // generic-detection sites save without closing: the window stays live so
+  // an unfinished login can continue, and "Save session now" re-saves
+  const [autoSaved, setAutoSaved] = useState(false)
 
   const send = useCallback((obj: Record<string, unknown>) => {
     const ws = wsRef.current
@@ -55,10 +168,16 @@ export function ConnectModal({
           setState(msg.state as ConnState)
           setMessage(msg.message ?? '')
         } else if (msg.t === 'saved') {
+          onConnected()
+          if (msg.final === false) {
+            setAutoSaved(true)
+            setMessage(msg.message ?? 'Login detected — session saved ✓.')
+            toastSuccess(`${label} connected ✓ — keep going if you weren't done`)
+            return
+          }
           setState('saved')
           setMessage('Session saved — this site is now connected.')
           toastSuccess(`${label} connected ✓`)
-          onConnected()
           window.setTimeout(onClose, 1400)
         } else if (msg.t === 'error') {
           setState('error')
@@ -149,8 +268,8 @@ export function ConnectModal({
         <div className="flex items-center gap-2">
           <h2 className="font-display font-medium text-[15.5px]">Connect {label}</h2>
           <span className="chip !text-[10.5px]">your server's browser</span>
-          <button className="btn ml-auto" onClick={onClose}>
-            Cancel
+          <button className={`ml-auto ${autoSaved ? 'btn-accent' : 'btn'}`} onClick={onClose}>
+            {autoSaved ? 'Done' : 'Cancel'}
           </button>
         </div>
 
@@ -158,7 +277,7 @@ export function ConnectModal({
           className={`text-[12.5px] rounded-el px-3 py-2 border ${
             state === 'error'
               ? 'text-red-300 bg-red-400/10 border-red-400/30'
-              : state === 'saved'
+              : state === 'saved' || autoSaved
                 ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/30'
                 : 'text-mute bg-well/50 border-line'
           }`}
@@ -166,8 +285,10 @@ export function ConnectModal({
           {state === 'connecting' && 'Opening a connection…'}
           {state === 'launching' && (message || 'Starting the browser…')}
           {state === 'live' &&
-            (message ||
-              'Log in below exactly as usual — keystrokes go straight to the page and are never stored. If a verification step appears, just complete it yourself.')}
+            (autoSaved
+              ? `✓ ${message}`
+              : message ||
+                'Log in below exactly as usual — keystrokes go straight to the page and are never stored. If a verification step appears, just complete it yourself.')}
           {state === 'saving' && (message || 'Saving your session…')}
           {(state === 'saved' || state === 'error') && message}
         </p>
@@ -194,9 +315,9 @@ export function ConnectModal({
             Save session now
           </button>
           <span className="text-[12px] text-faint">
-            {platform === 'x'
-              ? 'X saves automatically the moment you finish logging in — the button is a manual fallback.'
-              : 'Click this once you can see you are logged in.'}
+            {platform === 'x' || platform === 'midjourney'
+              ? 'Saves automatically the moment you finish logging in — the button is a manual fallback.'
+              : 'Saves itself when a login is detected; click this if you finish and it hasn’t.'}
           </span>
         </div>
       </div>

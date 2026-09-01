@@ -42,6 +42,11 @@ class SourceAdapter(ABC):
     experimental: bool = False
     default_interval_minutes: int = 15
     min_interval_minutes: int = 5
+    # how the GUI "connects" this source: "session" (browser login),
+    # "api_key" (paste-to-connect; see api_key_setting/api_key_url), "none"
+    auth_kind: str = "none"
+    api_key_setting: str | None = None
+    api_key_url: str | None = None
 
     # -- configuration ------------------------------------------------------
     def is_configured(self, s: Session) -> bool:

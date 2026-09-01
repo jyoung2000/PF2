@@ -43,13 +43,15 @@ class BrowserAdapter(SourceAdapter):
     scroll_count: int = 12
     page_timeout_ms: int = 90_000
 
+    auth_kind = "session"
+
     # -- session handling ----------------------------------------------------
     def storage_state_path(self) -> Path:
         return get_config().sessions_dir / f"{self.name}.json"
 
     def session_status(self, s: Session) -> str:
-        if not self.requires_auth:
-            return "unknown"
+        """valid | expired | missing — reported for every browser site, login
+        optional ones included (the GUI labels those 'optional')."""
         path = self.storage_state_path()
         if not path.is_file():
             return "missing"
@@ -65,9 +67,9 @@ class BrowserAdapter(SourceAdapter):
 
     def needs_setup_reason(self, s: Session) -> str | None:
         if self.requires_auth and not self.storage_state_path().is_file():
-            return (f"Login session missing — run scripts/capture_login.py "
-                    f"{self.name} on your desktop, then copy the exported file "
-                    f"to data/sessions/{self.name}.json")
+            return ("Login session missing — click Connect to log in right "
+                    "here (or upload a scripts/capture_login.py export / copy "
+                    f"it to data/sessions/{self.name}.json)")
         return None
 
     def health(self, s: Session) -> dict:
@@ -75,7 +77,8 @@ class BrowserAdapter(SourceAdapter):
         if base["status"] in ("ok", "experimental") and self.requires_auth:
             if self.session_status(s) == "expired":
                 return {"status": "error",
-                        "detail": "Login session expired — re-run capture_login.py"}
+                        "detail": "Login session expired — click Reconnect "
+                                  "(or re-run capture_login.py)"}
         return base
 
     # -- media client with session cookies (D47) -----------------------------

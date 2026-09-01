@@ -132,8 +132,9 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
         media_only = account.media_only
         if adapter is None or not adapter.is_configured(s):
             account.status = "error"
-            account.last_error = ("X login session missing — capture it via "
-                                  "scripts/capture_login.py x")
+            account.last_error = ("X login session missing — click Connect X "
+                                  "account (or upload a scripts/capture_login.py "
+                                  "x export)")
             account.last_checked = datetime.now(timezone.utc)
             bus.warn(src, f"@{handle}: skipped — no X session")
             return None
