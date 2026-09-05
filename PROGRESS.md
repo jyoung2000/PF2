@@ -230,13 +230,13 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] S4.5 Inspiration → Studio/Film "Use as Inspiration" handoff with provenance. Phase gate; commit. ✓: IntelPanel “🎬 Use in Film” → `/film/storyboard?inspiration=1` banner applies camera/lighting/style/subject/techniques to the selected shot with `overrides.inspiration` attribution (`film-inspiration-handoff.png`); zero page errors on desktop + 390px; build clean; 238 backend tests.
 
 ## Phase S5 — Frontend tests + acceptance journey
-- [ ] S5.1 vitest + testing-library for timing math, context/lock helpers, ShotTypeLibrary, AssetPicker. ✓: green.
-- [ ] S5.2 Scripted acceptance journey (spec AL) through the real app with mocked providers; restart persistence; desktop + mobile screenshots. ✓: passes.
-- [ ] S5.3 Phase gate; commit.
+- [x] S5.1 vitest + testing-library for timing math, context/lock helpers, ShotTypeLibrary, AssetPicker. ✓: green. Done: `vitest.config.ts` (jsdom), `src/test/setup.ts`, `npm test` → 19 tests (`lib/film.test.ts`, `TimingPanel.test.tsx`, `ShotTypeLibrary.test.tsx`, `AssetPicker.test.tsx`).
+- [x] S5.2 Scripted acceptance journey (spec AL) through the real app with mocked providers; restart persistence; desktop + mobile screenshots. ✓: passes. Done: `tests/test_film_acceptance.py` (project → script → assets/locks/refs → plan → Director scenes/shots → visual shot type → gaps/runtime → camera+lighting → frames → chaining → sample → gates → batch → alternates → continuity → audio/subtitles → QA → export → restart → persistence) + Playwright `film_journey.mjs` (library pick, duration, gap default/override/reset, lens+lighting, continuity, QA, lock → new version) with zero page errors; screenshots `film-*.png` desktop + 390px.
+- [x] S5.3 Phase gate; commit. ✓: 239 backend + 19 frontend tests green.
 
 ## Phase S6 — Docker verification + docs + final gate
 - [ ] S6.1 Docker build/start (sandbox variant per D50) → health, migrations on an existing DB, Gallery/Studio/Inspiration/Film pages, persistence after restart. ✓: documented.
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase S5 (frontend tests + acceptance journey). S4 done: 238 tests green.
+Phase S6 (Docker verification + docs + final gate). S5 done: 239 backend + 19 frontend tests green.

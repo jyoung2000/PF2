@@ -3,6 +3,7 @@
 // flows through every tab; Assets are global.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { ApiError } from '../../api'
 import { EmptyState, Spinner } from '../../components/Primitives'
 import { errorMessage, film, FilmSchema, loadProjectId, Presets, Project, saveProjectId } from '../../lib/film'
 import { toastError } from '../../lib/toast'
@@ -64,10 +65,14 @@ export function FilmPage() {
       const p = await film.getProject(projectId)
       setProject(p)
       return p
-    } catch {
-      setProject(null)
-      setProjectIdState(null)
-      saveProjectId(null)
+    } catch (e) {
+      // forget the project only when it is really gone — an aborted poll
+      // during navigation must not wipe the selection
+      if (e instanceof ApiError && e.status === 404) {
+        setProject(null)
+        setProjectIdState(null)
+        saveProjectId(null)
+      }
       return null
     }
   }, [projectId])

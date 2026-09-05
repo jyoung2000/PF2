@@ -4,11 +4,13 @@
 import { useRef, useState } from 'react'
 import { fmtTc, Timeline, TimelineScene } from '../../lib/film'
 
-export function runtimeOf(tl: Pick<Timeline, 'scenes'>, gapDefault: number): number {
+/** Runtime from scene durations + gaps. A scene whose gap is inherited
+ *  follows `gapDefault`; an explicit override keeps its own value. */
+export function runtimeOf(tl: { scenes: Pick<TimelineScene, 'duration_s' | 'gap_after_s' | 'gap_inherited'>[] }, gapDefault: number): number {
   let t = 0
   tl.scenes.forEach((sc, i) => {
     t += sc.duration_s
-    if (i < tl.scenes.length - 1) t += sc.gap_after_s ?? gapDefault
+    if (i < tl.scenes.length - 1) t += sc.gap_inherited || sc.gap_after_s == null ? gapDefault : sc.gap_after_s
   })
   return Math.round(t * 1000) / 1000
 }
