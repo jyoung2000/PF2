@@ -188,10 +188,15 @@ def discover_creators(interest: str,
         monitored = {a.handle for a in s.execute(
             select(MonitoredAccount)).scalars()}
     user = (f"Interest: {interest}\n\n"
-            "Find up to 8 X accounts. Reply with a JSON array:\n"
+            "Find up to 8 X accounts that genuinely publish this kind of "
+            "AI-generated media. Reply with a JSON array:\n"
             '[{"handle": "no @", "display_name": "", '
             '"reason": "one line: why this account fits", '
-            '"sample": "a short excerpt of a typical post of theirs"}]')
+            '"evidence": "a short quote from a real recent post of theirs", '
+            '"detected_models": ["model names they themselves mention"], '
+            '"content_type": "image|video|workflow|mixed", '
+            '"engagement_estimate": "low|medium|high", '
+            '"confidence": 0.0-1.0}]')
     raw = chat(key, base, model,
                [{"role": "system", "content": DISCOVER_SYSTEM},
                 {"role": "user", "content": user}],
@@ -210,12 +215,32 @@ def discover_creators(interest: str,
         if not handle or handle in seen:
             continue
         seen.add(handle)
+        from ..aliases import normalize_model
+        models_raw = item.get("detected_models") or []
+        if isinstance(models_raw, str):
+            models_raw = [models_raw]
+        models = [str(m).strip()[:40] for m in models_raw if isinstance(m, (str, int)) and str(m).strip()][:6]
+        try:
+            confidence = max(0.0, min(1.0, float(item.get("confidence", 0.5))))
+        except (TypeError, ValueError):
+            confidence = 0.5
+        content_type = str(item.get("content_type") or "").lower()
+        engagement = str(item.get("engagement_estimate") or "").lower()
+        evidence = (str(item.get("evidence") or item.get("sample") or "").strip()[:300] or None)
         out.append({
             "handle": handle,
             "display_name": (str(item.get("display_name") or "").strip()
                              or None),
             "reason": str(item.get("reason") or "").strip()[:300],
-            "sample": (str(item.get("sample") or "").strip()[:300] or None),
+            "sample": evidence,
+            "evidence": evidence,
+            "detected_models": models,
+            "detected_families": sorted({normalize_model(m) for m in models}),
+            "content_type": content_type if content_type in ("image", "video", "workflow", "mixed") else None,
+            "engagement_estimate": engagement if engagement in ("low", "medium", "high") else None,
+            "confidence": confidence,
+            "source": "grok",          # a claim, not a fact — verified on first poll
+            "verified": False,
             "already_monitored": handle in monitored,
         })
     bus.info("grok", f"discover '{interest[:40]}': {len(out)} candidate(s)")

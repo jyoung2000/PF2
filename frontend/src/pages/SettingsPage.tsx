@@ -3,7 +3,7 @@ import { BaserowCard, DiscordCard } from '../components/IntegrationCards'
 import { KnowledgeCard } from '../components/KnowledgeCard'
 import { ProvidersCard } from '../components/ProvidersCard'
 import { CompanionCard } from '../components/CompanionCard'
-import { GrokCard, XSourceCard } from '../components/XGrokCard'
+import { GrokCard, SocialAccountsCard, XSourceCard } from '../components/XGrokCard'
 import { ApiKeyConnect } from '../components/ConnectModal'
 import { api } from '../api'
 import { Field, NumberSetting, Section, TextSetting, ToggleSetting } from '../components/SettingsKit'
@@ -227,6 +227,7 @@ function IntegrationsSections({
   const { data, reload } = useFetch(() => api.get<IntegrationStatuses>('/api/integrations/status'))
   return (
     <>
+      <SocialAccountsCard settings={settings} save={save} />
       <KnowledgeCard settings={settings} save={save} />
       <ProvidersCard settings={settings} save={save} />
       <CompanionCard settings={settings} save={save} />

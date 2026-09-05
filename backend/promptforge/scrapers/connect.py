@@ -36,12 +36,16 @@ LOGIN_URLS = {
     "tensorart": "https://tensor.art/",
     "seaart": "https://www.seaart.ai/",
     "pixai": "https://pixai.art/",
+    # Grok Web (I5.3): a browser session on grok.com — clearly NOT the xAI API
+    # key; stored like any other site session, powers nothing by itself yet
+    "grok": "https://grok.com/",
 }
 # Cookie-name markers (substring match) that mean "logged in" on sites we
 # know: the flow saves and finishes by itself.
 KNOWN_LOGIN_MARKERS = {
     "x": ("auth_token",),
     "midjourney": ("Midjourney.AuthUserToken",),
+    "grok": ("sso",),          # grok.com sets sso / sso-rw after sign-in
 }
 # Everywhere else, generic detection: after the user's FIRST input, a new
 # cookie or localStorage key that looks like an auth artefact triggers a

@@ -148,7 +148,7 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
             posts = adapter.fetch_account(s, client, handle,
                                           since_id=since_id,
                                           media_only=media_only)
-        stats = ingest_batch("x", posts, client)
+        stats = ingest_batch("x", posts, client, gate=False)  # followed accounts skip the score gate (D64)
         max_id = max((int(str(p.platform_post_id).split("-")[0])
                       for p in posts), default=None)
         with session_scope() as s:
@@ -159,6 +159,15 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
             account.last_new = stats.new
             account.status = "ok"
             account.last_error = None
+            ev = dict(account.evidence or {})
+            if ev.get("source") == "grok" and not ev.get("verified") and stats.found:
+                # PF2 itself reached the account and saw real posts: the claim
+                # is now backed by source evidence (never by the LLM alone)
+                ev.update({"verified": True,
+                           "verified_at": datetime.now(timezone.utc).isoformat(),
+                           "verified_by": "first successful poll",
+                           "posts_seen": stats.found})
+                account.evidence = ev
             if max_id is not None and (not account.last_post_id
                                        or max_id > int(account.last_post_id)):
                 account.last_post_id = str(max_id)

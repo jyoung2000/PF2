@@ -31,6 +31,26 @@ interface MonitoredAccount {
   total_posts: number
   profile_url: string
   created_at: string | null
+  evidence: {
+    source?: string
+    verified?: boolean
+    verified_at?: string
+    detected_models?: string[]
+    confidence?: number
+    evidence?: string
+    content_type?: string | null
+  }
+  creator: {
+    id: number
+    followers: number | null
+    posts: number | null
+    avg_engagement: number | null
+    ai_ratio: number | null
+    prompt_availability: number | null
+    models: string[]
+    trend: string | null
+    avg_inspiration: number | null
+  } | null
 }
 
 interface MonitoringData {
@@ -152,11 +172,33 @@ function AccountCard({
           </a>
           <p className="text-[11.5px] text-faint">
             {a.added_by === 'grok' && <span className="text-ember-soft">via Grok · </span>}
+            {a.added_by === 'grok' && a.evidence?.source === 'grok' && (
+              <span
+                className={a.evidence.verified ? 'text-emerald-300' : 'text-amber-300'}
+                title={
+                  a.evidence.verified
+                    ? `Claim verified by PromptForge on ${a.evidence.verified_at ?? 'first poll'}`
+                    : 'Grok suggested this account — verified against the real account on the first poll'
+                }
+              >
+                {a.evidence.verified ? 'claim verified ✓ · ' : 'claim unverified · '}
+              </span>
+            )}
             checked {timeAgo(a.last_checked)} ·{' '}
             <span className="tabular-nums">
               +{a.last_new} last poll · {a.total_posts} collected
             </span>
           </p>
+          {a.creator && (a.creator.posts ?? 0) > 0 && (
+            <p className="text-[11.5px] text-mute tabular-nums truncate" title="Creator intelligence — computed from the posts PromptForge stored">
+              {a.creator.followers != null && <>{a.creator.followers.toLocaleString()} followers · </>}
+              {a.creator.posts} posts · avg {a.creator.avg_engagement ?? 0} eng
+              {a.creator.trend && <> · {a.creator.trend}</>}
+              {a.creator.ai_ratio != null && <> · {Math.round(a.creator.ai_ratio * 100)}% AI</>}
+              {a.creator.prompt_availability != null && <> · {Math.round(a.creator.prompt_availability * 100)}% prompts</>}
+              {a.creator.models.length > 0 && <> · {a.creator.models.join(', ')}</>}
+            </p>
+          )}
         </div>
         <span className="ml-auto shrink-0">
           <StatusDot
@@ -297,6 +339,14 @@ interface GrokCandidate {
   display_name: string | null
   reason: string
   sample: string | null
+  evidence: string | null
+  detected_models: string[]
+  detected_families: string[]
+  content_type: string | null
+  engagement_estimate: string | null
+  confidence: number
+  source: string
+  verified: boolean
   already_monitored: boolean
 }
 
@@ -329,6 +379,7 @@ function DiscoverTool({ onAdded }: { onAdded: () => void }) {
         text: c.handle,
         added_by: 'grok',
         notes: c.reason,
+        evidence: c,
       })
       toastSuccess(`Watching @${c.handle}`)
       setDismissed((d) => new Set(d).add(c.handle))
@@ -390,7 +441,22 @@ function DiscoverTool({ onAdded }: { onAdded: () => void }) {
                       {c.already_monitored && <span className="chip !text-[10.5px]">already watching</span>}
                     </div>
                     <p className="text-[12.5px] text-mute mt-0.5">{c.reason}</p>
-                    {c.sample && <p className="text-[12px] text-faint mt-1 italic line-clamp-2">“{c.sample}”</p>}
+                    {c.evidence && <p className="text-[12px] text-faint mt-1 italic line-clamp-2">“{c.evidence}”</p>}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                      {c.detected_models.map((m) => (
+                        <span key={m} className="chip !text-[10.5px]">
+                          {m}
+                        </span>
+                      ))}
+                      {c.content_type && <span className="chip !text-[10.5px] text-faint">{c.content_type}</span>}
+                      {c.engagement_estimate && (
+                        <span className="chip !text-[10.5px] text-faint">{c.engagement_estimate} engagement</span>
+                      )}
+                      <span className="chip !text-[10.5px] text-faint">confidence {Math.round(c.confidence * 100)}%</span>
+                      <span className="chip !text-[10.5px] text-amber-300 border-amber-400/40" title="Grok's claim — PromptForge verifies it against the real account on the first poll">
+                        unverified claim
+                      </span>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <button
@@ -479,7 +545,7 @@ export function MonitoringPage() {
           <button className="btn-accent !py-1 !px-2.5 text-[12px]" onClick={() => setConnecting(true)}>
             Connect X account
           </button>
-          <Link to="/settings#x-source" className="underline underline-offset-2 text-[12px]">
+          <Link to="/settings#social" className="underline underline-offset-2 text-[12px]">
             other options in Settings
           </Link>
         </div>

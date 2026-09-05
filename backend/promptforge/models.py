@@ -244,6 +244,10 @@ class MonitoredAccount(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     last_new: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # I5: Grok's discovery claim (reason/evidence/models/confidence) — kept as
+    # evidence only, never authoritative; `verified` flips when PF2 itself
+    # resolves the account on its first poll
+    evidence: Mapped[dict | None] = mapped_column(JSON, default=dict)
 
 
 class ScraperState(Base):

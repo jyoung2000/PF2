@@ -1,15 +1,119 @@
-// Settings → X.com & Grok (X1.6, X3.6, X5.4): one-click X connect (in-app
-// login) + scope controls; Grok (xAI) quick-connect (paste key → auto-test →
-// model picker) with per-feature toggles/budgets; monitoring defaults.
+// Settings → Social accounts (I5.4), X.com scope (X1.6), Grok features (X3.6).
+// Credentials live in ONE place (SocialAccountsCard): X login session, Grok
+// Web session (a grok.com browser login — never an API authorisation) and the
+// xAI API key. Each feature only needs the credential it actually uses.
 import { useState } from 'react'
 import { api, ApiError, listScrapers } from '../api'
 import { useFetch } from '../lib/hooks'
 import { SettingsMap } from '../lib/settings'
+import { toastError, toastSuccess } from '../lib/toast'
 import { ConnectModal, DisconnectButton, SessionUploadButton } from './ConnectModal'
 import { Spinner } from './Primitives'
 import { ConnBadge, Field, NumberSetting, Section, TextSetting, ToggleSetting } from './SettingsKit'
 
-export function XSourceCard({
+interface GrokStatus {
+  configured: boolean
+  web_session: { connected: boolean; saved_at: string | null }
+  usage: { calls?: number }
+  curate_budget: number
+  features: { discover: boolean; curate: boolean; digest: boolean }
+}
+
+interface GrokTestResult {
+  ok: boolean
+  detail: string
+  models?: string[]
+}
+
+async function testGrok(): Promise<GrokTestResult> {
+  try {
+    return await api.post<GrokTestResult>('/api/grok/test')
+  } catch (e) {
+    let detail = e instanceof ApiError ? e.message : String(e)
+    try {
+      detail = JSON.parse(detail).message ?? detail
+    } catch {
+      /* plain */
+    }
+    return { ok: false, detail }
+  }
+}
+
+/** Paste-to-connect key input: committing a key (paste/Enter/blur) saves it
+ * and immediately runs the connection test — one paste and Grok is live. */
+function GrokKeyInput({
+  settings,
+  save,
+  onSaved,
+}: {
+  settings: SettingsMap
+  save: (v: SettingsMap) => Promise<boolean>
+  onSaved: () => void
+}) {
+  const stored = String(settings.grok_api_key ?? '')
+  const [value, setValue] = useState('')
+
+  const commit = async (raw?: string) => {
+    const v = (raw ?? value).trim()
+    if (!v) return
+    if (await save({ grok_api_key: v })) {
+      setValue('')
+      onSaved()
+    }
+  }
+
+  return (
+    <input
+      id="setting-grok_api_key"
+      type="text"
+      autoComplete="off"
+      spellCheck={false}
+      className="input font-mono"
+      placeholder={stored ? `${stored} (stored — paste to replace)` : 'xai-… (paste to connect)'}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onPaste={(e) => {
+        const text = e.clipboardData.getData('text').trim()
+        if (text) {
+          e.preventDefault()
+          setValue(text)
+          void commit(text)
+        }
+      }}
+      onBlur={() => void commit()}
+      onKeyDown={(e) => e.key === 'Enter' && void commit()}
+    />
+  )
+}
+
+function AccountRow({
+  title,
+  badge,
+  detail,
+  children,
+}: {
+  title: string
+  badge: 'connected' | 'error' | 'not_configured'
+  detail: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="grid sm:grid-cols-[130px_1fr] gap-2 sm:gap-4 items-start py-3 border-t border-line first:border-t-0 first:pt-0">
+      <div>
+        <div className="font-medium text-[13.5px]">{title}</div>
+        <div className="mt-1">
+          <ConnBadge status={badge} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-[12.5px] text-mute">{detail}</p>
+        <div className="flex items-center gap-2 flex-wrap">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export function SocialAccountsCard({
   settings,
   save,
 }: {
@@ -17,23 +121,46 @@ export function XSourceCard({
   save: (v: SettingsMap) => Promise<boolean>
 }) {
   const { data, reload } = useFetch(listScrapers)
-  const [connecting, setConnecting] = useState(false)
+  const { data: gs, reload: reloadGrok } = useFetch(() => api.get<GrokStatus>('/api/grok/status'))
+  const [connecting, setConnecting] = useState<'x' | 'grok' | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [result, setResult] = useState<GrokTestResult | null>(null)
   const x = data?.scrapers.find((s) => s.name === 'x')
   const session = x?.session_status ?? 'missing'
+  const web = gs?.web_session
+  const keyConfigured = Boolean(settings.grok_api_key)
+
+  const runTest = async () => {
+    setTesting(true)
+    const r = await testGrok()
+    setResult(r)
+    setTesting(false)
+    reloadGrok()
+    if (r.ok) toastSuccess('Grok API connected ✓')
+  }
+
+  const disconnectWeb = async () => {
+    try {
+      await api.delete('/api/grok/session')
+      toastSuccess('Grok Web session removed')
+      reloadGrok()
+    } catch (e) {
+      toastError((e as Error).message)
+    }
+  }
 
   return (
     <Section
-      title="X.com source"
-      hint="Scrapes AI media from X search + your monitored accounts through your own logged-in session. Freeform tweets are mined for prompts/models with deterministic rules — anything uncertain is flagged low-confidence so it never pollutes the knowledge engine."
-      id="x-source"
+      title="Social accounts"
+      hint="Connect X for scraping and monitoring, and Grok for the intelligence layer. Use any combination — X only, X + Grok Web, X + Grok API, or all three. Each feature asks only for the credential it needs."
+      id="social"
     >
-      <div className="flex items-center gap-2 -mt-1">
-        <ConnBadge status={session === 'valid' ? 'connected' : session === 'expired' ? 'error' : 'not_configured'} />
-        <span className="text-[12px] text-faint">login session: {session}</span>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        <button className={session === 'valid' ? 'btn' : 'btn-accent'} onClick={() => setConnecting(true)}>
+      <AccountRow
+        title="X"
+        badge={session === 'valid' ? 'connected' : session === 'expired' ? 'error' : 'not_configured'}
+        detail={`Your own X login session — powers search crawls and account monitoring. Session: ${session}.`}
+      >
+        <button className={session === 'valid' ? 'btn' : 'btn-accent'} onClick={() => setConnecting('x')}>
           {session === 'valid' ? 'Reconnect X account' : 'Connect X account'}
         </button>
         {session === 'valid' ? (
@@ -43,24 +170,106 @@ export function XSourceCard({
             or upload x.json…
           </SessionUploadButton>
         )}
-      </div>
-      {session !== 'valid' && (
-        <details className="text-[12.5px] text-mute">
-          <summary className="cursor-pointer hover:text-fg">
-            Prefer to log in on your desktop instead? (classic walkthrough)
-          </summary>
-          <div className="bg-well/50 border border-line rounded-el p-3 space-y-1 mt-1.5">
-            <p className="font-mono text-[12px]">pip install playwright && playwright install chromium</p>
-            <p className="font-mono text-[12px]">python scripts/capture_login.py x</p>
-            <p>
-              Log in in the window, press Enter, then upload the exported file with the button above (or copy it to{' '}
-              <span className="font-mono text-[12px]">/data/sessions/x.json</span>).
-            </p>
-          </div>
-        </details>
+      </AccountRow>
+
+      <AccountRow
+        title="Grok Web"
+        badge={web?.connected ? 'connected' : 'not_configured'}
+        detail="A grok.com browser session captured with the same in-app login. This is NOT an API key and authorises no API feature — it is stored for browser-based Grok features; nothing depends on it yet."
+      >
+        <button className={web?.connected ? 'btn' : 'btn-accent'} onClick={() => setConnecting('grok')}>
+          {web?.connected ? 'Reconnect Grok Web' : 'Connect Grok Web'}
+        </button>
+        {web?.connected && (
+          <>
+            <button className="btn" onClick={disconnectWeb}>
+              Disconnect
+            </button>
+            <span className="text-[12px] text-faint">saved {web.saved_at ? new Date(web.saved_at).toLocaleString() : ''}</span>
+          </>
+        )}
+      </AccountRow>
+
+      <AccountRow
+        title="Grok API"
+        badge={!keyConfigured ? 'not_configured' : result?.ok === false ? 'error' : 'connected'}
+        detail="xAI API key — powers Discover (live X search), Curate, Digest and the “Grok” knowledge-engine provider. Pasting a key saves and tests it in one go; the key is never shown again after saving."
+      >
+        <span className="w-full sm:w-80">
+          <GrokKeyInput settings={settings} save={save} onSaved={runTest} />
+        </span>
+        <a className="btn !py-1.5 text-[12px]" href="https://console.x.ai" target="_blank" rel="noreferrer">
+          Get an API key ↗
+        </a>
+        {keyConfigured && (
+          <button className="btn !py-1.5 text-[12px]" onClick={runTest} disabled={testing}>
+            {testing ? <Spinner /> : 'Test'}
+          </button>
+        )}
+        {keyConfigured && gs?.usage?.calls != null && (
+          <span className="chip !text-[11.5px]">used today: {gs.usage.calls}</span>
+        )}
+      </AccountRow>
+      {result && (
+        <p
+          className={`text-[12.5px] rounded-el px-3 py-2 border ${
+            result.ok
+              ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/30'
+              : 'text-red-300 bg-red-400/10 border-red-400/30'
+          }`}
+        >
+          {result.ok ? '✓ ' : ''}
+          {result.detail}
+        </p>
       )}
+
+      <div className="text-[12px] text-faint border-t border-line pt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1">
+        <span>Search crawls &amp; monitoring → X session</span>
+        <span>Find creators / Curate / Digest → Grok API key</span>
+        <span>Knowledge provider “Grok” → Grok API key</span>
+        <span>Grok Web → optional, no feature requires it yet</span>
+      </div>
+
       {connecting && (
-        <ConnectModal platform="x" label="X.com" onClose={() => setConnecting(false)} onConnected={reload} />
+        <ConnectModal
+          platform={connecting}
+          label={connecting === 'x' ? 'X.com' : 'Grok Web'}
+          onClose={() => setConnecting(null)}
+          onConnected={() => {
+            reload()
+            reloadGrok()
+          }}
+        />
+      )}
+    </Section>
+  )
+}
+
+export function XSourceCard({
+  settings,
+  save,
+}: {
+  settings: SettingsMap
+  save: (v: SettingsMap) => Promise<boolean>
+}) {
+  const { data } = useFetch(listScrapers)
+  const x = data?.scrapers.find((s) => s.name === 'x')
+  const session = x?.session_status ?? 'missing'
+
+  return (
+    <Section
+      title="X.com source"
+      hint="Scrapes AI media from X search + your monitored accounts through your own logged-in session. Freeform tweets are mined for prompts/models with deterministic rules — anything uncertain is flagged low-confidence so it never pollutes the knowledge engine."
+      id="x-source"
+    >
+      {session !== 'valid' && (
+        <p className="text-[12.5px] text-amber-200 bg-amber-400/10 border border-amber-400/30 rounded-el px-3 py-2">
+          No X login session yet — connect it under{' '}
+          <a href="#social" className="underline underline-offset-2">
+            Social accounts
+          </a>{' '}
+          above. Crawls wait until then.
+        </p>
       )}
       <p className="text-[11.5px] text-faint">
         Heads-up: logged-in scraping is subject to X's Terms of Service and runs on <em>your</em> account —
@@ -111,59 +320,6 @@ export function XSourceCard({
   )
 }
 
-interface GrokTestResult {
-  ok: boolean
-  detail: string
-  models?: string[]
-}
-
-/** Paste-to-connect key input: committing a key (paste/Enter/blur) saves it
- * and immediately runs the connection test — one paste and Grok is live. */
-function GrokKeyInput({
-  settings,
-  save,
-  onSaved,
-}: {
-  settings: SettingsMap
-  save: (v: SettingsMap) => Promise<boolean>
-  onSaved: () => void
-}) {
-  const stored = String(settings.grok_api_key ?? '')
-  const [value, setValue] = useState('')
-
-  const commit = async (raw?: string) => {
-    const v = (raw ?? value).trim()
-    if (!v) return
-    if (await save({ grok_api_key: v })) {
-      setValue('')
-      onSaved()
-    }
-  }
-
-  return (
-    <input
-      id="setting-grok_api_key"
-      type="text"
-      autoComplete="off"
-      spellCheck={false}
-      className="input font-mono"
-      placeholder={stored ? `${stored} (stored — paste to replace)` : 'xai-… (paste to connect)'}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onPaste={(e) => {
-        const text = e.clipboardData.getData('text').trim()
-        if (text) {
-          e.preventDefault()
-          setValue(text)
-          void commit(text)
-        }
-      }}
-      onBlur={() => void commit()}
-      onKeyDown={(e) => e.key === 'Enter' && void commit()}
-    />
-  )
-}
-
 export function GrokCard({
   settings,
   save,
@@ -171,57 +327,43 @@ export function GrokCard({
   settings: SettingsMap
   save: (v: SettingsMap) => Promise<boolean>
 }) {
-  const [testing, setTesting] = useState(false)
-  const [result, setResult] = useState<GrokTestResult | null>(null)
+  const [loadingModels, setLoadingModels] = useState(false)
   const [models, setModels] = useState<string[]>([])
+  const [note, setNote] = useState<string | null>(null)
   const configured = Boolean(settings.grok_api_key)
 
-  const runTest = async () => {
-    setTesting(true)
-    setResult(null)
-    try {
-      const r = await api.post<GrokTestResult>('/api/grok/test')
-      setResult(r)
-      if (r.models?.length) setModels(r.models)
-    } catch (e) {
-      let detail = e instanceof ApiError ? e.message : String(e)
-      try {
-        detail = JSON.parse(detail).message ?? detail
-      } catch {
-        /* plain */
-      }
-      setResult({ ok: false, detail })
-    } finally {
-      setTesting(false)
+  const loadModels = async () => {
+    setLoadingModels(true)
+    const r = await testGrok()
+    setLoadingModels(false)
+    if (r.ok && r.models?.length) {
+      setModels(r.models)
+      setNote(null)
+    } else {
+      setNote(r.detail)
     }
   }
 
   return (
     <Section
-      title="Grok (xAI)"
-      hint="Optional intelligence layer on top of X: discover AI creators with live X search, verify + enrich scraped media, and get periodic digests of your follow list. Also selectable as the knowledge-engine provider."
+      title="Grok (xAI) features"
+      hint="Optional intelligence layer on top of X: discover AI creators with live X search, verify + enrich scraped media, and get periodic digests of your follow list. Also selectable as the knowledge-engine provider. Needs the Grok API key from Social accounts."
       id="grok"
     >
       <div className="flex items-center gap-2 -mt-1 flex-wrap">
-        <ConnBadge status={!configured ? 'not_configured' : result?.ok === false ? 'error' : 'connected'} />
-        <a
-          className="btn !py-1 !px-2.5 text-[12px]"
-          href="https://console.x.ai"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Get an API key ↗
-        </a>
+        <ConnBadge status={configured ? 'connected' : 'not_configured'} />
+        {!configured && (
+          <span className="text-[12px] text-faint">
+            Paste a key under{' '}
+            <a href="#social" className="underline underline-offset-2 hover:text-fg">
+              Social accounts
+            </a>{' '}
+            — everything below stays dormant until then.
+          </span>
+        )}
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
-        <Field
-          label="xAI API key"
-          htmlFor="setting-grok_api_key"
-          hint="Pasting a key connects immediately — it saves and tests itself."
-        >
-          <GrokKeyInput settings={settings} save={save} onSaved={runTest} />
-        </Field>
-        <Field label="Model" htmlFor="setting-grok-model" hint="Test connection to fetch the live list.">
+        <Field label="Model" htmlFor="setting-grok-model" hint={note ?? 'Load the live list to pick from your account’s models.'}>
           {models.length > 0 ? (
             <select
               id="setting-grok-model"
@@ -239,26 +381,12 @@ export function GrokCard({
             <TextSetting settings={settings} k="grok_model" save={save} placeholder="grok-3-mini" />
           )}
         </Field>
+        <div className="flex items-end">
+          <button className="btn" onClick={loadModels} disabled={loadingModels || !configured}>
+            {loadingModels ? <Spinner /> : 'Load model list'}
+          </button>
+        </div>
       </div>
-
-      <div className="flex items-center gap-2">
-        <button className="btn-accent" onClick={runTest} disabled={testing || !configured}>
-          {testing ? <Spinner /> : 'Test connection'}
-        </button>
-        {!configured && <span className="text-[12px] text-faint">Paste a key first — everything below stays dormant until then.</span>}
-      </div>
-      {result && (
-        <p
-          className={`text-[12.5px] rounded-el px-3 py-2 border ${
-            result.ok
-              ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/30'
-              : 'text-red-300 bg-red-400/10 border-red-400/30'
-          }`}
-        >
-          {result.ok ? '✓ ' : ''}
-          {result.detail}
-        </p>
-      )}
 
       <div className="space-y-2.5 border-t border-line pt-3">
         <ToggleSetting

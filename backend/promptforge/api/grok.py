@@ -7,7 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timezone
+
 from .. import settings_store
+from ..config import get_config
 from ..db import get_db
 from ..integrations import grok
 
@@ -28,10 +31,30 @@ def test(db: Session = Depends(get_db)):
         raise _http_error(e)
 
 
+def web_session_status() -> dict:
+    """Grok Web = a grok.com browser session captured with the in-app connect
+    flow (platform "grok"). Distinct from the xAI API key; it authorises no
+    API feature."""
+    path = get_config().sessions_dir / "grok.json"
+    if not path.is_file():
+        return {"connected": False, "saved_at": None}
+    saved = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+    return {"connected": True, "saved_at": saved}
+
+
+@router.delete("/session")
+def disconnect_web_session():
+    path = get_config().sessions_dir / "grok.json"
+    if path.is_file():
+        path.unlink()
+    return web_session_status()
+
+
 @router.get("/status")
 def status(db: Session = Depends(get_db)):
     return {
         "configured": grok.is_configured(db),
+        "web_session": web_session_status(),
         "usage": grok.get_usage(db),
         "curate_budget": settings_store.get(db, "grok_curate_daily_budget"),
         "features": {

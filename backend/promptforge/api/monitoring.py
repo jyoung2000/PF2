@@ -39,7 +39,22 @@ def _account_dict(a: MonitoredAccount, db: Session) -> dict:
         "total_posts": total_posts,
         "profile_url": f"https://x.com/{a.handle}",
         "created_at": a.created_at.isoformat() if a.created_at else None,
+        "evidence": a.evidence or {},
+        "creator": _creator_summary(db, a),
     }
+
+
+def _creator_summary(db: Session, a: MonitoredAccount) -> dict | None:
+    from ..intel import creators
+    c = creators.find(db, a.platform, a.handle)
+    if c is None:
+        return None
+    st = creators.stats_for(db, c)
+    return {"id": c.id, "followers": c.followers, "posts": st.get("posts"),
+            "avg_engagement": st.get("avg_engagement"), "ai_ratio": st.get("ai_ratio"),
+            "prompt_availability": st.get("prompt_availability"),
+            "models": [m["family"] for m in st.get("models", [])[:3]],
+            "trend": st.get("trend"), "avg_inspiration": st.get("avg_inspiration")}
 
 
 @router.get("")
@@ -60,6 +75,7 @@ def list_accounts(db: Session = Depends(get_db)):
 
 
 class BulkAddBody(BaseModel):
+    evidence: dict | None = None      # Grok discovery claim (review-before-add, I5)
     text: str
     added_by: str = "manual"
     notes: str | None = None
@@ -84,6 +100,8 @@ def add_accounts(body: BulkAddBody, db: Session = Depends(get_db)):
             handle=handle, platform="x",
             added_by=body.added_by if body.added_by in ("manual", "grok") else "manual",
             notes=body.notes, check_interval=default_interval,
+            evidence=({**(body.evidence or {}), "source": "grok", "verified": False}
+                      if body.added_by == "grok" else {}),
             auto_tag=default_tag)
         db.add(account)
         db.flush()

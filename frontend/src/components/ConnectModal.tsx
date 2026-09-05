@@ -315,7 +315,7 @@ export function ConnectModal({
             Save session now
           </button>
           <span className="text-[12px] text-faint">
-            {platform === 'x' || platform === 'midjourney'
+            {platform === 'x' || platform === 'midjourney' || platform === 'grok'
               ? 'Saves automatically the moment you finish logging in — the button is a manual fallback.'
               : 'Saves itself when a login is detected; click this if you finish and it hasn’t.'}
           </span>

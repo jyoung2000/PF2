@@ -184,10 +184,10 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I4.4 Phase gate; commit. ✓: 202 tests green.
 
 ## Phase I5 — Creators, Grok evidence, Grok Web session, Social accounts UX
-- [ ] I5.1 `creators` table + intelligence aggregation (followers, avg engagement, cadence, AI ratio, prompt availability, models, techniques, top/recent posts, trajectory); monitored_accounts linked; API. ✓: tests.
-- [ ] I5.2 Grok discovery evidence model (candidate → verify via adapter → store evidence → analyze; LLM output never authoritative) + richer discover output (evidence/models/content type/engagement estimate/confidence). ✓: tests.
-- [ ] I5.3 Grok Web session via existing connect flow (platform "grok", clearly ≠ API key, status/disconnect) + Settings "Social accounts" group (X / Grok Web / Grok API) with feature-level credential requirements. ✓: tests + screenshot.
-- [ ] I5.4 Phase gate; commit.
+- [x] I5.1 `creators` table + intelligence aggregation (followers, avg engagement, cadence, AI ratio, prompt availability, models, techniques, top/recent posts, trajectory); monitored_accounts linked; API. ✓: tests.
+- [x] I5.2 Grok discovery evidence model (candidate → verify via adapter → store evidence → analyze; LLM output never authoritative) + richer discover output (evidence/models/content type/engagement estimate/confidence). ✓: tests.
+- [x] I5.3 Grok Web session via existing connect flow (platform "grok", clearly ≠ API key, status/disconnect) + Settings "Social accounts" group (X / Grok Web / Grok API) with feature-level credential requirements. ✓: tests + screenshot.
+- [x] I5.4 Phase gate; commit. ✓: 206 tests green; Social accounts card + Monitoring evidence/creator lines screenshotted desktop + 375px.
 
 ## Phase I6 — Search syntax, clusters, similarity, trends, inspiration API
 - [ ] I6.1 Search qualifiers: has:, creator:, technique:, camera:, after:, before:, engagement:>, inspiration:>, ai:, model_source:. ✓: parser + filter tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I5 (creators, Grok evidence, Grok Web session, Social accounts UX). I4 done: 202 tests green.
+Phase I6 (search syntax, clusters, similarity, trends, inspiration API). I5 done: 206 tests green.
