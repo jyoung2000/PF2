@@ -146,6 +146,8 @@ class BrowserAdapter(SourceAdapter):
         storage = self.storage_state_path()
         responses, page_status = self._run_crawl(
             storage_state=str(storage) if storage.is_file() else None)
+        from ..intel import snapshots
+        snapshots.maybe_save(self.name, "captured", responses, {"start_url": self.start_url})
         if page_status in (429, 503):
             self._record_backoff(s, page_status)
             return []

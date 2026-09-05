@@ -4,6 +4,7 @@ breakage never blocks others (they run through separate calls, serialized by
 the scheduler's global lock, D22)."""
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 
 from ..db import session_scope
@@ -32,6 +33,7 @@ def run_scraper(name: str, limit: int = 100, manual: bool = False) -> IngestStat
 
     stats = IngestStats()
     client = None
+    t0 = time.monotonic()
     try:
         bus.info(src, f"run started (limit {limit})")
         with session_scope() as s:
@@ -48,6 +50,8 @@ def run_scraper(name: str, limit: int = 100, manual: bool = False) -> IngestStat
             st.last_error = stats.error_messages[-1] if stats.error_messages else None
             st.last_found = stats.found
             st.last_new = stats.new
+            from ..intel import sources
+            sources.record_run(s, name, stats, time.monotonic() - t0)
     except Exception as e:
         bus.error(src, f"run failed: {type(e).__name__}: {e}")
         with session_scope() as s:

@@ -51,6 +51,13 @@ class SourceAdapter(ABC):
     auth_kind: str = "none"
     api_key_setting: str | None = None
     api_key_url: str | None = None
+    # Declared capabilities (I4, D70) — scheduling, UI, enrichment and error
+    # messages only ever rely on what is declared here: search detail author
+    # comments thread video metadata browser_session api related
+    capabilities: frozenset[str] = frozenset()
+
+    def has_capability(self, cap: str) -> bool:
+        return cap in self.capabilities
 
     # -- configuration ------------------------------------------------------
     def is_configured(self, s: Session) -> bool:

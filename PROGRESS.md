@@ -178,10 +178,10 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I3.4 Phase gate; commit. ✓: 193 tests green.
 
 ## Phase I4 — Source capabilities, enrichment, X improvements, source metrics, snapshots
-- [ ] I4.1 Adapter `capabilities` flags + optional `fetch_detail/fetch_author/fetch_comments/fetch_related`; Civitai detail/author; X thread/quote/reply relations, alt text, links, variants, engagement, author details, TweetDetail comments (fixture) for high-value only. ✓: fixture tests.
-- [ ] I4.2 Source efficiency metrics per run (discovered/kept/enriched/prompt+metadata yield/dup rate/AI rate/LLM cost/reliability) → priority recommendation (never auto-disable). ✓: tests.
-- [ ] I4.3 Sanitized raw snapshots (optional setting) under DATA_DIR/snapshots. ✓: secrets stripped test.
-- [ ] I4.4 Phase gate; commit.
+- [x] I4.1 Adapter `capabilities` flags + optional `fetch_detail/fetch_author/fetch_comments/fetch_related`; Civitai detail/author; X thread/quote/reply relations, alt text, links, variants, engagement, author details, TweetDetail comments (fixture) for high-value only. ✓: fixture tests.
+- [x] I4.2 Source efficiency metrics per run (discovered/kept/enriched/prompt+metadata yield/dup rate/AI rate/LLM cost/reliability) → priority recommendation (never auto-disable). ✓: tests.
+- [x] I4.3 Sanitized raw snapshots (optional setting) under DATA_DIR/snapshots. ✓: secrets stripped test.
+- [x] I4.4 Phase gate; commit. ✓: 202 tests green.
 
 ## Phase I5 — Creators, Grok evidence, Grok Web session, Social accounts UX
 - [ ] I5.1 `creators` table + intelligence aggregation (followers, avg engagement, cadence, AI ratio, prompt availability, models, techniques, top/recent posts, trajectory); monitored_accounts linked; API. ✓: tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I4 (source capabilities, enrichment, X improvements, source metrics, snapshots). I3 done: 193 tests green.
+Phase I5 (creators, Grok evidence, Grok Web session, Social accounts UX). I4 done: 202 tests green.

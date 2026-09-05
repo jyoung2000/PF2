@@ -46,6 +46,7 @@ class LexicaAdapter(SourceAdapter):
     label = "Lexica"
     tier = 1
     requires_auth = False
+    capabilities = frozenset({"api", "search"})
     default_interval_minutes = 15
 
     def is_configured(self, s: Session) -> bool:

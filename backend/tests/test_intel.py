@@ -182,6 +182,8 @@ def test_links_are_symmetric_and_idempotent(app_env):
 
 # -------------------------------------------------------------------- queue -
 def test_queue_state_machine_retry_defer_and_stats(app_env, monkeypatch):
+    queue.ensure_handlers()                        # load stage modules once …
+    monkeypatch.setattr(queue, "_handlers", {})   # … then isolate from their registrations
     pid = seed_post()
     with db_mod.session_scope() as s:
         j1 = queue.enqueue(s, pid, "enrich", priority=10)

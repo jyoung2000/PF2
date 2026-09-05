@@ -1,0 +1,28 @@
+{
+  "data": {"threaded_conversation_with_injections_v2": {"instructions": [{"type": "TimelineAddEntries", "entries": [
+    {"entryId": "tweet-1001", "content": {"itemContent": {"tweet_results": {"result": {
+      "__typename": "Tweet", "rest_id": "1001",
+      "core": {"user_results": {"result": {"rest_id": "u1", "legacy": {"screen_name": "auroraforge", "name": "Aurora Forge", "followers_count": 12000, "friends_count": 300, "description": "AI video experiments", "profile_image_url_https": "https://pbs.twimg.com/a.jpg"}, "is_blue_verified": true}}},
+      "legacy": {"full_text": "Glass lighthouse study. Prompt in the replies 👇 #aivideo https://t.co/x", "favorite_count": 900, "retweet_count": 120, "reply_count": 4, "quote_count": 3, "bookmark_count": 77, "created_at": "Tue Sep 02 10:00:00 +0000 2025", "conversation_id_str": "1001",
+        "entities": {"urls": [{"expanded_url": "https://example.com/making-of", "url": "https://t.co/x"}], "user_mentions": []},
+        "extended_entities": {"media": [{"type": "video", "media_url_https": "https://pbs.twimg.com/v1.jpg", "ext_alt_text": "a glass lighthouse at dawn", "original_info": {"width": 1280, "height": 720}, "video_info": {"variants": [{"bitrate": 832000, "content_type": "video/mp4", "url": "https://video.twimg.com/low.mp4"}, {"bitrate": 2176000, "content_type": "video/mp4", "url": "https://video.twimg.com/high.mp4"}]}}]}},
+      "views": {"count": "45000"}}}}}},
+    {"entryId": "conversationthread-2001", "content": {"items": [
+      {"entryId": "conversationthread-2001-tweet-2001", "item": {"itemContent": {"tweet_results": {"result": {"__typename": "Tweet", "rest_id": "2001",
+        "core": {"user_results": {"result": {"rest_id": "u1", "legacy": {"screen_name": "auroraforge", "name": "Aurora Forge"}}}},
+        "legacy": {"full_text": "Prompt: cinematic slow orbit of a glass lighthouse at dawn, volumetric fog, 35mm\nMade with Kling 2.1", "favorite_count": 40, "retweet_count": 2, "reply_count": 0, "quote_count": 0, "in_reply_to_status_id_str": "1001", "conversation_id_str": "1001", "created_at": "Tue Sep 02 10:02:00 +0000 2025"}}}}}},
+      {"entryId": "conversationthread-2001-tweet-2002", "item": {"itemContent": {"tweet_results": {"result": {"__typename": "Tweet", "rest_id": "2002",
+        "core": {"user_results": {"result": {"rest_id": "u2", "legacy": {"screen_name": "curious_cat", "name": "Cat"}}}},
+        "legacy": {"full_text": "what model is this? looks like Runway to me", "favorite_count": 3, "retweet_count": 0, "reply_count": 0, "quote_count": 0, "in_reply_to_status_id_str": "2001", "conversation_id_str": "1001", "created_at": "Tue Sep 02 10:05:00 +0000 2025"}}}}}}
+    ]}},
+    {"entryId": "conversationthread-2003", "content": {"items": [
+      {"entryId": "conversationthread-2003-tweet-2003", "item": {"itemContent": {"tweet_results": {"result": {"__typename": "Tweet", "rest_id": "2003",
+        "core": {"user_results": {"result": {"rest_id": "u3", "legacy": {"screen_name": "fan_account", "name": "Fan"}}}},
+        "legacy": {"full_text": "amazing!!! 😍", "favorite_count": 15, "retweet_count": 0, "reply_count": 0, "quote_count": 0, "in_reply_to_status_id_str": "1001", "conversation_id_str": "1001", "created_at": "Tue Sep 02 10:06:00 +0000 2025"}}}}}},
+      {"entryId": "conversationthread-2003-tweet-2004", "item": {"itemContent": {"tweet_results": {"result": {"__typename": "Tweet", "rest_id": "2004",
+        "core": {"user_results": {"result": {"rest_id": "u4", "legacy": {"screen_name": "workflow_nerd", "name": "WN"}}}},
+        "legacy": {"full_text": "did you use a ControlNet depth pass for the fog? seed?", "favorite_count": 22, "retweet_count": 1, "reply_count": 0, "quote_count": 0, "in_reply_to_status_id_str": "1001", "conversation_id_str": "1001", "created_at": "Tue Sep 02 10:07:00 +0000 2025"}}}}}}
+    ]}},
+    {"entryId": "cursor-bottom-1", "content": {"cursorType": "Bottom", "value": "abc"}}
+  ]}]}}
+}

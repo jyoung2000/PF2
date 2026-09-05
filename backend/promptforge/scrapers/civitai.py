@@ -84,6 +84,26 @@ def parse_item(item: dict, keep_metaless: bool = False) -> ScrapedPost | None:
     if str(url).split("?")[0].lower().endswith((".mp4", ".webm")):
         media_type = "video"
 
+    # observed layer (I4): exactly what the API showed
+    st = item.get("stats") or {}
+    engagement = {k: v for k, v in (
+        ("likes", st.get("likeCount")), ("comments", st.get("commentCount")),
+        ("hearts", st.get("heartCount")), ("laughs", st.get("laughCount")),
+        ("cries", st.get("cryCount")), ("dislikes", st.get("dislikeCount")))
+        if isinstance(v, (int, float))}
+    observed: dict[str, Any] = {
+        "identity": {"civitai_post_id": item.get("postId"), "base_model": base_model,
+                     "nsfw_level": item.get("nsfwLevel")},
+        "media": {"type": media_type, "url": url, "width": item.get("width"),
+                  "height": item.get("height"), "hash": item.get("hash")},
+        "engagement": engagement,
+    }
+    if item.get("username"):
+        observed["author"] = {"handle": item["username"], "id": item.get("userId"),
+                             "profile_url": f"https://civitai.com/user/{item['username']}"}
+    if item.get("postId") is not None:
+        params["_civitai_post_id"] = item["postId"]
+
     return ScrapedPost(
         platform="civitai",
         platform_post_id=str(item_id),
@@ -98,6 +118,7 @@ def parse_item(item: dict, keep_metaless: bool = False) -> ScrapedPost | None:
         source_url=f"https://civitai.com/images/{item_id}",
         posted_at=_parse_dt(item.get("createdAt") or item.get("publishedAt")),
         nsfw=_is_nsfw(item),
+        observed=observed,
     )
 
 
@@ -111,6 +132,9 @@ class CivitaiAdapter(SourceAdapter):
     auth_kind = "api_key"
     api_key_setting = "civitai_api_key"
     api_key_url = "https://civitai.com/user/account"
+    # no per-image detail endpoint in the public v1 API — related items come
+    # from the parent post (postId), creators from /api/v1/creators
+    capabilities = frozenset({"api", "search", "author", "related", "video", "metadata"})
 
     def make_client(self, s: Session, transport=None) -> httpx.Client:
         headers = {"User-Agent": USER_AGENT}
@@ -157,6 +181,9 @@ class CivitaiAdapter(SourceAdapter):
             resp.raise_for_status()
             data = resp.json()
             items = data.get("items") or []
+            if cursor is None:
+                from ..intel import snapshots
+                snapshots.maybe_save(self.name, "api_page", data, {"params": params})
             for item in items:
                 sp = parse_item(item, keep_metaless=keep_metaless)
                 if sp is not None:
@@ -167,3 +194,39 @@ class CivitaiAdapter(SourceAdapter):
             if not items or not cursor:
                 break
         return posts
+
+    # -- enrichment lookups (I4) -----------------------------------------------
+    def fetch_related(self, s: Session, client: httpx.Client,
+                      platform_post_id: str) -> list[ScrapedPost]:
+        """Sibling images of the same Civitai post (album)."""
+        from sqlalchemy import select
+        from ..models import Post
+        row = s.execute(select(Post.params, Post.observed).where(
+            Post.platform == "civitai", Post.platform_post_id == str(platform_post_id))).first()
+        if row is None:
+            return []
+        params, observed = row
+        post_id = (params or {}).get("_civitai_post_id") or \
+            ((observed or {}).get("identity") or {}).get("civitai_post_id")
+        if post_id is None:
+            return []
+        resp = client.get(_api_url(), params={"postId": post_id, "limit": 20})
+        resp.raise_for_status()
+        out = []
+        for item in (resp.json().get("items") or []):
+            sp = parse_item(item, keep_metaless=True)
+            if sp is not None and sp.platform_post_id != str(platform_post_id):
+                out.append(sp)
+        return out
+
+    def fetch_author(self, s: Session, client: httpx.Client, handle: str) -> dict | None:
+        handle = str(handle).lstrip("@")
+        url = _api_url().rsplit("/", 1)[0] + "/creators"
+        resp = client.get(url, params={"query": handle, "limit": 5})
+        if resp.status_code != 200:
+            return None
+        for item in (resp.json().get("items") or []):
+            if str(item.get("username", "")).lower() == handle.lower():
+                return {"handle": item["username"], "model_count": item.get("modelCount"),
+                        "profile_url": item.get("link"), "avatar": item.get("image")}
+        return None

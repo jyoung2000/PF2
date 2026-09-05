@@ -107,6 +107,7 @@ class MidjourneyAdapter(BrowserAdapter):
     name = "midjourney"
     label = "Midjourney Explore"
     requires_auth = True
+    capabilities = frozenset({"browser_session", "search", "video"})
     default_interval_minutes = 60
     min_interval_minutes = 30
     start_url = "https://www.midjourney.com/explore?tab=recent"

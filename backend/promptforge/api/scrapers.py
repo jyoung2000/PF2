@@ -41,6 +41,7 @@ def _adapter_info(adapter, s: Session) -> dict:
         "session_optional": auth_kind == "session" and not adapter.requires_auth,
         "connectable": adapter.name in LOGIN_URLS,
         "auth_kind": auth_kind,
+        "capabilities": sorted(getattr(adapter, "capabilities", ())),
         "key_configured": bool(settings_store.get(s, key_setting)) if key_setting else None,
         "key_setting": key_setting,
         "key_url": getattr(adapter, "api_key_url", None),
@@ -93,6 +94,16 @@ def run_now(name: str, db: Session = Depends(get_db)):
 def _run_direct(name: str) -> None:
     from ..scrapers.runner import run_scraper
     run_scraper(name, manual=True)
+
+
+@router.get("/{name}/metrics")
+def scraper_metrics(name: str, db: Session = Depends(get_db)):
+    """Source efficiency report (I4.2): yields, duplicate rate, reliability,
+    advisory priority recommendation."""
+    if get_adapter(name) is None:
+        raise HTTPException(404, f"No adapter named '{name}'")
+    from ..intel import sources
+    return sources.source_report(db, name)
 
 
 @router.post("/{name}/test")

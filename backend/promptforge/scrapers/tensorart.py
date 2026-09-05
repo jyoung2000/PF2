@@ -114,6 +114,7 @@ class TensorArtAdapter(BrowserAdapter):
     name = "tensorart"
     label = "TensorArt"
     requires_auth = False
+    capabilities = frozenset({"browser_session", "search", "metadata"})
     default_interval_minutes = 60
     min_interval_minutes = 20
     start_url = "https://tensor.art/posts"

@@ -102,6 +102,7 @@ class PixAIAdapter(BrowserAdapter):
     name = "pixai"
     label = "PixAI"
     requires_auth = False
+    capabilities = frozenset({"browser_session", "search"})
     experimental = True
     default_interval_minutes = 60
     min_interval_minutes = 20

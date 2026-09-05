@@ -130,11 +130,56 @@ def parse_tweet(result: dict) -> list[ScrapedPost]:
     source_url = (f"https://x.com/{handle}/status/{tweet_id}" if handle
                   else f"https://x.com/i/status/{tweet_id}")
 
+    # observed layer (I4/D62): author details, full engagement, text
+    # artefacts, media variants, relationships — exactly as X showed them
+    user = (((result.get("core") or {}).get("user_results") or {}).get("result") or {})
+    ulegacy = user.get("legacy") or {}
+    views = ((result.get("views") or {}).get("count"))
+    entities = legacy.get("entities") or {}
+    reply_to_user = legacy.get("in_reply_to_screen_name")
+    author_obs = {
+        "handle": handle, "display_name": display_name, "id": user.get("rest_id"),
+        "followers": ulegacy.get("followers_count"), "following": ulegacy.get("friends_count"),
+        "bio": ulegacy.get("description"), "avatar": ulegacy.get("profile_image_url_https"),
+        "verified": bool(user.get("is_blue_verified") or ulegacy.get("verified")),
+        "profile_url": f"https://x.com/{handle}" if handle else None,
+    }
+    observed_base = {
+        "identity": {"tweet_id": str(tweet_id), "conversation_id": legacy.get("conversation_id_str"),
+                     "lang": legacy.get("lang")},
+        "author": {k: v for k, v in author_obs.items() if v not in (None, "")},
+        "engagement": {**engagement, "bookmarks": legacy.get("bookmark_count"),
+                       "views": int(views) if str(views).isdigit() else None},
+        "text": {"body": text, "quoted": quoted, "hashtags": extracted.hashtags[:12],
+                 "links": [u.get("expanded_url") or u.get("url") for u in
+                           (entities.get("urls") or []) if isinstance(u, dict)],
+                 "mentions": [m.get("screen_name") for m in (entities.get("user_mentions") or [])
+                              if isinstance(m, dict) and m.get("screen_name")]},
+        "relations": {"reply_to": legacy.get("in_reply_to_status_id_str"),
+                      "reply_to_user": reply_to_user,
+                      "quoted": legacy.get("quoted_status_id_str"),
+                      "is_quote": bool(legacy.get("is_quote_status")),
+                      "conversation": legacy.get("conversation_id_str"),
+                      "self_thread": bool(reply_to_user and handle
+                                          and reply_to_user.lower() == handle.lower())},
+    }
+
     posts: list[ScrapedPost] = []
     for i, media in enumerate(media_list):
         url, media_type = _best_media_url(media)
         if not url:
             continue
+        vinfo = media.get("video_info") or {}
+        media_obs = {
+            "type": media_type, "url": url, "thumbnail": media.get("media_url_https"),
+            "alt_text": media.get("ext_alt_text"), "index": i, "count": len(media_list),
+            "width": (media.get("original_info") or {}).get("width"),
+            "height": (media.get("original_info") or {}).get("height"),
+            "duration_ms": vinfo.get("duration_millis"),
+            "variants": [{"url": v.get("url"), "bitrate": v.get("bitrate"),
+                          "content_type": v.get("content_type")}
+                         for v in (vinfo.get("variants") or []) if isinstance(v, dict)],
+        }
         params: dict[str, Any] = {
             "engagement": engagement,
             "prompt_confidence": extracted.prompt_confidence,
@@ -161,8 +206,50 @@ def parse_tweet(result: dict) -> list[ScrapedPost]:
             source_url=source_url,
             posted_at=posted_at,
             nsfw=nsfw,
+            observed={**observed_base, "media": {k: v for k, v in media_obs.items() if v not in (None, [], "")}},
         ))
     return posts
+
+
+def parse_detail(responses: list[dict], tweet_id: str) -> dict:
+    """TweetDetail capture → {main, thread (the author's own replies),
+    comments (everyone else)}. Deterministic; nothing inferred."""
+    tweet_id = str(tweet_id).split("-")[0]
+    main: dict | None = None
+    replies: list[dict] = []
+    seen: set[str] = set()
+    for resp in responses:
+        for result in walk_find_lists(resp.get("json"), _tweet_predicate, max_depth=25):
+            result = _unwrap(result)
+            rid = str(result.get("rest_id"))
+            if rid in seen:
+                continue
+            seen.add(rid)
+            legacy = result.get("legacy") or {}
+            handle, name = _author(result)
+            created = _parse_created_at(legacy.get("created_at"))
+            entry = {
+                "id": rid, "author": f"@{handle}" if handle else name,
+                "text": _full_text(result, legacy),
+                "likes": legacy.get("favorite_count") or 0,
+                "reposts": legacy.get("retweet_count") or 0,
+                "created_at": created.isoformat() if created else None,
+                "reply_to": legacy.get("in_reply_to_status_id_str"),
+            }
+            if rid == tweet_id:
+                main = entry
+            else:
+                replies.append(entry)
+    main_author = ((main or {}).get("author") or "").lower()
+    thread, comments = [], []
+    for r in replies:
+        if not r["reply_to"]:
+            continue   # not part of this conversation (recommended tweets etc.)
+        if main_author and (r["author"] or "").lower() == main_author:
+            thread.append(r)
+        else:
+            comments.append(r)
+    return {"main": main, "thread": thread, "comments": comments}
 
 
 def _parse_adaptive(payload: dict) -> list[dict]:
@@ -186,6 +273,8 @@ class XAdapter(BrowserAdapter):
     name = "x"
     label = "X (Twitter)"
     requires_auth = True
+    capabilities = frozenset({"browser_session", "search", "author", "thread",
+                              "comments", "video"})
     default_interval_minutes = 45
     min_interval_minutes = 15
     start_url = "https://x.com/explore"
@@ -266,6 +355,32 @@ class XAdapter(BrowserAdapter):
         posts = super().fetch_recent(s, client, limit=10_000)
         return self.apply_scope(s, posts, limit=min(
             limit, int(settings_store.get(s, "x_max_per_run") or 40)))
+
+    # -- enrichment lookups (I4): one TweetDetail load serves comments + thread --
+    _detail_cache: dict[str, dict] = {}
+
+    def _fetch_detail(self, s: Session, tweet_id: str) -> dict:
+        tid = str(tweet_id).split("-")[0]
+        cached = self._detail_cache.get(tid)
+        if cached is not None:
+            return cached
+        self.start_url = f"https://x.com/i/status/{tid}"
+        storage = self.storage_state_path()
+        responses, status = self._run_crawl(
+            storage_state=str(storage) if storage.is_file() else None)
+        from ..intel import snapshots
+        snapshots.maybe_save(self.name, "tweet_detail", responses, {"tweet_id": tid})
+        if status in (429, 503):
+            self._record_backoff(s, status)
+        detail = parse_detail(responses, tid)
+        self._detail_cache = {tid: detail}   # only the latest — memory stays flat
+        return detail
+
+    def fetch_comments(self, s: Session, client, platform_post_id: str) -> list[dict]:
+        return self._fetch_detail(s, platform_post_id)["comments"]
+
+    def fetch_thread(self, s: Session, client, platform_post_id: str) -> list[dict]:
+        return self._fetch_detail(s, platform_post_id)["thread"]
 
     def fetch_account(self, s: Session, client, handle: str,
                       since_id: int | None = None,
