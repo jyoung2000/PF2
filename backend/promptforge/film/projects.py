@@ -300,7 +300,8 @@ def update_shot(s: Session, sh: FilmShot, **fields) -> FilmShot:
 
 _OVERRIDE_GROUPS = ("action", "camera", "lighting", "environment", "color", "motion",
                     "style", "prompt", "negative", "generation", "assets_note", "subject",
-                    "shot_type", "lighting_preset", "camera_preset", "expression", "pose")
+                    "shot_type", "lighting_preset", "camera_preset", "expression", "pose",
+                    "characters", "continuity_override", "reference_ids", "inspiration")
 
 
 def _clean_overrides(o: dict) -> dict:

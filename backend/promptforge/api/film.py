@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -541,3 +542,330 @@ def unpin_shot_asset(shot_id: int, asset_id: int, db: Session = Depends(get_db))
     removed = proj_svc.unpin_asset(db, sh, asset_id)
     db.commit()
     return {"removed": removed, "shot": proj_svc.shot_dict(db, sh)}
+
+
+# ============================================================ Phase S2 =====
+# story import · presets · director proposals · shot context · timeline ·
+# continuity · gates · board · jobs
+from ..film import board as board_svc          # noqa: E402
+from ..film import continuity, director, gates  # noqa: E402
+from ..film import jobs as job_svc              # noqa: E402
+from ..film import presets as preset_svc        # noqa: E402
+from ..film import shotctx, story, timeline     # noqa: E402
+from ..film.models import FilmJob               # noqa: E402
+from ..llm.client import BudgetExceeded, LLMError  # noqa: E402
+
+
+def _director_guard(fn, *args, **kw):
+    try:
+        return fn(*args, **kw)
+    except BudgetExceeded as e:
+        raise HTTPException(429, str(e))
+    except LLMError as e:
+        raise HTTPException(502, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+# ------------------------------------------------------------------ story --
+class ScriptImport(BaseModel):
+    text: str
+    mode: str = "replace"     # replace | append
+
+
+@router.post("/projects/{project_id}/story/import")
+def import_story(project_id: int, body: ScriptImport, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    if not body.text.strip():
+        raise HTTPException(422, "Paste or type a script first.")
+    scenes = story.import_script(db, p, body.text, mode="replace" if body.mode == "replace" else "append")
+    db.commit()
+    return {"project": proj_svc.project_dict(db, p, deep=True), "scene_ids": [sc.id for sc in scenes]}
+
+
+@router.post("/story/parse")
+def parse_story(body: ScriptImport):
+    return {"scenes": [sc.to_dict() for sc in story.parse_script(body.text)]}
+
+
+# ---------------------------------------------------------------- presets --
+@router.get("/presets")
+def get_presets(db: Session = Depends(get_db)):
+    return preset_svc.merged(db)
+
+
+class PresetsBody(BaseModel):
+    favorites: list[str] | None = None
+    shot_type_overrides: dict | None = None
+    custom_shot_types: list[dict] | None = None
+
+
+@router.put("/presets")
+def put_presets(body: PresetsBody, db: Session = Depends(get_db)):
+    out = preset_svc.save_user(db, body.model_dump(exclude_unset=True))
+    db.commit()
+    return out
+
+
+@router.get("/presets/duration")
+def suggest_duration(shot_type: str | None = None, profile: str = "normal", dialogue_words: int = 0,
+                     complexity: float = 1.0, importance: float = 1.0):
+    return {"duration_s": preset_svc.propose_duration(shot_type, profile, dialogue_words, complexity, importance)}
+
+
+# --------------------------------------------------------------- director --
+class DirectBody(BaseModel):
+    use_llm: bool = True
+
+
+class DirectShotBody(BaseModel):
+    instruction: str
+    use_llm: bool = True
+
+
+@router.post("/projects/{project_id}/director/story")
+def director_story(project_id: int, body: DirectBody | None = None, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    job = _director_guard(director.direct_story, db, p, use_llm=(body.use_llm if body else True))
+    db.commit()
+    return director.proposal_dict(job)
+
+
+@router.post("/projects/{project_id}/director/plan")
+def director_plan(project_id: int, body: DirectBody | None = None, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    job = _director_guard(director.production_plan, db, p, use_llm=(body.use_llm if body else True))
+    db.commit()
+    return director.proposal_dict(job)
+
+
+@router.post("/scenes/{scene_id}/director")
+def director_scene(scene_id: int, body: DirectBody | None = None, db: Session = Depends(get_db)):
+    sc = _scene(db, scene_id)
+    job = _director_guard(director.direct_scene, db, sc, use_llm=(body.use_llm if body else True))
+    db.commit()
+    return director.proposal_dict(job)
+
+
+@router.post("/shots/{shot_id}/director")
+def director_shot(shot_id: int, body: DirectShotBody, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    if not body.instruction.strip():
+        raise HTTPException(422, "Tell the Director what to change.")
+    job = _director_guard(director.direct_shot, db, sh, body.instruction, use_llm=body.use_llm)
+    db.commit()
+    return director.proposal_dict(job)
+
+
+@router.get("/projects/{project_id}/proposals")
+def list_proposals(project_id: int, pending: bool = False, db: Session = Depends(get_db)):
+    _project(db, project_id)
+    return {"proposals": director.list_proposals(db, project_id, pending_only=pending)}
+
+
+def _proposal(db: Session, job_id: int) -> FilmJob:
+    j = db.get(FilmJob, job_id)
+    if j is None or j.kind not in director.PROPOSAL_KINDS:
+        raise HTTPException(404, "Proposal not found")
+    return j
+
+
+@router.get("/proposals/{job_id}")
+def get_proposal(job_id: int, db: Session = Depends(get_db)):
+    return director.proposal_dict(_proposal(db, job_id))
+
+
+class AcceptBody(BaseModel):
+    edits: dict | None = None
+    mode: str = "append"      # append | replace (story/scene proposals)
+
+
+@router.post("/proposals/{job_id}/accept")
+def accept_proposal(job_id: int, body: AcceptBody | None = None, db: Session = Depends(get_db)):
+    j = _proposal(db, job_id)
+    body = body or AcceptBody()
+    result = _director_guard(director.apply, db, j, edits=body.edits,
+                             mode="replace" if body.mode == "replace" else "append")
+    db.commit()
+    return {"result": result, "proposal": director.proposal_dict(j)}
+
+
+class RejectBody(BaseModel):
+    note: str | None = None
+
+
+@router.post("/proposals/{job_id}/reject")
+def reject_proposal(job_id: int, body: RejectBody | None = None, db: Session = Depends(get_db)):
+    j = _proposal(db, job_id)
+    out = _director_guard(director.reject, db, j, note=(body.note if body else None))
+    db.commit()
+    return out
+
+
+class PlanBody(BaseModel):
+    plan: dict
+
+
+@router.put("/projects/{project_id}/plan")
+def put_plan(project_id: int, body: PlanBody, db: Session = Depends(get_db)):
+    """Direct edit of the production plan (no proposal round-trip)."""
+    p = _project(db, project_id)
+    plan = {**(p.plan or {}), **{k: v for k, v in body.plan.items() if k not in ("approved", "approved_at")}}
+    plan["approved"] = False
+    p.plan = plan
+    g = gates._row(db, p.id, "plan", None)
+    if g is not None and g.status == "approved":
+        g.status = "pending"
+        g.decided_at = None
+    events.log(db, p.id, "Production plan edited", kind="edit", stage="plan", entity=("project", p.id),
+               data={"keys": sorted(body.plan.keys())})
+    db.commit()
+    return proj_svc.project_dict(db, p)
+
+
+@router.get("/projects/{project_id}/estimate")
+def project_estimate(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    shots = [{"label": f"{sc.position + 1}.{sh.position + 1}", "duration_s": sh.duration_s,
+              "media_strategy": sh.media_strategy} for sh, sc in proj_svc.ordered_shots(db, p.id)]
+    return director.estimate_costs(db, shots)
+
+
+# ------------------------------------------------------------ shot context --
+@router.get("/shots/{shot_id}/context")
+def shot_context(shot_id: int, kind: str = "video", db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    ctx = shotctx.effective_context(db, sh)
+    return {"context": ctx, "prompt": shotctx.build_prompt(ctx, kind=kind)}
+
+
+class RegenBody(BaseModel):
+    change: list[str] = []
+    preserve: list[str] = []
+    instruction: str | None = None
+    kind: str = "video"
+
+
+@router.post("/shots/{shot_id}/context/regeneration")
+def shot_regeneration_prompt(shot_id: int, body: RegenBody, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    ctx = shotctx.effective_context(db, sh)
+    return shotctx.regeneration_prompt(ctx, body.change, body.preserve, body.instruction, body.kind)
+
+
+# ---------------------------------------------------------------- timeline --
+@router.get("/projects/{project_id}/timeline")
+def get_timeline(project_id: int, db: Session = Depends(get_db)):
+    return timeline.compute(db, _project(db, project_id))
+
+
+class GapBody(BaseModel):
+    default_gap_s: float | None = None
+    apply_to_all: float | None = None
+    reset_overrides: bool = False
+
+
+@router.post("/projects/{project_id}/timeline/gap")
+def set_gap(project_id: int, body: GapBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    out = None
+    if body.default_gap_s is not None:
+        out = timeline.set_default_gap(db, p, body.default_gap_s, reset_overrides=body.reset_overrides)
+    if body.apply_to_all is not None:
+        out = timeline.apply_gap_to_all(db, p, body.apply_to_all)
+    if out is None:
+        raise HTTPException(422, "Send default_gap_s and/or apply_to_all.")
+    db.commit()
+    return out
+
+
+class SceneGapBody(BaseModel):
+    gap_after_s: float | None = None
+
+
+@router.post("/scenes/{scene_id}/gap")
+def set_scene_gap(scene_id: int, body: SceneGapBody, db: Session = Depends(get_db)):
+    sc = _scene(db, scene_id)
+    out = timeline.set_scene_gap(db, sc, body.gap_after_s)
+    db.commit()
+    return out
+
+
+# -------------------------------------------------------------- continuity --
+@router.post("/projects/{project_id}/continuity")
+def run_continuity(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    out = continuity.validate_project(db, p)
+    db.commit()
+    return out
+
+
+# ------------------------------------------------------------------- gates --
+@router.get("/projects/{project_id}/gates")
+def list_gates(project_id: int, db: Session = Depends(get_db)):
+    return {"gates": gates.list_gates(db, _project(db, project_id))}
+
+
+class GateBody(BaseModel):
+    status: str                     # approved | rejected | pending
+    scene_id: int | None = None
+    note: str | None = None
+    item_ids: list[int] = []
+
+
+@router.post("/projects/{project_id}/gates/{kind}")
+def decide_gate(project_id: int, kind: str, body: GateBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    out = _guard(gates.decide, db, p, kind, body.status, scene_id=body.scene_id, note=body.note,
+                 item_ids=body.item_ids)
+    db.commit()
+    return out
+
+
+# ------------------------------------------------------------------- board --
+@router.get("/projects/{project_id}/board")
+def get_board(project_id: int, db: Session = Depends(get_db)):
+    return board_svc.board(db, _project(db, project_id))
+
+
+@router.get("/projects/{project_id}/replay")
+def get_replay(project_id: int, limit: int = 500, db: Session = Depends(get_db)):
+    return board_svc.replay(db, _project(db, project_id), limit=limit)
+
+
+# -------------------------------------------------------------------- jobs --
+@router.get("/projects/{project_id}/jobs")
+def list_jobs(project_id: int, db: Session = Depends(get_db)):
+    _project(db, project_id)
+    rows = db.execute(select(FilmJob).where(FilmJob.project_id == project_id,
+                                            FilmJob.kind.not_in(director.PROPOSAL_KINDS))
+                      .order_by(FilmJob.id.desc()).limit(50)).scalars()
+    return {"jobs": [board_svc.job_dict(j) for j in rows]}
+
+
+def _job(db: Session, job_id: int) -> FilmJob:
+    j = db.get(FilmJob, job_id)
+    if j is None:
+        raise HTTPException(404, "Job not found")
+    return j
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: int, db: Session = Depends(get_db)):
+    return board_svc.job_dict(_job(db, job_id))
+
+
+@router.post("/jobs/{job_id}/{action}")
+def job_action(job_id: int, action: str, db: Session = Depends(get_db)):
+    j = _job(db, job_id)
+    if action == "pause":
+        job_svc.pause(db, j)
+    elif action == "resume":
+        job_svc.resume(db, j)
+    elif action == "cancel":
+        job_svc.cancel(db, j)
+    else:
+        raise HTTPException(404, "Unknown action (pause | resume | cancel)")
+    db.commit()
+    db.refresh(j)
+    return board_svc.job_dict(j)

@@ -208,11 +208,11 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] S1.3 Phase gate; commit. ✓: 219 tests green.
 
 ## Phase S2 — Story, Director, storyboard logic, timing, continuity, gates
-- [ ] S2.1 Story/script model (project → scenes → shots), import/edit; DirectorService (direct story/scene/shot, production plan, shot durations by pacing profile) via central LLM with structured JSON + deterministic fallback; proposals applied only on Accept; locked props never changed. ✓: mocked tests.
-- [ ] S2.2 ShotContextBuilder: scene defaults + explicit overrides + locks → effective context → prompt; version pinning; update selected/future/all shots. ✓: tests.
-- [ ] S2.3 TimelineService: shot durations, scene gaps (project default + per-scene override + apply-all/reset), transitions separate from gaps, timecode recalculation, runtime. ✓: tests.
-- [ ] S2.4 ContinuityService (adjacent shot checks, flexible/balanced/strict modes), gates (plan/assets/storyboard/rough cut/QA; reject invalidates only dependents), decision log, checkpoints/resume. ✓: tests.
-- [ ] S2.5 Phase gate; commit.
+- [x] S2.1 Story/script model (project → scenes → shots), import/edit; DirectorService (direct story/scene/shot, production plan, shot durations by pacing profile) via central LLM with structured JSON + deterministic fallback; proposals applied only on Accept; locked props never changed. ✓: mocked tests. Done: `film/story.py` (slugline/heading/paragraph parser, import replace/append), `film/presets.py` (18 shot types, lenses, moves, lighting, pacing, pipeline templates, user favourites/overrides), `film/director.py` (proposals stored as film_jobs; LLM via run_llm with fallback; catalog-based cost estimates; accept/reject; locked keys blocked).
+- [x] S2.2 ShotContextBuilder: scene defaults + explicit overrides + locks → effective context → prompt; version pinning; update selected/future/all shots. ✓: tests. Done: `film/shotctx.py` (preset → scene → shot layering with per-field sources, canonical asset contexts with exact versions, deterministic prompt/negative, regeneration change/preserve with locked groups blocked).
+- [x] S2.3 TimelineService: shot durations, scene gaps (project default + per-scene override + apply-all/reset), transitions separate from gaps, timecode recalculation, runtime. ✓: tests. Done: `film/timeline.py` (dissolve/wipe overlap only when no gap; fades/cuts never shift timecodes).
+- [x] S2.4 ContinuityService (adjacent shot checks, flexible/balanced/strict modes), gates (plan/assets/storyboard/rough cut/QA; reject invalidates only dependents), decision log, checkpoints/resume. ✓: tests. Done: `film/continuity.py`, `film/gates.py` (snapshots + stale detection), `film/board.py` (Backlot stages derived from state + replay), `film/jobs.py` (checkpointed pause/resume/cancel/recover runner).
+- [x] S2.5 Phase gate; commit. ✓: 228 tests green.
 
 ## Phase S3 — Generation, media strategy, cost, QA, repair, export, audio/subtitles, footage, reference video
 - [ ] S3.1 Provider capability matrix (modes per family/provider in pricing catalog) + provider scoring service + cost estimate→reserve→execute→reconcile with project budget modes. ✓: tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase S2 (Story/Director/context/timing/continuity/gates). S1 done: 219 tests green.
+Phase S3 (generation takes, media strategy, cost, QA, repair, export, audio/subtitles, footage, reference video). S2 done: 228 tests green.

@@ -113,6 +113,9 @@ DEFAULTS: dict[str, Any] = {
     "intel_ai_analysis_enabled": True,  # LLM classification/extraction for high-value posts
     "knowledge_min_confidence": 0.7,    # assertions below this never enter canonical stats
     "knowledge_accept_ai": False,       # let AI-inferred prompt/model feed the knowledge files
+    "film_presets": {},                 # user shot-type favourites / overrides / custom presets (S2)
+    "film_video_family": "kling",       # default video model family for Film Studio estimates/takes
+    "film_image_family": "flux",        # default image family for start/end frames + asset refs
 }
 
 _BOOL_KEYS = {k for k, v in DEFAULTS.items() if isinstance(v, bool)}
