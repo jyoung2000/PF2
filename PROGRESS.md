@@ -159,5 +159,84 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] X6.2 Frontend: Connect/Reconnect/Disconnect on every browser-site card (optional ones labelled), modal handles non-final saves (green banner + "Done"), Civitai paste-to-connect (Get key ↗ + auto-save + auto-test + Remove key) in Settings and inline on its Scrapers card, "no login needed" chip for Lexica. ✓: build clean; Playwright through the real UI against stand-ins — dashboard shows every source's connect state, Civitai inline paste → "✓ Key accepted" → "API key: connected", TensorArt modal login → "Login detected — session saved ✓" + Done → "Login session: valid"; zero page errors.
 - [x] X6.3 Docs (README connect-everywhere section + launch-checklist entry, CLAUDE.md D59–D60) + full suite green (172); commit `phase-X6 complete — one-click connect everywhere`.
 
+## Phase I1 — Inspiration envelope, migration, scoring, dedupe, queue (backend)
+- [x] I1.1 Additive schema migration (`db.migrate_schema`: PRAGMA table_info vs models → ALTER TABLE ADD COLUMN; never drops). ✓: legacy-shaped DB upgrades in place, rows intact.
+- [x] I1.2 Layered post envelope: `ScrapedPost.observed` (author/engagement/text/media/relations/identity) → Post JSON columns `observed`/`enrichment`/`analysis`/`assertions` + indexed scalars (candidate/inspiration scores, ai_status/confidence, content_hash, phash, engagement_total, creator_id, has_workflow, prompt_source, model_source, pipeline_state, discovered_at); `engagement_snapshots` table. ✓: pytest.
+- [x] I1.3 Deterministic Candidate Score (pre-download gate) + Inspiration Value Score (post-ingest) with configurable weights + breakdowns. ✓: formula tests.
+- [x] I1.4 Dedupe levels: exact id (existing) + sha256 content hash + 64-bit dHash near-dup → `post_links` (link, never delete). ✓: resized/recompressed duplicate detected.
+- [x] I1.5 `pipeline_jobs` queue (stage/state/priority/attempts/cost) + scheduler tick + central budgeted analysis dispatcher; ingest enqueues ENRICH/ANALYSIS for high-value posts only. ✓: pytest state machine.
+- [x] I1.6 Phase gate; commit `phase-I1`. ✓: 180 tests green.
+
+## Phase I2 — Generation metadata parsers
+- [ ] I2.1 A1111 full (LoRA/ControlNet/VAE/hires/denoise), ComfyUI workflow graph (model/loras/controlnet/sampler/scheduler/seed/cfg/size/video nodes), NovelAI, InvokeAI, EXIF UserComment/XMP, video sidecars; raw metadata preserved untouched under `params._raw_metadata`. ✓: fixtures + tests.
+- [ ] I2.2 Phase gate; commit.
+
+## Phase I3 — Extraction, classification, provenance, knowledge separation
+- [ ] I3.1 `intel/extract.py`: deterministic prompt/model/technique extraction with method+confidence+provenance → `assertions`; model alias table expanded (current image/video models); technique taxonomy expanded (camera/lighting/motion/format). ✓: tests.
+- [ ] I3.2 AI classification (ai_status 5-level + confidence + reason + source) + AI extraction only for unresolved high-value records via the central budget; never overwrites explicit data; uncertain never deleted. ✓: mocked LLM tests.
+- [ ] I3.3 Knowledge Engine: observed/inferred/AI separation (only high-confidence into canonical stats), expanded stats (prompt length, terminology, camera/lighting vocab, aspect ratios, engagement-weighted, temporal). ✓: tests.
+- [ ] I3.4 Phase gate; commit.
+
+## Phase I4 — Source capabilities, enrichment, X improvements, source metrics, snapshots
+- [ ] I4.1 Adapter `capabilities` flags + optional `fetch_detail/fetch_author/fetch_comments/fetch_related`; Civitai detail/author; X thread/quote/reply relations, alt text, links, variants, engagement, author details, TweetDetail comments (fixture) for high-value only. ✓: fixture tests.
+- [ ] I4.2 Source efficiency metrics per run (discovered/kept/enriched/prompt+metadata yield/dup rate/AI rate/LLM cost/reliability) → priority recommendation (never auto-disable). ✓: tests.
+- [ ] I4.3 Sanitized raw snapshots (optional setting) under DATA_DIR/snapshots. ✓: secrets stripped test.
+- [ ] I4.4 Phase gate; commit.
+
+## Phase I5 — Creators, Grok evidence, Grok Web session, Social accounts UX
+- [ ] I5.1 `creators` table + intelligence aggregation (followers, avg engagement, cadence, AI ratio, prompt availability, models, techniques, top/recent posts, trajectory); monitored_accounts linked; API. ✓: tests.
+- [ ] I5.2 Grok discovery evidence model (candidate → verify via adapter → store evidence → analyze; LLM output never authoritative) + richer discover output (evidence/models/content type/engagement estimate/confidence). ✓: tests.
+- [ ] I5.3 Grok Web session via existing connect flow (platform "grok", clearly ≠ API key, status/disconnect) + Settings "Social accounts" group (X / Grok Web / Grok API) with feature-level credential requirements. ✓: tests + screenshot.
+- [ ] I5.4 Phase gate; commit.
+
+## Phase I6 — Search syntax, clusters, similarity, trends, inspiration API
+- [ ] I6.1 Search qualifiers: has:, creator:, technique:, camera:, after:, before:, engagement:>, inspiration:>, ai:, model_source:. ✓: parser + filter tests.
+- [ ] I6.2 Clusters (deterministic rules over topic/model/technique/style/creator/media/prompt pattern/camera/palette/subject/engagement) + membership + pages. ✓: tests.
+- [ ] I6.3 Similarity: visual (phash hamming), prompt (token Jaccard + FTS), technique-related, best-for-model. ✓: tests.
+- [ ] I6.4 Trend intelligence (weekly series for models/techniques/styles/terms/creators/topics/formats) + optional grounded LLM summary. ✓: tests.
+- [ ] I6.5 `/api/inspiration/*` routes (search, sources, queue, analytics, clusters, similar, enrichment, creators). ✓: tests.
+- [ ] I6.6 Phase gate; commit.
+
+## Phase I7 — Inspiration UI
+- [ ] I7.1 Inspiration section (nav) with tabs: Overview (sources w/ status, last/next run, discovered/kept/enriched/analyzed, errors, queue; Run/Pause/Resume), Sources (existing Scrapers), Creators (existing Monitoring + intelligence), Clusters, Queue/Errors, Analytics. ✓: screenshots.
+- [ ] I7.2 Post detail: "Why this is inspiring" score breakdown, detected fields, structured generation metadata, evidence/provenance, actions (Save/Favorite/Collection/Use in Studio/Use as Inspiration/Find Similar/View Creator/View Related). ✓: screenshots.
+- [ ] I7.3 Phase gate; commit.
+
+## Phase S1 — Film Studio data model + asset services
+- [ ] S1.1 Tables: film_projects, film_scenes, film_shots, film_assets, film_asset_versions, film_asset_refs, film_shot_assets, film_takes, film_events (decision log), film_gates, film_clips (footage corpus), film_jobs (checkpoints). Additive migration. ✓: tests.
+- [ ] S1.2 AssetService/VersionService/ReferenceService: immutable versions, restore/duplicate/compare/use-as-current, uploads preserved under DATA_DIR/film (safe ids, traversal-proof), import from gallery, canonical visual context JSON with locks/variables/continuity/negatives. ✓: tests.
+- [ ] S1.3 Phase gate; commit.
+
+## Phase S2 — Story, Director, storyboard logic, timing, continuity, gates
+- [ ] S2.1 Story/script model (project → scenes → shots), import/edit; DirectorService (direct story/scene/shot, production plan, shot durations by pacing profile) via central LLM with structured JSON + deterministic fallback; proposals applied only on Accept; locked props never changed. ✓: mocked tests.
+- [ ] S2.2 ShotContextBuilder: scene defaults + explicit overrides + locks → effective context → prompt; version pinning; update selected/future/all shots. ✓: tests.
+- [ ] S2.3 TimelineService: shot durations, scene gaps (project default + per-scene override + apply-all/reset), transitions separate from gaps, timecode recalculation, runtime. ✓: tests.
+- [ ] S2.4 ContinuityService (adjacent shot checks, flexible/balanced/strict modes), gates (plan/assets/storyboard/rough cut/QA; reject invalidates only dependents), decision log, checkpoints/resume. ✓: tests.
+- [ ] S2.5 Phase gate; commit.
+
+## Phase S3 — Generation, media strategy, cost, QA, repair, export, audio/subtitles, footage, reference video
+- [ ] S3.1 Provider capability matrix (modes per family/provider in pricing catalog) + provider scoring service + cost estimate→reserve→execute→reconcile with project budget modes. ✓: tests.
+- [ ] S3.2 Takes: generate start/end frames + video via the existing generation queue, multi-take preserved, previous-shot last frame → next start frame (ffmpeg last-frame extraction), targeted regeneration (preserve/change sets → context). ✓: tests with mocked providers.
+- [ ] S3.3 Media strategy per shot (AI video / image+animation / user footage / stock / archival / motion graphics / still) + footage corpus (user upload analysis via ffprobe/scene-cut/keyframes; Pexels/Pixabay/Unsplash/Archive.org when keys configured, mocked) + motion-graphics title cards (Pillow+ffmpeg). ✓: tests.
+- [ ] S3.4 Audio tracks + capability flags, subtitles (SRT/VTT/burn-in, editable, re-sync), QA (ffprobe technical, black/frozen frame heuristics, continuity) → PASS/WARN/FAIL + repair queue tied to smallest artifact; export (ffmpeg concat with gaps/fades/xfade, audio mix, subtitles) + post-render review. ✓: tests with tiny generated media.
+- [ ] S3.5 Reference-video director mode (ffprobe/scene detection/keyframes/pacing/aspect; optional transcript/LLM) → grounded production proposal requiring approval. ✓: tests.
+- [ ] S3.6 `/api/film/*` routes. ✓: tests. Phase gate; commit.
+
+## Phase S4 — Film Studio frontend
+- [ ] S4.1 Film section nav (Projects/Assets/Story/Director/Storyboard/Timeline), AssetsPage (tabs, visual editors incl. Character/Location with lock toggles, references upload/import, versions, AI tools), AssetPicker. ✓: screenshots.
+- [ ] S4.2 StoryPage + DirectorPage (production plan, reference video, direct story/scene/shot with Accept/Reject/Edit, sample run, Backlot board, gates, decision log, cost). ✓: screenshots.
+- [ ] S4.3 StoryboardPage (navigator/grid/inspector/strip, shot cards, contact sheet, timing panel w/ gaps, visual shot-type library, visual camera + lighting controls, basic/advanced/expert drawers, takes/compare, repair, start/end frames, continuity inspector). ✓: screenshots.
+- [ ] S4.4 TimelinePage (proportional timeline, drag durations, gaps, audio tracks/mixer, subtitles, QA report, export). ✓: screenshots.
+- [ ] S4.5 Inspiration → Studio/Film "Use as Inspiration" handoff with provenance. Phase gate; commit.
+
+## Phase S5 — Frontend tests + acceptance journey
+- [ ] S5.1 vitest + testing-library for timing math, context/lock helpers, ShotTypeLibrary, AssetPicker. ✓: green.
+- [ ] S5.2 Scripted acceptance journey (spec AL) through the real app with mocked providers; restart persistence; desktop + mobile screenshots. ✓: passes.
+- [ ] S5.3 Phase gate; commit.
+
+## Phase S6 — Docker verification + docs + final gate
+- [ ] S6.1 Docker build/start (sandbox variant per D50) → health, migrations on an existing DB, Gallery/Studio/Inspiration/Film pages, persistence after restart. ✓: documented.
+- [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
+
 ## Next up
-Nothing — v1.0 (1–10), X feature (X1–X4), one-click connect (X5) and connect-everywhere (X6) are complete: 172 tests green, frontend builds clean, all pushed. First-boot steps live in the README launch checklist (live Civitai scrape; Connect on each card you want logged in; optional Grok key paste).
+Phase I2 (generation metadata parsers). I1 done: 180 tests green.

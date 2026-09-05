@@ -22,6 +22,10 @@ class Post(Base):
         UniqueConstraint("platform", "platform_post_id", name="uq_platform_post"),
         Index("ix_posts_model_family", "model_family"),
         Index("ix_posts_scraped_at", "scraped_at"),
+        Index("ix_posts_inspiration", "inspiration_score"),
+        Index("ix_posts_content_hash", "content_hash"),
+        Index("ix_posts_creator", "creator_id"),
+        Index("ix_posts_ai_status", "ai_status"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -50,6 +54,27 @@ class Post(Base):
     technique_tags: Mapped[list] = mapped_column(JSON, default=list)
     synced_to_baserow: Mapped[bool] = mapped_column(Boolean, default=False)
     posted_to_discord: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # --- Inspiration Intelligence layers (I1, D62): observed stays distinct
+    # from inferred; provenance per field lives in `assertions` ---
+    observed: Mapped[dict | None] = mapped_column(JSON, default=dict)    # NormalizedPost: identity/author/engagement/text/media/relations
+    enrichment: Mapped[dict | None] = mapped_column(JSON, default=dict)  # detail/author/comments lookups (EnrichedPost)
+    analysis: Mapped[dict | None] = mapped_column(JSON, default=dict)    # AI classification + score breakdowns (AnalyzedPost)
+    assertions: Mapped[dict | None] = mapped_column(JSON, default=dict)  # field → {value, source, confidence, evidence}
+    candidate_score: Mapped[float | None] = mapped_column(Float)
+    inspiration_score: Mapped[float | None] = mapped_column(Float)
+    ai_status: Mapped[str | None] = mapped_column(String(24))   # definitely_ai … definitely_not_ai
+    ai_confidence: Mapped[float | None] = mapped_column(Float)
+    content_hash: Mapped[str | None] = mapped_column(String(64))  # sha256 of the ORIGINAL download
+    phash: Mapped[str | None] = mapped_column(String(16))         # 64-bit dHash, hex
+    engagement_total: Mapped[int | None] = mapped_column(Integer)
+    creator_id: Mapped[int | None] = mapped_column(
+        ForeignKey("creators.id", ondelete="SET NULL"))
+    has_workflow: Mapped[bool | None] = mapped_column(Boolean, default=False)
+    prompt_source: Mapped[str | None] = mapped_column(String(20))  # observed|extracted|metadata|ai
+    model_source: Mapped[str | None] = mapped_column(String(20))   # explicit|metadata|inferred|ai
+    pipeline_state: Mapped[str | None] = mapped_column(String(20), default="stored")
+    discovered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     tags: Mapped[list[Tag]] = relationship(
         secondary="post_tags", back_populates="posts", lazy="selectin")
@@ -233,3 +258,76 @@ class ScraperState(Base):
     last_found: Mapped[int] = mapped_column(Integer, default=0)
     last_new: Mapped[int] = mapped_column(Integer, default=0)
     state: Mapped[dict] = mapped_column(JSON, default=dict)  # adapter cursors etc.
+
+
+# ------------------------------------------------------------------ intel ----
+class Creator(Base):
+    """Creator intelligence (I1/I5): one row per platform handle, aggregated
+    from every ingested post; monitored_accounts link here by handle."""
+    __tablename__ = "creators"
+    __table_args__ = (UniqueConstraint("platform", "handle", name="uq_creator_handle"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    platform: Mapped[str] = mapped_column(String(20))
+    handle: Mapped[str] = mapped_column(String(100))          # lowercase, no @
+    display_name: Mapped[str | None] = mapped_column(String(200))
+    profile_url: Mapped[str | None] = mapped_column(Text)
+    avatar_url: Mapped[str | None] = mapped_column(Text)
+    author_id: Mapped[str | None] = mapped_column(String(100))
+    verified: Mapped[bool | None] = mapped_column(Boolean, default=False)
+    followers: Mapped[int | None] = mapped_column(Integer)
+    following: Mapped[int | None] = mapped_column(Integer)
+    bio: Mapped[str | None] = mapped_column(Text)
+    stats: Mapped[dict | None] = mapped_column(JSON, default=dict)  # aggregated intelligence
+    first_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class EngagementSnapshot(Base):
+    """Timestamped engagement counts (I1) — re-scrapes append, never overwrite."""
+    __tablename__ = "engagement_snapshots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    likes: Mapped[int | None] = mapped_column(Integer)
+    comments: Mapped[int | None] = mapped_column(Integer)
+    reposts: Mapped[int | None] = mapped_column(Integer)
+    quotes: Mapped[int | None] = mapped_column(Integer)
+    shares: Mapped[int | None] = mapped_column(Integer)
+    bookmarks: Mapped[int | None] = mapped_column(Integer)
+    views: Mapped[int | None] = mapped_column(Integer)
+    impressions: Mapped[int | None] = mapped_column(Integer)
+
+
+class PostLink(Base):
+    """Non-destructive dedupe/similarity links (I1, D65): exact | near |
+    repost | similar | related."""
+    __tablename__ = "post_links"
+    __table_args__ = (UniqueConstraint("post_id", "other_id", "kind", name="uq_post_link"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    other_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    score: Mapped[float | None] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PipelineJob(Base):
+    """Central staged queue (I1, D63): enrich → analysis → knowledge.
+    States: queued | processing | complete | skipped | failed | retryable."""
+    __tablename__ = "pipeline_jobs"
+    __table_args__ = (Index("ix_pipeline_jobs_stage_state", "stage", "state"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    post_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    stage: Mapped[str] = mapped_column(String(20))
+    state: Mapped[str] = mapped_column(String(12), default="queued")
+    priority: Mapped[float] = mapped_column(Float, default=0.0)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    cost_estimate: Mapped[float | None] = mapped_column(Float)
+    error: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict | None] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

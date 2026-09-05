@@ -102,6 +102,14 @@ DEFAULTS: dict[str, Any] = {
     "grok_digest_to_discord": False,
     "model_aliases": {},              # user rules: {"substring": "family"}
     "auto_add_generated_to_collection": True,
+    # --- Inspiration Intelligence (I1) ---
+    "intel_weights": {},                # {"candidate": {...}, "inspiration": {...}} weight overrides
+    "intel_min_candidate_score": 25,    # candidates below this are skipped BEFORE download
+    "intel_enrich_threshold": 60,       # candidate score ≥ → ENRICH job (detail/author/comments)
+    "intel_analysis_threshold": 70,     # inspiration score ≥ → ANALYSIS (LLM/VLM) job
+    "intel_near_dup_distance": 6,       # dHash hamming ≤ → near-duplicate link
+    "intel_snapshots": False,           # sanitized raw source snapshots (I4)
+    "intel_queue_batch": 20,            # jobs per scheduler tick
 }
 
 _BOOL_KEYS = {k for k, v in DEFAULTS.items() if isinstance(v, bool)}

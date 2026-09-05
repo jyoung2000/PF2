@@ -32,6 +32,10 @@ class ScrapedPost:
     source_url: str | None = None
     posted_at: datetime | None = None
     nsfw: bool = False
+    # I1 layered envelope: everything the source actually SHOWED, structured —
+    # {"identity": {...}, "author": {...}, "engagement": {...}, "text": {...},
+    #  "media": {...}, "relations": {...}}. Optional; adapters fill what they have.
+    observed: dict | None = None
 
 
 class SourceAdapter(ABC):

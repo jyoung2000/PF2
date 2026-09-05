@@ -35,6 +35,10 @@ def init_db(echo: bool = False):
     event.listen(_engine, "connect", _apply_pragmas)
     from . import models  # noqa: F401  (register tables)
     models.Base.metadata.create_all(_engine)
+    applied = migrate_schema(_engine)
+    if applied:
+        from .logbus import bus
+        bus.info("system", f"schema migrated: added {', '.join(applied)}")
     from . import fts
     fts.ensure_fts(_engine)
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
@@ -82,3 +86,63 @@ def wal_mode(engine=None) -> str:
     engine = engine or get_engine()
     with engine.connect() as conn:
         return conn.execute(text("PRAGMA journal_mode")).scalar_one()
+
+
+def _sql_default(col) -> str | None:
+    """SQL literal for ALTER TABLE ADD COLUMN so existing rows get the model's
+    default (dict/list JSON defaults become '{}' / '[]')."""
+    d = col.default
+    if d is None:
+        return None
+    if getattr(d, "is_callable", False):
+        # SQLAlchemy wraps callables (dict, list, utcnow…) — evaluate once to
+        # learn the shape; only JSON-shaped defaults become a literal
+        try:
+            val = d.arg(None)
+        except Exception:
+            return None
+        if isinstance(val, (dict, list)):
+            import json
+            return "'" + json.dumps(val).replace("'", "''") + "'"
+        return None
+    v = getattr(d, "arg", None)
+    if isinstance(v, bool):
+        return "1" if v else "0"
+    if isinstance(v, (int, float)):
+        return str(v)
+    if isinstance(v, str):
+        return "'" + v.replace("'", "''") + "'"
+    return None
+
+
+def migrate_schema(engine) -> list[str]:
+    """Additive migration (D61): for every model table that already exists,
+    add any column the model declares but the table lacks (ALTER TABLE ADD
+    COLUMN with the model default) and create missing indexes. Never drops,
+    renames, or rewrites rows — existing IDs/media paths/prompts survive."""
+    from sqlalchemy import inspect as sa_inspect
+    from . import models
+    applied: list[str] = []
+    insp = sa_inspect(engine)
+    existing = set(insp.get_table_names())
+    with engine.begin() as conn:
+        for table in models.Base.metadata.sorted_tables:
+            if table.name not in existing:
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have:
+                    continue
+                ddl = (f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" '
+                       f'{col.type.compile(engine.dialect)}')
+                default = _sql_default(col)
+                if default is not None:
+                    ddl += f" DEFAULT {default}"
+                conn.execute(text(ddl))
+                applied.append(f"{table.name}.{col.name}")
+            have_idx = {i["name"] for i in insp.get_indexes(table.name)}
+            for idx in table.indexes:
+                if idx.name and idx.name not in have_idx:
+                    idx.create(conn)
+                    applied.append(f"index:{idx.name}")
+    return applied
