@@ -54,13 +54,19 @@ class Config:
         return self.data_dir / "refs"
 
     @property
+    def film_dir(self) -> Path:
+        return self.data_dir / "film"
+
+    @property
     def ffmpeg(self) -> str | None:
         return shutil.which("ffmpeg")
 
     def ensure_dirs(self) -> None:
         for d in (self.data_dir, self.media_dir, self.knowledge_dir,
                   self.knowledge_dir / "models", self.knowledge_dir / "styles",
-                  self.knowledge_dir / "stats", self.sessions_dir, self.refs_dir):
+                  self.knowledge_dir / "stats", self.sessions_dir, self.refs_dir,
+                  self.film_dir, self.film_dir / "assets", self.film_dir / "projects",
+                  self.film_dir / "clips"):
             d.mkdir(parents=True, exist_ok=True)
 
 

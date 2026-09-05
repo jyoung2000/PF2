@@ -34,6 +34,7 @@ def init_db(echo: bool = False):
     )
     event.listen(_engine, "connect", _apply_pragmas)
     from . import models  # noqa: F401  (register tables)
+    _register_optional_models()
     models.Base.metadata.create_all(_engine)
     applied = migrate_schema(_engine)
     if applied:
@@ -43,6 +44,15 @@ def init_db(echo: bool = False):
     fts.ensure_fts(_engine)
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
+
+
+def _register_optional_models() -> None:
+    """Feature areas that keep their tables in their own module but share
+    `models.Base` (Film Studio, S1). Import registers them on the metadata."""
+    try:
+        from .film import models as _film_models  # noqa: F401
+    except ImportError:
+        pass
 
 
 def dispose_db() -> None:
@@ -122,6 +132,7 @@ def migrate_schema(engine) -> list[str]:
     renames, or rewrites rows — existing IDs/media paths/prompts survive."""
     from sqlalchemy import inspect as sa_inspect
     from . import models
+    _register_optional_models()
     applied: list[str] = []
     insp = sa_inspect(engine)
     existing = set(insp.get_table_names())

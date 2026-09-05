@@ -109,7 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(scrapers.router)
     for modname in ("search", "collections", "tags", "settings", "integrations",
                     "knowledge", "studio", "generation", "companion",
-                    "models_meta", "ws", "monitoring", "grok", "inspiration"):
+                    "models_meta", "ws", "monitoring", "grok", "inspiration", "film"):
         try:
             module = __import__(f"promptforge.api.{modname}", fromlist=["router"])
             app.include_router(module.router)
@@ -118,6 +118,9 @@ def create_app() -> FastAPI:
 
     cfg.ensure_dirs()
     app.mount("/media", StaticFiles(directory=cfg.media_dir), name="media")
+    # Film Studio files (asset references, frames, exports) — DATA_DIR/film.
+    # Mounted off /film-media so the /film SPA routes stay free (S1, spec §28).
+    app.mount("/film-media", StaticFiles(directory=cfg.film_dir), name="film-media")
 
     if FRONTEND_DIST.is_dir():
         assets = FRONTEND_DIST / "assets"

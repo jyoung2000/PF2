@@ -3,6 +3,7 @@ LLM-over-companion, offline job queue + drain, desktop core proxy logic."""
 import json
 import sys
 import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -69,8 +70,13 @@ def test_ws_hello_and_request_bridge(client):
     with client.websocket_connect(f"/api/companion/ws?token={token}") as ws:
         ws.send_json({"t": "hello", "name": "GPU rig",
                       "ollama_models": ["llama3.1:8b", "qwen2.5"]})
-        # give the server loop a beat to process
-        status = client.get("/api/companion").json()
+        # give the server loop a beat to process (bounded wait — the hello is
+        # handled on the app's event loop, not synchronously with send_json)
+        for _ in range(50):
+            status = client.get("/api/companion").json()
+            if status["online"]:
+                break
+            time.sleep(0.05)
         assert status["online"] is True
         assert "llama3.1:8b" in status["models"]
 
@@ -89,7 +95,11 @@ def test_ws_hello_and_request_bridge(client):
                       "data": {"message": {"content": "hi from the GPU"}}})
         t.join(timeout=10)
         assert result_box["result"]["message"]["content"] == "hi from the GPU"
-    # socket closed → offline again
+    # socket closed → offline again (disconnect is processed asynchronously)
+    for _ in range(50):
+        if not hub.online:
+            break
+        time.sleep(0.05)
     assert hub.online is False
     with pytest.raises(CompanionOffline):
         hub.request_sync("ollama.tags", {})

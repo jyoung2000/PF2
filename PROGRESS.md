@@ -203,9 +203,9 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I7.3 Phase gate; commit. ✓: build clean, 212 tests green.
 
 ## Phase S1 — Film Studio data model + asset services
-- [ ] S1.1 Tables: film_projects, film_scenes, film_shots, film_assets, film_asset_versions, film_asset_refs, film_shot_assets, film_takes, film_events (decision log), film_gates, film_clips (footage corpus), film_jobs (checkpoints). Additive migration. ✓: tests.
-- [ ] S1.2 AssetService/VersionService/ReferenceService: immutable versions, restore/duplicate/compare/use-as-current, uploads preserved under DATA_DIR/film (safe ids, traversal-proof), import from gallery, canonical visual context JSON with locks/variables/continuity/negatives. ✓: tests.
-- [ ] S1.3 Phase gate; commit.
+- [x] S1.1 Tables: film_projects, film_scenes, film_shots, film_assets, film_asset_versions, film_asset_refs, film_shot_assets, film_takes, film_events (decision log), film_gates, film_clips (footage corpus), film_jobs (checkpoints). Additive migration. ✓: tests. Done: `film/models.py` on the shared Base (db registers it), legacy-DB test proves the tables appear on boot.
+- [x] S1.2 AssetService/VersionService/ReferenceService: immutable versions, restore/duplicate/compare/use-as-current, uploads preserved under DATA_DIR/film (safe ids, traversal-proof), import from gallery, canonical visual context JSON with locks/variables/continuity/negatives. ✓: tests. Done: `film/assets.py` (copy-on-write versions, freeze-on-use, propagate selected/future/project, delete guard), `film/refs.py`, `film/context.py`, `film/attributes.py` (per-type schemas + lock groups + ref kinds), `film/projects.py` (project/scene/shot CRUD + exact pins + effective assets), `api/film.py` (39 routes), `/film-media` mount.
+- [x] S1.3 Phase gate; commit. ✓: 219 tests green.
 
 ## Phase S2 — Story, Director, storyboard logic, timing, continuity, gates
 - [ ] S2.1 Story/script model (project → scenes → shots), import/edit; DirectorService (direct story/scene/shot, production plan, shot durations by pacing profile) via central LLM with structured JSON + deterministic fallback; proposals applied only on Accept; locked props never changed. ✓: mocked tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase S1 (Film Studio data model + asset services). I7 done: 212 tests green.
+Phase S2 (Story/Director/context/timing/continuity/gates). S1 done: 219 tests green.
