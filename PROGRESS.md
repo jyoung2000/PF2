@@ -168,8 +168,8 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I1.6 Phase gate; commit `phase-I1`. ✓: 180 tests green.
 
 ## Phase I2 — Generation metadata parsers
-- [ ] I2.1 A1111 full (LoRA/ControlNet/VAE/hires/denoise), ComfyUI workflow graph (model/loras/controlnet/sampler/scheduler/seed/cfg/size/video nodes), NovelAI, InvokeAI, EXIF UserComment/XMP, video sidecars; raw metadata preserved untouched under `params._raw_metadata`. ✓: fixtures + tests.
-- [ ] I2.2 Phase gate; commit.
+- [x] I2.1 A1111 full (LoRA/ControlNet/VAE/hires/denoise), ComfyUI workflow graph (model/loras/controlnet/sampler/scheduler/seed/cfg/size/video nodes), NovelAI, InvokeAI, EXIF UserComment/XMP, video sidecars; raw metadata preserved untouched under `params._raw_metadata`. ✓: fixtures + tests.
+- [x] I2.2 Phase gate; commit. ✓: 187 tests green.
 
 ## Phase I3 — Extraction, classification, provenance, knowledge separation
 - [ ] I3.1 `intel/extract.py`: deterministic prompt/model/technique extraction with method+confidence+provenance → `assertions`; model alias table expanded (current image/video models); technique taxonomy expanded (camera/lighting/motion/format). ✓: tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I2 (generation metadata parsers). I1 done: 180 tests green.
+Phase I3 (extraction, classification, provenance, knowledge separation). I2 done: 187 tests green.

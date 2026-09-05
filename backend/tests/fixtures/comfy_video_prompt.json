@@ -1,0 +1,11 @@
+{
+  "1": {"class_type": "WanVideoModelLoader", "inputs": {"model": "wan2.1_i2v_480p_14B_fp8.safetensors"}},
+  "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "a red kite over a foggy harbor at dawn, slow orbit", "clip": ["9", 0]}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "blurry, static, watermark", "clip": ["9", 0]}},
+  "4": {"class_type": "LoadImage", "inputs": {"image": "harbor_ref.png"}},
+  "5": {"class_type": "WanImageToVideo", "inputs": {"width": 832, "height": 480, "length": 81, "start_image": ["4", 0]}},
+  "6": {"class_type": "KSampler", "inputs": {"seed": 777, "steps": 20, "cfg": 6.0, "sampler_name": "uni_pc", "scheduler": "simple", "denoise": 1.0, "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["5", 0]}},
+  "7": {"class_type": "LoraLoaderModelOnly", "inputs": {"lora_name": "wan_orbit_v1.safetensors", "strength_model": 0.7}},
+  "8": {"class_type": "VHS_VideoCombine", "inputs": {"frame_rate": 16, "format": "video/h264-mp4"}},
+  "9": {"class_type": "CLIPLoader", "inputs": {"clip_name": "umt5_xxl.safetensors"}}
+}

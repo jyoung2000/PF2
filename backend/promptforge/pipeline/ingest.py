@@ -211,6 +211,8 @@ def ingest_one(sp: ScrapedPost, client: httpx.Client,
         embedded: dict = {}
         if media_type == "image":
             embedded = metadata.extract_metadata(tmp_path)
+        else:
+            embedded = metadata.extract_video_metadata(tmp_path)
 
         params = dict(embedded.get("params") or {})
         params.update(sp.params or {})  # site-provided structured params win
