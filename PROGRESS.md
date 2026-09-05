@@ -235,8 +235,8 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] S5.3 Phase gate; commit. ✓: 239 backend + 19 frontend tests green.
 
 ## Phase S6 — Docker verification + docs + final gate
-- [ ] S6.1 Docker build/start (sandbox variant per D50) → health, migrations on an existing DB, Gallery/Studio/Inspiration/Film pages, persistence after restart. ✓: documented.
-- [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
+- [x] S6.1 Docker build/start (sandbox variant per D50) → health, migrations on an existing DB, Gallery/Studio/Inspiration/Film pages, persistence after restart. ✓: documented. Done: `scratchpad/docker_smoke.sh` — image built; booted on the seeded film data (healthy; 19 endpoints incl. Film/Gallery/Studio/Inspiration/scrapers/Grok/settings all 200; export file served; `/data` 99:100; `docker restart` keeps 7 shots + approved plan), on an empty dir (healthy, film dirs created, project creation works), and on a legacy-shaped DB with film tables/columns removed (`schema migrated` on boot, tables/columns re-added, rows kept); Playwright screenshots of every Film page served by the container (`docker-film-*.png`, zero page errors).
+- [x] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push. ✓: README Film Studio section + launch checklist (v2.0/v2.1) + test counts; CLAUDE D73–D79; 239 backend + 19 frontend tests green.
 
 ## Next up
-Phase S6 (Docker verification + docs + final gate). S5 done: 239 backend + 19 frontend tests green.
+All planned phases (v1.0 → X1–X6 → I1–I7 → S1–S6) are complete: 239 backend + 19 frontend tests green, sandbox container verified. First-boot steps on the user's own network: live Civitai scrape, real X login through the connect modal, first AI take with a real fal.ai/Replicate/WaveSpeed key (see README launch checklist). Future work candidates: audio/TTS provider adapters (capability flags already in place), yt-dlp reference downloads, vision-model continuity checks.

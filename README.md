@@ -69,7 +69,8 @@ Native development (hot reload):
 bash scripts/dev_setup.sh                 # backend venv + frontend deps
 cd backend && .venv/bin/uvicorn promptforge.main:app --port 5643 --reload
 cd frontend && npm run dev                # Vite on :5173, proxies /api
-cd backend && .venv/bin/python -m pytest  # 172-test suite
+cd backend && .venv/bin/python -m pytest  # 239-test suite
+cd frontend && npm test                    # 19 vitest component/helper tests
 ```
 
 ## First hour with PromptForge
@@ -173,6 +174,19 @@ Heads-up: logged-in scraping is subject to X's ToS and your own account is the
 thing at risk — keep polling gentle. The defaults are conservative (60-minute
 account interval, 5-minute floor, one browser run at a time), and the adapter
 backs off on rate limits like every other site.
+
+## Film Studio: from an idea to an exported cut
+
+The **Film** section turns PromptForge into a self-hosted AI film studio on top of the same providers, storage and settings you already use. Nothing here needs a new container or a second database.
+
+1. **Projects** — create a film project; its Backlot board shows every stage (Concept → Story → Assets → Storyboard → Asset approval → Shot generation → Audio → Edit → QA → Export) derived from real state, plus approval gates, cost (estimate / spent / reserved / budget mode) and the decision log.
+2. **Assets** — persistent Characters, Locations, Props, Vehicles, Outfits and Styles. Every attribute group can be locked 🔒 (face, hair, body … architecture, layout …); references are uploaded, imported from your Gallery or generated (Generate / Variation / Edit — enabled only when a connected provider declares the mode). Versions are immutable once a shot uses them: editing then creates the next version, old shots keep theirs, and *Update selected / future / entire project* pushes a version explicitly.
+3. **Story** — paste a screenplay, markdown headings or plain prose; scenes are split deterministically (sluglines give location, time of day, weather and speaking characters).
+4. **Director** — *Direct story / scene / shot* and *Draft plan* produce **proposals** (through your configured AI provider, or a deterministic breakdown when none is set up). Accept, reject or edit them; locked properties are never changed, and every choice lands in the decision log with its reason and cost basis. Optional: analyse a reference video (ffprobe, scene cuts, pacing, keyframes — never copied) and let the Director propose a grounded structure.
+5. **Storyboard** — image-first shot cards, a contact-sheet mode with bulk approval, a visual shot-type library (18 diagrammed presets, favourites, custom), visual camera (framing, angle, lens strip, motion) and lighting (draggable key/fill/rim, presets) controls, per-shot media strategy (AI video, image + animation, your footage, stock/archival, motion graphics, still), start/end frames (upload, generate, gallery, *use previous shot's last frame*), takes with compare, targeted *Repair / regenerate* (change vs preserve), continuity warnings in flexible/balanced/strict modes.
+6. **Timeline** — proportional strip with drag-to-resize durations, a project default scene gap with per-scene overrides (apply-all / reset), audio tracks with a simple mixer, subtitles (from the script's dialogue, SRT/VTT import/export, burn-in), pre-render QA with a repair queue, and export (conformed clips, gaps, dissolves and fades, mixed audio, sidecar SRT/VTT, a `sources.json` with every take's provenance) followed by a post-render review.
+
+Costs come from the pricing catalog (`pricing.json` → `/data/pricing.json`) and are shown as *unavailable* when no price exists. Provider capabilities (image→video, start/end frames, reference images) come from the catalog's `modes` per provider; TTS, music, SFX, talking heads and lip sync are reported as unsupported until an adapter declares them. Stock footage needs API keys (Pexels, Pixabay, Unsplash) while Archive.org, NASA and Wikimedia Commons work without; licenses are stored exactly as reported.
 
 ## The companion app (desktop GPU bridge)
 
@@ -299,6 +313,43 @@ integrations. Everything configurable from the GUI at runtime.
   xAI stand-in (paste → saved → tested → live model list). x.com itself is
   unreachable from the sandbox, so the first real X login through the modal is
   a first-boot step; the desktop-capture and upload fallbacks remain.
+- ✅ Inspiration Intelligence (v2.0, +40 tests → 212): additive schema
+  migration proven on a v1.0-shaped database; layered post envelope with
+  per-field provenance (user > observed/metadata > extracted > inferred > AI);
+  every embedded generation-metadata format (A1111/Fooocus, ComfyUI API + UI
+  graphs, NovelAI, InvokeAI, SwarmUI, EXIF/XMP, video tags + sidecars) parsed
+  from fixtures with raw chunks preserved; candidate/inspiration scores with
+  explainable breakdowns; sha256 + dHash dedupe links; a staged queue
+  (enrich → analysis → knowledge) with deferral on budget; deterministic
+  extraction of models/camera/lighting/techniques with evidence; LLM analysis
+  that never overwrites explicit data (mocked); source metrics, sanitized
+  snapshots, creator intelligence, Grok discovery as verifiable evidence,
+  advanced search syntax, rule-based clusters, similarity without a vector
+  DB, weekly trends; the Inspiration UI (Overview/Sources/Creators/Clusters/
+  Queue/Analytics + the drawer's "why this is inspiring" panel) checked with
+  Playwright at desktop and mobile widths.
+- ✅ Film Studio (v2.1, +27 backend tests → 239, +19 frontend tests): film
+  tables on the shared metadata (migration verified inside the container on a
+  legacy-shaped DB — dropped tables/columns came back, rows kept); copy-on-
+  write asset versions with freeze-on-use, restore/duplicate/compare/use-as-
+  current and explicit propagation; traversal-proof references; script →
+  scenes parser; Director proposals with deterministic fallback and mocked
+  LLM; preset → scene → shot context with deterministic prompts; timeline
+  maths (gaps vs transitions) and continuity modes; gates with dependency-
+  only invalidation; takes through the real generation queue with mocked
+  providers (frames, previous-frame chaining, targeted regeneration,
+  alternates); footage corpus + six stock sources (mocked HTTP); local cards
+  and stills; audio/subtitles; ffprobe/black/freeze QA + repair queue; real
+  ffmpeg export with gaps, dissolves, fades, audio mix and burned-in
+  subtitles, reviewed after render; reference-video analysis; a scripted
+  spec-AL acceptance journey through the real app including a simulated
+  restart; a Playwright click-through of the Storyboard/Timeline UI; the
+  sandbox container booted on existing data, on an empty dir and on a legacy
+  DB (all healthy, `/data` owned by PUID:PGID, export served, project state
+  intact after `docker restart`). No AI video/image provider is reachable
+  from the build sandbox, so the first real take with your own fal.ai /
+  Replicate / WaveSpeed key is a first-boot step — the flow up to and after
+  the provider call is exercised end to end.
 - ✅ Connect everywhere (v1.3, +5 tests → 172): every source card carries its
   connect state — Connect/Reconnect/Disconnect on all five browser sites
   (optional logins labelled), Civitai key paste-to-connect with a real
