@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Prompt Studio · Enhance</title>
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Sora:wght@500;700&amp;family=Manrope:wght@500;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #0E0F12; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    a { color: #9BA3AF; } a:hover { color: #FF6A3D; }
+    button { font: inherit; }
+    ::selection { background: rgba(255, 106, 61, 0.3); }
+  </style>
+</helmet>
+<div style="--ink: {{ink}};--panel: {{panel}};--well: {{well}};--line: {{line}};--fg: {{fg}};--mute: {{mute}};--faint: {{faint}};--ember: {{accent}};--ember-soft: {{accentSoft}};--r-card: {{rCard}}px;--r-el: {{rEl}}px;--r-chip: {{rChip}}px;--font-display: {{fontDisplay}};width:1440px;min-height:900px;background:var(--ink);color:var(--fg);font-family:Inter, system-ui, sans-serif;font-size:14px;line-height:1.625;-webkit-font-smoothing:antialiased;position:relative;display:flex;flex-direction:column">
+<header style="position:sticky;top:0;z-index:40;background:color-mix(in srgb, var(--ink) 85%, transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)"><div style="margin:0 auto;max-width:1700px;padding:0 20px;height:48px;display:flex;align-items:center;gap:16px"><a href="#" style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.025em;flex-shrink:0;color:var(--fg);text-decoration:none">Prompt<span style="color:var(--ember)">Forge</span></a><nav style="display:flex;align-items:center;gap:2px;height:100%;margin-bottom:-1px;overflow:hidden;min-width:0"><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Gallery</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Collections</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Models</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Inspiration</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Film</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid var(--ember);color:var(--fg);font-weight:500;text-decoration:none">Studio</a><a href="#" style="padding:0 10px;height:100%;display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border-bottom:2px solid transparent;color:var(--mute);font-weight:400;text-decoration:none">Settings</a></nav><div style="margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--faint)"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:9999px;background:#34D399"></span><span style="font-size:12px;color:var(--mute)">Baserow</span></span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:9999px;background:var(--faint)"></span><span style="font-size:12px;color:var(--mute)">Discord</span></span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:9999px;background:#34D399"></span><span style="font-size:12px;color:var(--mute)">AI</span></span></div></div></header><main style="flex:1;margin:0 auto;max-width:1700px;width:100%;padding:16px 20px"><div style="max-width:1024px;margin:0 auto">
+    <div style="text-align:center;padding:16px 0 24px"><h1 style="margin:0;font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.025em;line-height:1.625">Prompt Studio</h1><p style="margin:4px 0 0;font-size:13px;color:var(--faint)">Create with learned templates, upscale any prompt, keep the good ones.</p><nav style="display:inline-flex;margin-top:16px;border:1px solid var(--line);border-radius:var(--r-el);overflow:hidden"><a href="#" style="padding:6px 16px;font-size:13px;line-height:1.625;text-decoration:none;color:var(--mute)">Templates</a><a href="#" style="padding:6px 16px;font-size:13px;line-height:1.625;text-decoration:none;background:var(--well);color:var(--fg);font-weight:500">Enhance</a><a href="#" style="padding:6px 16px;font-size:13px;line-height:1.625;text-decoration:none;color:var(--mute)">Saved prompts</a></nav></div>
+    <div style="max-width:768px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+      <div style="display:block;width:100%;min-height:110px;padding:6px 12px;font-size:14px;line-height:1.625;background:var(--well);border:1px solid var(--line);border-radius:var(--r-el)">portrait of an old fisherman, sunset</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div style="position:relative;display:inline-flex;align-items:center;padding:6px 28px 6px 12px;font-size:13px;line-height:1.625;background:var(--well);border:1px solid var(--line);border-radius:var(--r-el);color:var(--fg);white-space:nowrap">Flux<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:8px;top:50%;margin-top:-6px;pointer-events:none"><path d="M3 4.5l3 3 3-3"></path></svg></div><div style="position:relative;display:inline-flex;align-items:center;padding:6px 28px 6px 12px;font-size:13px;line-height:1.625;background:var(--well);border:1px solid var(--line);border-radius:var(--r-el);color:var(--fg);white-space:nowrap">Moody portraits<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:8px;top:50%;margin-top:-6px;pointer-events:none"><path d="M3 4.5l3 3 3-3"></path></svg></div><button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-el);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:13px;font-weight:500;line-height:1.625;white-space:nowrap;cursor:pointer;background:color-mix(in srgb, var(--ember) 90%, transparent);border-color:var(--ember);color:var(--ink);font-weight:600;margin-left:auto">✨ Enhance</button></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+          <div><span style="display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:4px;line-height:1.625">Before</span><p style="margin:0;background:color-mix(in srgb, var(--well) 60%, transparent);border:1px solid var(--line);border-radius:var(--r-el);padding:12px;font-size:13px;color:var(--mute);white-space:pre-wrap">portrait of an old fisherman, sunset</p></div>
+          <div><span style="display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:4px;line-height:1.625">After</span><p style="margin:0;background:var(--well);border:1px solid color-mix(in srgb, var(--ember) 30%, transparent);border-radius:var(--r-el);padding:12px;font-size:13.5px;white-space:pre-wrap">Weathered portrait of an elderly fisherman at golden hour, salt-worn skin and deep-set eyes, wind-tousled grey beard, oilskin jacket, harbour bokeh behind him, 85mm lens, shallow depth of field, warm rim light, subtle film grain, cinematic color grading</p></div>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:var(--mute)"><span style="color:var(--faint)">Suggested negative: </span><span style="font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, monospace">blurry, low quality, watermark, extra fingers, plastic skin</span></p>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px"><li style="font-size:12.5px"><span style="color:var(--ember-soft);font-weight:500">Added lens + depth of field</span><span style="color:var(--faint)"> — Flux responds strongly to camera language (seen in 71% of top prompts)</span></li><li style="font-size:12.5px"><span style="color:var(--ember-soft);font-weight:500">Named the light</span><span style="color:var(--faint)"> — “golden hour” anchors the palette the collection favours</span></li><li style="font-size:12.5px"><span style="color:var(--ember-soft);font-weight:500">Specified texture</span><span style="color:var(--faint)"> — tactile detail is the collection’s strongest shared trait</span></li></ul>
+        <div style="display:flex;gap:8px"><button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-el);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:13px;font-weight:500;line-height:1.625;white-space:nowrap;cursor:pointer">Copy</button><button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-el);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:13px;font-weight:500;line-height:1.625;white-space:nowrap;cursor:pointer">Save</button><button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-el);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:13px;font-weight:500;line-height:1.625;white-space:nowrap;cursor:pointer;background:color-mix(in srgb, var(--ember) 90%, transparent);border-color:var(--ember);color:var(--ink);font-weight:600">⚡ Generate</button></div>
+      </div>
+    </div>
+  </div></main>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#FF6A3D","section":"Colors","options":["#FF6A3D","#F4B942","#4CC9F0","#C77DFF"]},"ink":{"editor":"color","default":"#0E0F12","section":"Colors"},"panel":{"editor":"color","default":"#15171C","section":"Colors"},"well":{"editor":"color","default":"#1C1F26","section":"Colors"},"line":{"editor":"color","default":"#272B33","section":"Colors"},"fg":{"editor":"color","default":"#E9EBEE","section":"Colors"},"mute":{"editor":"color","default":"#9BA3AF","section":"Colors"},"faint":{"editor":"color","default":"#6B7280","section":"Colors"},"rCard":{"editor":"int","default":14,"min":0,"max":28,"unit":"px","section":"Shape"},"rEl":{"editor":"int","default":10,"min":0,"max":20,"unit":"px","section":"Shape"},"fontDisplay":{"editor":"enum","default":"Space Grotesk","options":["Space Grotesk","Inter","Sora","Manrope"],"section":"Type"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    const hex = (v, d) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : d);
+    const accent = hex(p.accent, '#FF6A3D');
+    const n = parseInt(accent.slice(1), 16);
+    const ch = (x) => Math.round(x + (255 - x) * 0.2).toString(16).padStart(2, '0');
+    const accentSoft = '#' + ch((n >> 16) & 255) + ch((n >> 8) & 255) + ch(n & 255);
+    const fonts = {
+      'Space Grotesk': "'Space Grotesk', Inter, system-ui, sans-serif",
+      'Inter': "Inter, system-ui, sans-serif",
+      'Sora': "Sora, Inter, system-ui, sans-serif",
+      'Manrope': "Manrope, Inter, system-ui, sans-serif",
+    };
+    const rEl = Number.isFinite(p.rEl) ? p.rEl : 10;
+    return {
+      accent, accentSoft,
+      ink: hex(p.ink, '#0E0F12'), panel: hex(p.panel, '#15171C'), well: hex(p.well, '#1C1F26'),
+      line: hex(p.line, '#272B33'), fg: hex(p.fg, '#E9EBEE'), mute: hex(p.mute, '#9BA3AF'), faint: hex(p.faint, '#6B7280'),
+      rCard: Number.isFinite(p.rCard) ? p.rCard : 14, rEl, rChip: Math.max(2, Math.round(rEl * 0.6)),
+      fontDisplay: fonts[p.fontDisplay] || fonts['Space Grotesk'],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -167,4 +167,6 @@ Dockerfile docker-compose.yml unraid-template.xml pricing.json .env.example
 
 - D79: Film Studio Docker verification (S6) follows D50: the shipped Dockerfile gained `fonts-dejavu-core` (title cards) and is otherwise unchanged; in the sandbox the ubuntu-based `scratchpad/sandbox.Dockerfile` variant was built and booted three ways (existing seeded data, empty dir, legacy-shaped DB with film tables/columns removed) — all healthy, migrations applied on boot, `/data` owned by PUID:PGID, exports served from `/film-media`, state intact across `docker restart`. `.sandbox-ca.crt` (the sandbox proxy CA copied to the repo root for that build) is git-excluded and never shipped. Test totals at handoff: 239 backend (pytest) + 19 frontend (vitest).
 
-*(append new decisions here as D80, D81, …)*
+- D80: The GUI has an editable mock in a Claude Design canvas (artifact `2922255e-0f30-4de5-a1bc-58f9968a4159`) generated from `design/` (`gen.mjs` → `*.dc.html` + `canvas.json`; tokens and component anatomy lifted from `tailwind.config.ts` / `styles.css` / the React sources, tweak chips = the Tailwind tokens). Sync is a code step, not automatic: read the saved canvas (design skill `--extract`), diff against `design/*.dc.html`, apply tweak values to the tokens and element edits to the components, rebuild + test, commit; the user then rebuilds the container. After a GUI change in code, update the screen module and re-seed so the canvas stays the mirror. The seeded page is never committed.
+
+*(append new decisions here as D81, D82, …)*
