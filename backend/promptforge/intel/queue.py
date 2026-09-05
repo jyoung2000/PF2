@@ -34,6 +34,16 @@ def register(stage: str, fn: Handler) -> None:
     _handlers[stage] = fn
 
 
+def ensure_handlers() -> None:
+    """Import the stage modules (they self-register). Missing modules are
+    fine — their stages simply stay queued."""
+    for mod in ("analysis", "enrichment"):
+        try:
+            __import__(f"promptforge.intel.{mod}")
+        except ImportError:
+            pass
+
+
 def handlers() -> dict[str, Handler]:
     return dict(_handlers)
 
@@ -122,6 +132,7 @@ def process_one(stages: tuple[str, ...] | None = None) -> str | None:
 
 def tick(max_jobs: int | None = None) -> dict:
     """Scheduler entry: drain up to N jobs; stops early when a stage defers."""
+    ensure_handlers()
     if max_jobs is None:
         with session_scope() as s:
             max_jobs = int(settings_store.get(s, "intel_queue_batch") or 20)

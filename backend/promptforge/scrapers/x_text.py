@@ -59,6 +59,20 @@ MODEL_KEYWORDS: list[tuple[str, str]] = [
     ("illustrious", "Illustrious"),
     (" qwen ", "Qwen Image"),
     ("hidream", "HiDream"),
+    ("pixverse", "PixVerse"),
+    ("vidu", "Vidu"),
+    ("higgsfield", "Higgsfield"),
+    ("moonvalley", "Marey"),
+    (" marey ", "Marey"),
+    ("omnihuman", "OmniHuman"),
+    ("skyreels", "SkyReels"),
+    ("framepack", "FramePack"),
+    ("gpt image", "GPT Image"),
+    ("gpt-image", "GPT Image"),
+    ("z-image", "Z-Image"),
+    ("flux kontext", "Flux"),
+    ("flux krea", "Flux"),
+    ("magi-1", "MAGI"),
 ]
 
 _URL_RE = re.compile(r"https?://\S+")

@@ -172,10 +172,10 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I2.2 Phase gate; commit. ✓: 187 tests green.
 
 ## Phase I3 — Extraction, classification, provenance, knowledge separation
-- [ ] I3.1 `intel/extract.py`: deterministic prompt/model/technique extraction with method+confidence+provenance → `assertions`; model alias table expanded (current image/video models); technique taxonomy expanded (camera/lighting/motion/format). ✓: tests.
-- [ ] I3.2 AI classification (ai_status 5-level + confidence + reason + source) + AI extraction only for unresolved high-value records via the central budget; never overwrites explicit data; uncertain never deleted. ✓: mocked LLM tests.
-- [ ] I3.3 Knowledge Engine: observed/inferred/AI separation (only high-confidence into canonical stats), expanded stats (prompt length, terminology, camera/lighting vocab, aspect ratios, engagement-weighted, temporal). ✓: tests.
-- [ ] I3.4 Phase gate; commit.
+- [x] I3.1 `intel/extract.py`: deterministic prompt/model/technique extraction with method+confidence+provenance → `assertions`; model alias table expanded (current image/video models); technique taxonomy expanded (camera/lighting/motion/format). ✓: tests.
+- [x] I3.2 AI classification (ai_status 5-level + confidence + reason + source) + AI extraction only for unresolved high-value records via the central budget; never overwrites explicit data; uncertain never deleted. ✓: mocked LLM tests.
+- [x] I3.3 Knowledge Engine: observed/inferred/AI separation (only high-confidence into canonical stats), expanded stats (prompt length, terminology, camera/lighting vocab, aspect ratios, engagement-weighted, temporal). ✓: tests.
+- [x] I3.4 Phase gate; commit. ✓: 193 tests green.
 
 ## Phase I4 — Source capabilities, enrichment, X improvements, source metrics, snapshots
 - [ ] I4.1 Adapter `capabilities` flags + optional `fetch_detail/fetch_author/fetch_comments/fetch_related`; Civitai detail/author; X thread/quote/reply relations, alt text, links, variants, engagement, author details, TweetDetail comments (fixture) for high-value only. ✓: fixture tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I3 (extraction, classification, provenance, knowledge separation). I2 done: 187 tests green.
+Phase I4 (source capabilities, enrichment, X improvements, source metrics, snapshots). I3 done: 193 tests green.

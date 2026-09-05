@@ -11,7 +11,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
+from .. import settings_store
 from ..db import session_scope
+from ..intel import provenance
 from ..logbus import bus
 from ..models import Collection, CollectionPost, Post
 from ..pipeline import hooks
@@ -31,6 +33,27 @@ SYSTEM_PROMPT = (
 
 
 # ------------------------------------------------------------ ingest hook ---
+def _canonical_ok(post: Post, min_conf: float, accept_ai: bool) -> tuple[str | None, str | None]:
+    """Observed / inferred / AI separation (I3.3): only high-confidence
+    assertions feed canonical stats. Returns (prompt, family) to learn from,
+    either may be None."""
+    params = post.params or {}
+    prompt = post.prompt
+    if params.get("prompt_confidence") == "low":            # legacy flag (D51)
+        prompt = None
+    if post.assertions:
+        src_name = provenance.source_of(post.assertions, "prompt")
+        if src_name == "ai" and not accept_ai:
+            prompt = None
+        elif src_name and not provenance.is_high_confidence(post.assertions, "prompt", min_conf) \
+                and not (src_name == "ai" and accept_ai):
+            prompt = None
+    family = post.model_family
+    if post.model_source in ("inferred", "ai") and not accept_ai:
+        family = None
+    return prompt, family
+
+
 def _on_post_ingested(post_id: int) -> None:
     with session_scope() as s:
         post = s.get(Post, post_id)
@@ -40,12 +63,21 @@ def _on_post_ingested(post_id: int) -> None:
             " ".join(x for x in (post.prompt, post.negative_prompt) if x))
         if detected:
             post.technique_tags = sorted(set((post.technique_tags or []) + detected))
-        family = post.model_family
-        prompt, params, media_type = post.prompt, dict(post.params or {}), post.media_type
-        if params.get("prompt_confidence") == "low":
-            prompt = None  # freeform low-confidence text never pollutes the vocabulary (D51)
+        min_conf = float(settings_store.get(s, "knowledge_min_confidence") or 0.7)
+        accept_ai = bool(settings_store.get(s, "knowledge_accept_ai"))
+        prompt, family = _canonical_ok(post, min_conf, accept_ai)
+        params, media_type = dict(post.params or {}), post.media_type
+        creator = ((post.observed or {}).get("author") or {}).get("handle")
+        when = post.posted_at or post.scraped_at or datetime.now(timezone.utc)
+        extra = {
+            "engagement": post.engagement_total,
+            "technique_tags": list(post.technique_tags or []),
+            "width": post.media_width, "height": post.media_height,
+            "creator": creator, "week": when.strftime("%G-W%V"),
+            "references": bool(params.get("references")), "source": post.platform,
+        }
     if family:
-        data = stats.update_family_stats(family, prompt, params, media_type, post_id)
+        data = stats.update_family_stats(family, prompt, params, media_type, post_id, extra=extra)
         files.update_stats_block(family, stats.render_stats_section(data))
 
 
@@ -121,15 +153,28 @@ def analyze_family(family: str, batch: int = ANALYSIS_BATCH) -> int:
     with session_scope() as s:
         raw_rows = s.execute(
             select(Post.id, Post.prompt, Post.media_type, Post.favorite,
-                   Post.params)
+                   Post.params, Post.assertions, Post.model_source)
             .where(Post.model_family == family, Post.id > last_id,
                    Post.prompt.is_not(None))
             .order_by(Post.id).limit(batch)).all()
-    # low-confidence freeform prompts (X posts) are excluded from analysis but
-    # still advance the watermark (D51)
-    rows = [(pid, prompt, mt, fav) for pid, prompt, mt, fav, params in raw_rows
-            if not (isinstance(params, dict)
-                    and params.get("prompt_confidence") == "low")]
+        min_conf = float(settings_store.get(s, "knowledge_min_confidence") or 0.7)
+        accept_ai = bool(settings_store.get(s, "knowledge_accept_ai"))
+    # low-confidence / AI-inferred prompts are excluded from analysis but still
+    # advance the watermark (D51, I3.3)
+    rows = []
+    for pid, prompt, mt, fav, params, assertions, model_source in raw_rows:
+        if isinstance(params, dict) and params.get("prompt_confidence") == "low":
+            continue
+        if assertions:
+            src_name = provenance.source_of(assertions, "prompt")
+            if src_name == "ai" and not accept_ai:
+                continue
+            if src_name and src_name != "ai" and not provenance.is_high_confidence(
+                    assertions, "prompt", min_conf):
+                continue
+        if model_source in ("inferred", "ai") and not accept_ai:
+            continue
+        rows.append((pid, prompt, mt, fav))
     if not raw_rows:
         return 0
     if not rows:

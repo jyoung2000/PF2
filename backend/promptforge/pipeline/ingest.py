@@ -145,8 +145,11 @@ def _upsert_creator(s, sp: ScrapedPost, observed: dict) -> int | None:
 
 
 def _post_store_intel(s, post: Post, sp: ScrapedPost, observed: dict, cand: dict | None) -> int:
-    """After the row exists: dedupe links, Inspiration Score, creator,
-    engagement snapshot, queue jobs. Returns near-duplicate count."""
+    """After the row exists: deterministic extraction, dedupe links,
+    Inspiration Score, creator, engagement snapshot, queue jobs. Returns
+    near-duplicate count."""
+    from ..intel import extract
+    extract.apply_extraction(post)
     weights = settings_store.get(s, "intel_weights") or {}
     dist = int(settings_store.get(s, "intel_near_dup_distance") or 6)
     near = dedupe.near_duplicates(s, post.phash, exclude_id=post.id, max_distance=dist)
