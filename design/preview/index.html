@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<title>PromptForge GUI — browsable copy</title>
+<link rel="stylesheet" href="assets/index-DKNyEQWu.css">
+</head>
+<body>
+<div class="min-h-screen flex flex-col">
+  <header class="sticky top-0 z-40 bg-ink/85 backdrop-blur border-b border-line">
+    <div class="mx-auto max-w-[1700px] px-3 sm:px-5 h-12 flex items-center gap-4">
+      <span class="font-display font-bold text-[16px] tracking-tight shrink-0">Prompt<span class="text-ember">Forge</span></span>
+      <span class="text-[13px] text-mute">browsable copy of the container GUI</span>
+    </div>
+  </header>
+  <main class="flex-1 mx-auto max-w-[1700px] w-full px-3 sm:px-5 py-4 space-y-8">
+    <section class="max-w-measure space-y-2">
+      <h1 class="font-display font-medium text-[19px]">Every screen, captured from the running app</h1>
+      <p class="text-[13px] text-mute">Each page below is the real rendered markup of the container GUI, saved with the app's own stylesheet, fonts and media. Nothing here is a redrawing: open any page and you are looking at what PromptForge served on port 5643, filled with sample data.</p>
+      <p class="text-[12.5px] text-faint">The pages are static, so controls do not respond and nothing talks to a server — but the navigation links work, so you can browse between screens exactly as the app lays them out. Regenerate with <span class="font-mono">design/capture.sh</span>.</p>
+    </section>
+    <section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Library</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="gallery.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Gallery</h3>
+            <span class="chip ml-auto">/</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Masonry of everything scraped or generated, with search and filters.</p>
+        </a>
+<a href="gallery-detail.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Post detail</h3>
+            <span class="chip ml-auto">/?post=1</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">The drawer: prompt, parameters, provenance and why the post scored what it did.</p>
+        </a>
+<a href="gallery-search.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Search results</h3>
+            <span class="chip ml-auto">/?q=model%3Aflux</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">A qualifier search — model:flux — narrowing the same grid.</p>
+        </a>
+<a href="collections.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Collections</h3>
+            <span class="chip ml-auto">/collections</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Your collections plus the model collections the library maintains itself.</p>
+        </a>
+<a href="collection.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Collection detail</h3>
+            <span class="chip ml-auto">/collections/1</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">One collection, filtered to its own posts.</p>
+        </a>
+<a href="models.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Models</h3>
+            <span class="chip ml-auto">/models</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Every model family seen, with versions and first/last sightings.</p>
+        </a>
+      </div>
+    </section>
+<section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Inspiration</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="inspiration.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Overview</h3>
+            <span class="chip ml-auto">/inspiration</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Pipeline counters and a card per source with its last run.</p>
+        </a>
+<a href="inspiration-sources.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Sources</h3>
+            <span class="chip ml-auto">/inspiration/sources</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Every adapter: connection state, schedule and controls.</p>
+        </a>
+<a href="inspiration-creators.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Creators</h3>
+            <span class="chip ml-auto">/inspiration/creators</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Monitored accounts and the creator intelligence computed from their posts.</p>
+        </a>
+<a href="inspiration-clusters.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Clusters</h3>
+            <span class="chip ml-auto">/inspiration/clusters</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Rule-based clusters over the library — topic, model, technique, style.</p>
+        </a>
+<a href="inspiration-queue.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Queue</h3>
+            <span class="chip ml-auto">/inspiration/queue</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">The staged pipeline: enrich, analysis, knowledge.</p>
+        </a>
+<a href="inspiration-analytics.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Analytics</h3>
+            <span class="chip ml-auto">/inspiration/analytics</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Trends and distributions across what has been collected.</p>
+        </a>
+      </div>
+    </section>
+<section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Film Studio</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="film-projects.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Projects</h3>
+            <span class="chip ml-auto">/film</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Film projects with their gates and progress.</p>
+        </a>
+<a href="film-assets.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Assets</h3>
+            <span class="chip ml-auto">/film/assets</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Characters, locations, props and styles — versioned, with references.</p>
+        </a>
+<a href="film-story.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Story</h3>
+            <span class="chip ml-auto">/film/story</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Script, scenes and beats.</p>
+        </a>
+<a href="film-director.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Director</h3>
+            <span class="chip ml-auto">/film/director</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Proposals the Director makes; nothing changes until you accept.</p>
+        </a>
+<a href="film-storyboard.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Storyboard</h3>
+            <span class="chip ml-auto">/film/storyboard</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Scenes, shot grid, timeline strip and the shot inspector.</p>
+        </a>
+<a href="film-timeline.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Timeline</h3>
+            <span class="chip ml-auto">/film/timeline</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Preview, audio, subtitles, QA and export.</p>
+        </a>
+      </div>
+    </section>
+<section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Studio</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="studio-templates.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Templates</h3>
+            <span class="chip ml-auto">/studio</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Templates learned from each collection.</p>
+        </a>
+<a href="studio-enhance.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Enhance</h3>
+            <span class="chip ml-auto">/studio/enhance</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Upscale any prompt with the model knowledge file and collection style.</p>
+        </a>
+<a href="studio-saved.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Saved prompts</h3>
+            <span class="chip ml-auto">/studio/saved</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Prompts kept from templates, enhancement or by hand.</p>
+        </a>
+      </div>
+    </section>
+<section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Settings</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="settings.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Settings</h3>
+            <span class="chip ml-auto">/settings</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Every integration, scraper key and library default. Captured unconfigured, as a fresh container starts.</p>
+        </a>
+      </div>
+    </section>
+<section>
+      <h2 class="font-display font-medium text-[17px] mb-3">Responsive</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="gallery-phone.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Gallery on a phone</h3>
+            <span class="chip ml-auto">/</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">The same page at 390px.</p>
+        </a>
+<a href="settings-phone.html" class="card p-4 hover:border-mute/50 transition-colors duration-fast block">
+          <div class="flex items-baseline gap-2">
+            <h3 class="font-display font-medium text-[14.5px]">Settings on a phone</h3>
+            <span class="chip ml-auto">/settings</span>
+          </div>
+          <p class="text-[12.5px] text-faint mt-1">Settings at 390px.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
