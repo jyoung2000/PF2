@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { Shell } from './components/Shell'
 import {
   CollectionDetailPage,
@@ -6,9 +6,8 @@ import {
   ModelCollectionPage,
 } from './pages/CollectionsPage'
 import { GalleryPage } from './pages/GalleryPage'
+import { InspirationPage } from './pages/InspirationPage'
 import { ModelsPage } from './pages/ModelsPage'
-import { MonitoringPage } from './pages/MonitoringPage'
-import { ScrapersPage } from './pages/ScrapersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { StudioPage } from './pages/StudioPage'
 
@@ -22,8 +21,9 @@ export default function App() {
         <Route path="/collections/:id" element={<CollectionDetailPage />} />
         <Route path="/models" element={<ModelsPage />} />
         <Route path="/studio/*" element={<StudioPage />} />
-        <Route path="/scrapers" element={<ScrapersPage />} />
-        <Route path="/monitoring" element={<MonitoringPage />} />
+        <Route path="/inspiration/*" element={<InspirationPage />} />
+        <Route path="/scrapers" element={<Navigate to="/inspiration/sources" replace />} />
+        <Route path="/monitoring" element={<Navigate to="/inspiration/creators" replace />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </Shell>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { api, deletePost, getPost, patchPost, PostDetail } from '../api'
 import { formatBytes, timeAgo } from '../lib/format'
 import { toastError, toastSuccess } from '../lib/toast'
+import { IntelPanel } from './IntelPanel'
 import { ConfirmModal, Spinner } from './Primitives'
 import { TagEditor } from './TagEditor'
 
@@ -68,14 +69,17 @@ export function DetailDrawer({
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [pushing, setPushing] = useState<string | null>(null)
+  // related/similar posts open inside the drawer without losing the grid
+  const [currentId, setCurrentId] = useState(postId)
+  useEffect(() => setCurrentId(postId), [postId])
 
   useEffect(() => {
     setPost(null)
     setError(null)
-    getPost(postId)
+    getPost(currentId)
       .then(setPost)
       .catch((e: Error) => setError(e.message))
-  }, [postId])
+  }, [currentId])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -283,6 +287,9 @@ export function DetailDrawer({
                   </div>
                 )}
               </section>
+
+              {/* inspiration intelligence (I7.2) */}
+              <IntelPanel post={post} onOpenPost={setCurrentId} />
 
               {/* tags */}
               <section>

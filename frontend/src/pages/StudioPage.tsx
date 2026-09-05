@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { NavLink, Route, Routes, useSearchParams } from 'react-router-dom'
+import { clearInspirationContext, contextToPhrases, InspirationContext, loadInspirationContext } from '../lib/inspiration'
 import { api, ApiError } from '../api'
 import { EmptyState, Modal, Spinner } from '../components/Primitives'
 import { GeneratePanel } from '../components/GeneratePanel'
@@ -528,8 +529,57 @@ function TemplateEditor({
 }
 
 // -------------------------------------------------------------- enhance ----
+function InspirationContextPanel({ ctx, onInsert, onClear }: { ctx: InspirationContext; onInsert: (text: string) => void; onClear: () => void }) {
+  const phrases = contextToPhrases(ctx)
+  return (
+    <div className="card p-3.5 space-y-2 border-ember/40">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="chip !border-ember text-ember">✦ Inspiration context</span>
+        <span className="text-[12px] text-faint">
+          from {ctx.platform}
+          {ctx.author && <> · {ctx.author}</>}
+          {ctx.inspiration_score != null && <> · score {Math.round(ctx.inspiration_score)}</>}
+          {ctx.model.name && (
+            <>
+              {' '}· {ctx.model.name} <span className="text-faint">({ctx.model.source ?? 'unknown'})</span>
+            </>
+          )}
+        </span>
+        <button className="btn-ghost h-7 py-0 text-[12px] ml-auto" onClick={onClear}>
+          Clear
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {phrases.map((p) => (
+          <span key={p} className="chip">
+            {p}
+          </span>
+        ))}
+        {ctx.prompt_structure && <span className="chip text-faint">{ctx.prompt_structure} prompt</span>}
+      </div>
+      <div className="flex gap-2 flex-wrap items-center">
+        <button className="btn h-7 py-0 text-[12px]" onClick={() => onInsert(phrases.join(', '))} disabled={!phrases.length}>
+          Insert structure into prompt
+        </button>
+        {ctx.prompt && (
+          <button className="btn h-7 py-0 text-[12px]" onClick={() => onInsert(ctx.prompt ?? '')}>
+            Use source prompt
+          </button>
+        )}
+        {ctx.source_url && (
+          <a href={ctx.source_url} target="_blank" rel="noreferrer" className="text-[11.5px] text-faint underline underline-offset-2 hover:text-fg">
+            attribution: original post ↗
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function EnhanceTab() {
-  const [prompt, setPrompt] = useState('')
+  const [params] = useSearchParams()
+  const [prompt, setPrompt] = useState(() => params.get('prompt') ?? '')
+  const [ctx, setCtx] = useState<InspirationContext | null>(() => (params.get('inspiration') ? loadInspirationContext() : null))
   const [model, setModel] = useState('')
   const [collectionId, setCollectionId] = useState<number | ''>('')
   const [busy, setBusy] = useState(false)
@@ -584,6 +634,16 @@ function EnhanceTab() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
+      {ctx && (
+        <InspirationContextPanel
+          ctx={ctx}
+          onInsert={(text) => setPrompt((p) => (p.trim() ? `${p.trim()}, ${text}` : text))}
+          onClear={() => {
+            clearInspirationContext()
+            setCtx(null)
+          }}
+        />
+      )}
       <textarea
         className="input min-h-[110px] text-[14px]"
         placeholder="Paste any prompt — PromptForge upscales it with the model's knowledge file, the collection style and the prompting foundation."

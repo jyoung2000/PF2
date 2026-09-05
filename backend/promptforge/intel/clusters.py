@@ -67,6 +67,11 @@ SUBJECTS = {
 ENGAGEMENT_PERCENTILE = 0.9
 
 
+def _slug_label(slug: str) -> str:
+    """'shallow-dof' → 'Shallow Dof', '35mm' stays '35mm' (digits keep case)."""
+    return " ".join(w if w[:1].isdigit() else w.capitalize() for w in slug.split("-"))
+
+
 def _word_hit(text: str, term: str) -> bool:
     if len(term) <= 3:
         return re.search(rf"(?<![\w-]){re.escape(term)}(?![\w-])", text) is not None
@@ -90,7 +95,7 @@ def assign(view: dict) -> dict[str, list[tuple[str, str]]]:
         fam = view["model_family"]
         out["model"].append((fam, display_family(fam)))
     for slug in view.get("technique_tags") or []:
-        out["technique"].append((slug, slug.replace("-", " ").title()))
+        out["technique"].append((slug, _slug_label(slug)))
     for key, terms in STYLES.items():
         if any(_word_hit(text, t) for t in terms):
             out["style"].append((key, key.replace("-", " ").title()))

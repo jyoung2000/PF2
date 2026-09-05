@@ -195,12 +195,12 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I6.3 Similarity: visual (phash hamming), prompt (token Jaccard + FTS), technique-related, best-for-model. ✓: tests.
 - [x] I6.4 Trend intelligence (weekly series for models/techniques/styles/terms/creators/topics/formats) + optional grounded LLM summary. ✓: tests.
 - [x] I6.5 `/api/inspiration/*` routes (search, sources, queue, analytics, clusters, similar, enrichment, creators). ✓: tests.
-- [x] I6.6 Phase gate; commit. ✓: 220 tests green.
+- [x] I6.6 Phase gate; commit. ✓: 212 tests green (the I6 commit subject says 220 — typo; suite was 212).
 
 ## Phase I7 — Inspiration UI
-- [ ] I7.1 Inspiration section (nav) with tabs: Overview (sources w/ status, last/next run, discovered/kept/enriched/analyzed, errors, queue; Run/Pause/Resume), Sources (existing Scrapers), Creators (existing Monitoring + intelligence), Clusters, Queue/Errors, Analytics. ✓: screenshots.
-- [ ] I7.2 Post detail: "Why this is inspiring" score breakdown, detected fields, structured generation metadata, evidence/provenance, actions (Save/Favorite/Collection/Use in Studio/Use as Inspiration/Find Similar/View Creator/View Related). ✓: screenshots.
-- [ ] I7.3 Phase gate; commit.
+- [x] I7.1 Inspiration section (nav) with tabs: Overview (sources w/ status, last/next run, discovered/kept/enriched/analyzed, errors, queue; Run/Pause/Resume), Sources (existing Scrapers), Creators (existing Monitoring + intelligence), Clusters, Queue/Errors, Analytics. ✓: screenshots. Done: `pages/InspirationPage.tsx` (Overview/Sources/Creators/Clusters/Queue/Analytics + cluster/creator detail routes), nav restructured (Gallery · Collections · Models · Inspiration · Studio · Settings), legacy /scrapers + /monitoring redirect; Playwright shots desktop + 375px, zero page errors.
+- [x] I7.2 Post detail: "Why this is inspiring" score breakdown, detected fields, structured generation metadata, evidence/provenance, actions (Save/Favorite/Collection/Use in Studio/Use as Inspiration/Find Similar/View Creator/View Related). ✓: screenshots. Done: `components/IntelPanel.tsx` inside the DetailDrawer (score bars + breakdown, AI status, detected chips, generation metadata view, evidence toggle, thread/comments, clusters/links, Find similar thumbs that navigate inside the drawer), Studio Enhance handoff via localStorage context (`?inspiration=1`) with Insert structure / Use source prompt / attribution.
+- [x] I7.3 Phase gate; commit. ✓: build clean, 212 tests green.
 
 ## Phase S1 — Film Studio data model + asset services
 - [ ] S1.1 Tables: film_projects, film_scenes, film_shots, film_assets, film_asset_versions, film_asset_refs, film_shot_assets, film_takes, film_events (decision log), film_gates, film_clips (footage corpus), film_jobs (checkpoints). Additive migration. ✓: tests.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I7 (Inspiration UI). I6 done: 220 tests green.
+Phase S1 (Film Studio data model + asset services). I7 done: 212 tests green.
