@@ -97,9 +97,13 @@ def providers(app_env, monkeypatch):
     monkeypatch.setattr(gen_router, "get_provider", lambda name: fake)
     video, image = mp4(1.0), png(512, 288)
     real = httpx.Client
+    counter = {"n": 0}
 
     def handler(req):
-        return httpx.Response(200, content=video if req.url.path.endswith(".mp4") else image)
+        if req.url.path.endswith(".mp4"):
+            return httpx.Response(200, content=video)
+        counter["n"] += 1                       # every image output is a distinct picture
+        return httpx.Response(200, content=png(512, 288, (200, 30, (counter["n"] * 40) % 255)))
 
     monkeypatch.setattr("promptforge.generation.queue.httpx.Client",
                         lambda **kw: real(transport=httpx.MockTransport(handler)))
@@ -502,3 +506,33 @@ def test_sample_and_batch_runs_respect_gates_and_checkpoints(client, app_env, pr
     board = client.get(f"/api/film/projects/{p['id']}/board").json()
     gen = {st["key"]: st for st in board["stages"]}["shot_generation"]
     assert gen["status"] == "in_progress" and gen["progress"]["done"] == 2 and gen["cost"]["estimated_usd"] > 0
+
+
+# ------------------------------------------------------------ asset AI ----
+def test_asset_ai_tools_add_generated_references(client, app_env, providers):
+    jack = client.post("/api/film/assets", json={"type": "character", "name": "Jack", "data": {"eyes": "green", "hair": "black"},
+                                                 "negative_constraints": ["no beard"]}).json()
+    tools = {t["key"]: t for t in client.get(f"/api/film/assets/{jack['id']}/tools").json()["tools"]}
+    assert tools["generate"]["supported"] and not tools["variation"]["supported"]
+    assert "reference image first" in tools["variation"]["reason"]
+    assert tools["upscale"]["supported"] is False and "No configured provider" in tools["upscale"]["reason"]
+    assert client.post(f"/api/film/assets/{jack['id']}/generate", json={"tool": "variation"}).status_code == 422
+    g = client.post(f"/api/film/assets/{jack['id']}/generate", json={"tool": "generate", "instruction": "rain on his face"}).json()
+    assert g["mode"] == "text_to_image" and g["prompt"].startswith("Character reference portrait")
+    assert "LOCKED — eyes: green; hair: black" in g["prompt"] and "Direction: rain on his face" in g["prompt"]
+    assert "Keep exactly: eyes, hair" in g["prompt"]
+    gen_queue.process_generation(g["generation_id"])
+    assert providers.submits[-1]["negative"] == "no beard" and providers.submits[-1]["kind"] == "image"
+    a = client.get(f"/api/film/assets/{jack['id']}").json()
+    ref = a["current_version"]["refs"][0]
+    assert ref["source"] == f"generation:{g['generation_id']}" and ref["provenance"]["origin"] == "generated"
+    assert ref["kind"] == "portrait" and a["current_version"]["primary_ref_id"] == ref["id"]
+    tools = {t["key"]: t for t in client.get(f"/api/film/assets/{jack['id']}/tools").json()["tools"]}
+    assert tools["variation"]["supported"] and tools["edit"]["supported"]
+    v = client.post(f"/api/film/assets/{jack['id']}/generate", json={"tool": "edit", "instruction": "red jacket", "strength": 0.4}).json()
+    gen_queue.process_generation(v["generation_id"])
+    sub = providers.submits[-1]["params"]
+    assert sub["_inputs"]["strength"] == 0.4 and sub["_inputs"]["image"].endswith(".webp") and sub["_mode"] == "image_to_image"   # gallery copies are WebP
+    gens = client.get(f"/api/film/assets/{jack['id']}/tools").json()["generations"]
+    assert [x["tool"] for x in gens] == ["edit", "generate"] and all(x["ref"] for x in gens)
+    assert client.get(f"/api/film/assets/{jack['id']}").json()["ref_count"] == 2

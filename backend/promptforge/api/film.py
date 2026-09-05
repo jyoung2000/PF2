@@ -1477,3 +1477,35 @@ def reference_propose(project_id: int, body: DirectBody | None = None, db: Sessi
     job = _director_guard(lambda: _s3_guard(reference_svc.propose, db, p, use_llm=(body.use_llm if body else True)))
     db.commit()
     return director.proposal_dict(job)
+
+
+# ------------------------------------------------------------ asset AI tools -
+from ..film import asset_gen  # noqa: E402
+
+
+@router.get("/assets/{asset_id}/tools")
+def asset_tools(asset_id: int, db: Session = Depends(get_db)):
+    a = _asset(db, asset_id)
+    asset_gen.sync_pending(db, a)
+    db.commit()
+    return {"tools": asset_gen.tools_for(db, a), "generations": asset_gen.generations_of(db, a)}
+
+
+class AssetGenBody(BaseModel):
+    tool: str = "generate"
+    instruction: str | None = None
+    family: str | None = None
+    provider: str | None = None
+    strength: float | None = None
+    kind: str | None = None
+
+
+@router.post("/assets/{asset_id}/generate")
+def asset_generate(asset_id: int, body: AssetGenBody, db: Session = Depends(get_db)):
+    a = _asset(db, asset_id)
+    try:
+        out = asset_gen.generate(db, a, tool=body.tool, instruction=body.instruction, family=body.family,
+                                 provider=body.provider, strength=body.strength, kind=body.kind)
+    except asset_gen.AssetGenError as e:
+        raise HTTPException(422, str(e))
+    return out

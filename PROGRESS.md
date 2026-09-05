@@ -223,11 +223,11 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] S3.6 `/api/film/*` routes. ✓: tests. Phase gate; commit. ✓: 111 film routes, 237 tests green.
 
 ## Phase S4 — Film Studio frontend
-- [ ] S4.1 Film section nav (Projects/Assets/Story/Director/Storyboard/Timeline), AssetsPage (tabs, visual editors incl. Character/Location with lock toggles, references upload/import, versions, AI tools), AssetPicker. ✓: screenshots.
-- [ ] S4.2 StoryPage + DirectorPage (production plan, reference video, direct story/scene/shot with Accept/Reject/Edit, sample run, Backlot board, gates, decision log, cost). ✓: screenshots.
-- [ ] S4.3 StoryboardPage (navigator/grid/inspector/strip, shot cards, contact sheet, timing panel w/ gaps, visual shot-type library, visual camera + lighting controls, basic/advanced/expert drawers, takes/compare, repair, start/end frames, continuity inspector). ✓: screenshots.
-- [ ] S4.4 TimelinePage (proportional timeline, drag durations, gaps, audio tracks/mixer, subtitles, QA report, export). ✓: screenshots.
-- [ ] S4.5 Inspiration → Studio/Film "Use as Inspiration" handoff with provenance. Phase gate; commit.
+- [x] S4.1 Film section nav (Projects/Assets/Story/Director/Storyboard/Timeline), AssetsPage (tabs, visual editors incl. Character/Location with lock toggles, references upload/import, versions, AI tools), AssetPicker. ✓: screenshots. Done: `pages/film/FilmPage.tsx` (section shell + current-project context), `ProjectsPage.tsx` (Backlot board, gates, cost, settings, decision log), `AssetsPage.tsx` (schema-driven editors with 🔒 groups, references drag/drop + gallery import, versions restore/duplicate/compare/use, AI tools gated by capabilities, usage + propagation), `components/film/AssetPicker.tsx`; backend `film/asset_gen.py` (+2 routes) for asset Generate/Variation/Edit → references.
+- [x] S4.2 StoryPage + DirectorPage (production plan, reference video, direct story/scene/shot with Accept/Reject/Edit, sample run, Backlot board, gates, decision log, cost). ✓: screenshots (`film-story.png`, `film-director.png`).
+- [x] S4.3 StoryboardPage (navigator/grid/inspector/strip, shot cards, contact sheet, timing panel w/ gaps, visual shot-type library, visual camera + lighting controls, basic/advanced/expert drawers, takes/compare, repair, start/end frames, continuity inspector). ✓: screenshots (`film-storyboard.png`, `film-contact-sheet.png`, `film-shot-types.png`, `film-inspector-advanced.png`, `film-inspector-expert.png`). Components: `ShotTypeLibrary.tsx` (SVG diagrams), `CameraControls.tsx`, `LightingPanel.tsx` (draggable key/fill/rim), `FootageModal.tsx`.
+- [x] S4.4 TimelinePage (proportional timeline, drag durations, gaps, audio tracks/mixer, subtitles, QA report, export). ✓: screenshots (`film-timeline*.png`). `components/film/TimingPanel.tsx` exports pure helpers (runtimeOf/widthFor/snapDuration) for unit tests.
+- [x] S4.5 Inspiration → Studio/Film "Use as Inspiration" handoff with provenance. Phase gate; commit. ✓: IntelPanel “🎬 Use in Film” → `/film/storyboard?inspiration=1` banner applies camera/lighting/style/subject/techniques to the selected shot with `overrides.inspiration` attribution (`film-inspiration-handoff.png`); zero page errors on desktop + 390px; build clean; 238 backend tests.
 
 ## Phase S5 — Frontend tests + acceptance journey
 - [ ] S5.1 vitest + testing-library for timing math, context/lock helpers, ShotTypeLibrary, AssetPicker. ✓: green.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase S4 (Film Studio frontend). S3 done: 237 tests green.
+Phase S5 (frontend tests + acceptance journey). S4 done: 238 tests green.

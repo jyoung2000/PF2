@@ -82,11 +82,14 @@ def _notify_film(gid: int, status: str) -> None:
     try:
         with session_scope() as s:
             g = s.get(Generation, gid)
-            take_id = (g.params or {}).get("_film_take_id") if g is not None else None
-        if not take_id:
-            return
-        from ..film import takes as film_takes
-        film_takes.on_generation(gid, status)
+            params = (g.params or {}) if g is not None else {}
+            take_id, asset_id = params.get("_film_take_id"), params.get("_film_asset_id")
+        if take_id:
+            from ..film import takes as film_takes
+            film_takes.on_generation(gid, status)
+        elif asset_id:
+            from ..film import asset_gen
+            asset_gen.on_generation(gid, status)
     except Exception as e:  # noqa: BLE001 — never break the worker over a hook
         bus.warn("film", f"take hook for generation {gid} failed: {e}")
 

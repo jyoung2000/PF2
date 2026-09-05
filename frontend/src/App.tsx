@@ -5,6 +5,7 @@ import {
   CollectionsPage,
   ModelCollectionPage,
 } from './pages/CollectionsPage'
+import { FilmPage } from './pages/film/FilmPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { InspirationPage } from './pages/InspirationPage'
 import { ModelsPage } from './pages/ModelsPage'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/models" element={<ModelsPage />} />
         <Route path="/studio/*" element={<StudioPage />} />
         <Route path="/inspiration/*" element={<InspirationPage />} />
+        <Route path="/film/*" element={<FilmPage />} />
         <Route path="/scrapers" element={<Navigate to="/inspiration/sources" replace />} />
         <Route path="/monitoring" element={<Navigate to="/inspiration/creators" replace />} />
         <Route path="/settings" element={<SettingsPage />} />

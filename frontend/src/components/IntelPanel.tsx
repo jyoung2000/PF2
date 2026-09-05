@@ -190,6 +190,13 @@ export function IntelPanel({ post, onOpenPost }: { post: PostDetail; onOpenPost:
     navigate(`/studio/enhance?${q.toString()}`)
   }
 
+  const useInFilm = () => {
+    if (!intel) return
+    saveInspirationContext(buildInspirationContext(intel, post))
+    toastSuccess('Inspiration context captured — pick a shot in the Storyboard to apply it')
+    navigate('/film/storyboard?inspiration=1')
+  }
+
   const useAsInspiration = () => {
     if (!intel) return
     saveInspirationContext(buildInspirationContext(intel, post))
@@ -220,6 +227,9 @@ export function IntelPanel({ post, onOpenPost }: { post: PostDetail; onOpenPost:
         </button>
         <button className="btn-accent h-7 py-0 text-[12px]" onClick={useAsInspiration}>
           ✦ Use as Inspiration
+        </button>
+        <button className="btn text-[12px]" onClick={useInFilm} disabled={!intel} title="Populate camera, lighting, style and subject on a storyboard shot (with attribution)">
+          🎬 Use in Film
         </button>
         <button className="btn h-7 py-0 text-[12px]" onClick={findSimilar} disabled={loadingSimilar}>
           {loadingSimilar ? <Spinner /> : 'Find similar'}
