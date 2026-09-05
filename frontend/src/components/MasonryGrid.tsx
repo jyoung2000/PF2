@@ -52,7 +52,8 @@ export function MasonryGrid({ items }: { items: MasonryItem[] }) {
         const ratio = it.width && it.height ? it.height / it.width : 4 / 3
         const clamped = Math.min(Math.max(ratio, 0.5), 2.2)
         const h = colW * clamped + (it.extraHeight ?? 0)
-        const span = Math.max(8, Math.ceil((h + GAP) / ROW))
+        // a span of N rows is N*ROW + (N-1)*GAP tall, so divide by the row pitch
+        const span = Math.max(8, Math.ceil((h + GAP) / (ROW + GAP)))
         return (
           <div key={it.key} style={{ gridRowEnd: `span ${span}` }}>
             {it.render(colW)}
