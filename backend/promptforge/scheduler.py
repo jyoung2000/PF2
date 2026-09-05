@@ -78,6 +78,12 @@ def start() -> None:
     except ImportError:
         pass
     try:
+        from .intel import clusters as intel_clusters
+        _scheduler.add_job(intel_clusters.rebuild_job, "interval", minutes=30,
+                           id="intel_clusters", max_instances=1, coalesce=True)
+    except ImportError:
+        pass
+    try:
         from .intel import queue as intel_queue
         _scheduler.add_job(intel_queue.tick, "interval", minutes=1,
                            id="intel_queue", max_instances=1, coalesce=True)

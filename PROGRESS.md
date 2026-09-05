@@ -190,12 +190,12 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [x] I5.4 Phase gate; commit. ✓: 206 tests green; Social accounts card + Monitoring evidence/creator lines screenshotted desktop + 375px.
 
 ## Phase I6 — Search syntax, clusters, similarity, trends, inspiration API
-- [ ] I6.1 Search qualifiers: has:, creator:, technique:, camera:, after:, before:, engagement:>, inspiration:>, ai:, model_source:. ✓: parser + filter tests.
-- [ ] I6.2 Clusters (deterministic rules over topic/model/technique/style/creator/media/prompt pattern/camera/palette/subject/engagement) + membership + pages. ✓: tests.
-- [ ] I6.3 Similarity: visual (phash hamming), prompt (token Jaccard + FTS), technique-related, best-for-model. ✓: tests.
-- [ ] I6.4 Trend intelligence (weekly series for models/techniques/styles/terms/creators/topics/formats) + optional grounded LLM summary. ✓: tests.
-- [ ] I6.5 `/api/inspiration/*` routes (search, sources, queue, analytics, clusters, similar, enrichment, creators). ✓: tests.
-- [ ] I6.6 Phase gate; commit.
+- [x] I6.1 Search qualifiers: has:, creator:, technique:, camera:, after:, before:, engagement:>, inspiration:>, ai:, model_source:. ✓: parser + filter tests.
+- [x] I6.2 Clusters (deterministic rules over topic/model/technique/style/creator/media/prompt pattern/camera/palette/subject/engagement) + membership + pages. ✓: tests.
+- [x] I6.3 Similarity: visual (phash hamming), prompt (token Jaccard + FTS), technique-related, best-for-model. ✓: tests.
+- [x] I6.4 Trend intelligence (weekly series for models/techniques/styles/terms/creators/topics/formats) + optional grounded LLM summary. ✓: tests.
+- [x] I6.5 `/api/inspiration/*` routes (search, sources, queue, analytics, clusters, similar, enrichment, creators). ✓: tests.
+- [x] I6.6 Phase gate; commit. ✓: 220 tests green.
 
 ## Phase I7 — Inspiration UI
 - [ ] I7.1 Inspiration section (nav) with tabs: Overview (sources w/ status, last/next run, discovered/kept/enriched/analyzed, errors, queue; Run/Pause/Resume), Sources (existing Scrapers), Creators (existing Monitoring + intelligence), Clusters, Queue/Errors, Analytics. ✓: screenshots.
@@ -239,4 +239,4 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 - [ ] S6.2 README/CLAUDE.md/PROGRESS updates; full regression suite; final commit + push.
 
 ## Next up
-Phase I6 (search syntax, clusters, similarity, trends, inspiration API). I5 done: 206 tests green.
+Phase I7 (Inspiration UI). I6 done: 220 tests green.

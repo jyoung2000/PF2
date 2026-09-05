@@ -335,3 +335,27 @@ class PipelineJob(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Cluster(Base):
+    """Inspiration clusters (I6.2): deterministic rule-based groupings
+    rebuilt on a schedule; membership in cluster_posts."""
+    __tablename__ = "clusters"
+    __table_args__ = (UniqueConstraint("kind", "key", name="uq_cluster_kind_key"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))        # topic|model|technique|style|creator|media|prompt|camera|palette|subject|engagement
+    key: Mapped[str] = mapped_column(String(100))
+    label: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(Text)
+    post_count: Mapped[int] = mapped_column(Integer, default=0)
+    data: Mapped[dict | None] = mapped_column(JSON, default=dict)   # aggregates + samples
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ClusterPost(Base):
+    __tablename__ = "cluster_posts"
+    __table_args__ = (UniqueConstraint("cluster_id", "post_id", name="uq_cluster_post"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cluster_id: Mapped[int] = mapped_column(ForeignKey("clusters.id", ondelete="CASCADE"), index=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    score: Mapped[float | None] = mapped_column(Float)
