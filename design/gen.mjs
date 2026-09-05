@@ -24,7 +24,7 @@ const canvas = {
   pages: [{ id: 'page-1', name: 'Screens' }, { id: 'page-2', name: 'Design system' }],
   artboards: [
     { file: 'Main.dc.html', title: 'Gallery', x: 0, y: 0, w: 1440, h: 1520, page: 'page-1' },
-    { file: 'PostDetail.dc.html', title: 'Post detail drawer', x: 1540, y: 0, w: 1440, h: 1000, page: 'page-1' },
+    { file: 'PostDetail.dc.html', title: 'Post detail drawer', x: 1540, y: 0, w: 1440, h: 1500, page: 'page-1' },
     { file: 'Mobile.dc.html', title: 'Gallery · phone', x: 3080, y: 0, w: 390, h: 844, page: 'page-1' },
     { file: 'Collections.dc.html', title: 'Collections', x: 0, y: 1660, w: 1440, h: 1100, page: 'page-1' },
     { file: 'Models.dc.html', title: 'Models', x: 1540, y: 1660, w: 1440, h: 760, page: 'page-1' },

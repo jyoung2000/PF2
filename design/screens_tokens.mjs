@@ -20,7 +20,7 @@ export function tokensDoc() {
     ['Body 11.5', 'Source card metrics, badges', `font-size:11.5px;color:${T.mute}`],
     ['Mono 12', 'chip · seed 918273645 · 832×1216', `font-family:${F.mono};font-size:12px;color:${T.mute}`],
   ].map(([n, sample, s]) => `<div style="display:grid;grid-template-columns:150px minmax(0, 1fr);gap:16px;align-items:baseline;padding:6px 0;border-bottom:1px solid ${T.line}"><span style="font-size:11px;color:${T.faint};font-family:${F.mono}">${n}</span><span style="${s}">${sample}</span></div>`).join('')
-  const radii = [['card', R.card, '14px · cards, sections, drawer menus'], ['el', R.el, '10px · buttons, inputs, thumbnails'], ['chip', R.chip, '6px · chips, badges']]
+  const radii = [['card', R.card, 'cards, sections, drawer menus · default 14px'], ['el', R.el, 'buttons, inputs, thumbnails · default 10px'], ['chip', R.chip, 'chips, badges · 60% of the element radius']]
     .map(([n, r, d]) => `<div style="display:flex;align-items:center;gap:12px"><div style="width:56px;height:40px;border-radius:${r};background:${T.well};border:1px solid ${T.mute}"></div><div><div style="font-size:12.5px;font-weight:500">rounded-${n}</div><div style="font-size:11px;color:${T.faint}">${d}</div></div></div>`).join('')
   const h = (t) => `<h2 style="margin:0 0 12px;font-family:${F.display};font-weight:500;font-size:15.5px;line-height:1.625">${t}</h2>`
   const block = (title, inner, extra = '') => `<section style="background:${T.panel};border:1px solid ${T.line};border-radius:${R.card};padding:20px${extra ? ';' + extra : ''}">${h(title)}${inner}</section>`
@@ -48,7 +48,7 @@ export function tokensDoc() {
   const body = `<div style="padding:32px;display:flex;flex-direction:column;gap:16px">
     <div><h1 style="margin:0;font-family:${F.display};font-weight:500;font-size:19px;line-height:1.625">PromptForge design tokens</h1><p style="margin:0;font-size:12.5px;color:${T.faint}">Source of truth: frontend/tailwind.config.ts (colors, radii, fonts) and frontend/src/styles.css (.btn .chip .card .input .label). Dark-first: media is the hero, chrome stays quiet.</p></div>
     ${block('Colors', `<div style="display:flex;flex-wrap:wrap;gap:16px">${colors}</div>`)}
-    <div style="display:grid;grid-template-columns:minmax(0, 1fr) 360px;gap:16px">${block('Type ramp — Space Grotesk display · Inter body · JetBrains Mono chips', type)}${block('Radii', `<div style="display:flex;flex-direction:column;gap:12px">${radii}</div><p style="margin:16px 0 0;font-size:12px;color:${T.faint}">Transitions 160ms · header 48px · controls 32px (filters) / 28px (card actions) · gallery gap 12px · page gutter 20px (12px on phones)</p>`)}</div>
+    <div style="display:grid;grid-template-columns:minmax(0, 1fr) 360px;gap:16px">${block('Type ramp — display font (default Space Grotesk) · Inter body · JetBrains Mono chips', type)}${block('Radii', `<div style="display:flex;flex-direction:column;gap:12px">${radii}</div><p style="margin:16px 0 0;font-size:12px;color:${T.faint}">Transitions 160ms · header 48px · controls 32px (filters) / 28px (card actions) · gallery gap 12px · page gutter 20px (12px on phones)</p>`)}</div>
     ${block('Components (styles.css @layer components + Primitives.tsx)', components)}
     ${block('How the tweak chips map to the code', mapping)}
   </div>`

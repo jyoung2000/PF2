@@ -138,13 +138,13 @@ export function header(active, { mobile = false, status = true } = {}) {
   const dots = status && !mobile
     ? `<div style="margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:${T.faint}">${statusDot('ok', 'Baserow')}${statusDot('off', 'Discord')}${statusDot('ok', 'AI')}</div>`
     : ''
-  return `<header style="position:sticky;top:0;z-index:40;background:${mix(T.ink, 85)};backdrop-filter:blur(8px);border-bottom:1px solid ${T.line}"><div style="margin:0 auto;max-width:1700px;padding:0 ${mobile ? 12 : 20}px;height:48px;display:flex;align-items:center;gap:16px"><a href="#" style="font-family:${F.display};font-weight:700;font-size:16px;letter-spacing:-0.025em;flex-shrink:0;color:${T.fg};text-decoration:none">Prompt<span style="color:${T.ember}">Forge</span></a><nav style="display:flex;align-items:center;gap:2px;height:100%;margin-bottom:-1px;overflow:hidden;min-width:0">${items}</nav>${dots}</div></header>`
+  return `<header style="position:sticky;top:0;z-index:40;background:${mix(T.ink, 85)};backdrop-filter:blur(8px);border-bottom:1px solid ${T.line}"><div style="margin:0 auto;max-width:1700px;padding:0 ${mobile ? 12 : 20}px;height:48px;display:flex;align-items:center;gap:16px"><a href="#" style="font-family:${F.display};font-weight:700;font-size:16px;letter-spacing:-0.025em;flex-shrink:0;color:${T.fg};text-decoration:none">Prompt<span style="color:${T.ember}">Forge</span></a><nav style="display:flex;align-items:center;gap:2px;height:100%;margin-bottom:-1px;overflow-x:auto;scrollbar-width:none;min-width:0">${items}</nav>${dots}</div></header>`
 }
 export const main = (inner, { mobile = false, extra = '' } = {}) => `<main style="flex:1;margin:0 auto;max-width:1700px;width:100%;padding:16px ${mobile ? 12 : 20}px${extra ? ';' + extra : ''}">${inner}</main>`
 
 // Section-level sub nav used by Inspiration and Film (pill style)
 export function pills(items, active) {
-  return `<nav style="display:flex;align-items:center;gap:2px;margin-left:auto;overflow:hidden">${items.map((t) => `<a href="#" style="padding:6px 10px;font-size:13px;line-height:1.625;border-radius:${R.el};white-space:nowrap;text-decoration:none;${t === active ? `background:${T.well};color:${T.fg};font-weight:500` : `color:${T.mute}`}">${t}</a>`).join('')}</nav>`
+  return `<nav style="display:flex;align-items:center;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none">${items.map((t) => `<a href="#" style="padding:6px 10px;font-size:13px;line-height:1.625;border-radius:${R.el};white-space:nowrap;text-decoration:none;${t === active ? `background:${T.well};color:${T.fg};font-weight:500` : `color:${T.mute}`}">${t}</a>`).join('')}</nav>`
 }
 
 // --------------------------------------------------------------- document ---
@@ -212,6 +212,10 @@ export function document({ width, height, body, fixedHeight = false, title }) {
     a { color: #9BA3AF; } a:hover { color: #FF6A3D; }
     button { font: inherit; }
     ::selection { background: rgba(255, 106, 61, 0.3); }
+    * { scrollbar-width: thin; scrollbar-color: #272B33 transparent; }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-thumb { background: #272B33; border-radius: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
   </style>
 </helmet>
 <div style="${rootStyle}">

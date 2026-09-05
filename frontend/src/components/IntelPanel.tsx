@@ -228,7 +228,7 @@ export function IntelPanel({ post, onOpenPost }: { post: PostDetail; onOpenPost:
         <button className="btn-accent h-7 py-0 text-[12px]" onClick={useAsInspiration}>
           ✦ Use as Inspiration
         </button>
-        <button className="btn text-[12px]" onClick={useInFilm} disabled={!intel} title="Populate camera, lighting, style and subject on a storyboard shot (with attribution)">
+        <button className="btn h-7 py-0 text-[12px]" onClick={useInFilm} disabled={!intel} title="Populate camera, lighting, style and subject on a storyboard shot (with attribution)">
           🎬 Use in Film
         </button>
         <button className="btn h-7 py-0 text-[12px]" onClick={findSimilar} disabled={loadingSimilar}>

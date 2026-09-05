@@ -24,7 +24,6 @@ const MODEL_COLLECTIONS = [
   { label: 'Veo', img: 0, vid: 28, versions: ['3'], seeds: [8, 17] },
   { label: 'Stable Diffusion 1.5', img: 301, vid: 0, versions: ['1.5', 'dreamshaper 8'], seeds: [9, 16, 2, 11] },
   { label: 'Hunyuan', img: 0, vid: 19, versions: ['video 1.5'], seeds: [13, 8] },
-  { label: 'Pony', img: 95, vid: 0, versions: ['v6 xl'], seeds: [7, 6, 14] },
 ]
 const h2 = (text, extra = '') => `<h2 style="margin:0;font-family:${F.display};font-weight:500;font-size:17px;line-height:1.625${extra ? ';' + extra : ''}">${text}</h2>`
 function userCard(c) {
@@ -68,9 +67,9 @@ export function modelsDoc() {
 
 // ----------------------------------------------------------- inspiration ---
 const SOURCES = [
-  { label: 'Civitai', status: 'ok', statusLabel: 'ok', connected: true, last: '4m ago', next: 'in 6m', found: 120, kept: 37, filtered: 61, dupes: 22, report: '1,932 posts · prompts 96% · metadata 71% · enriched 18% · AI 100% · efficiency 0.31', rec: 'Raise priority: high prompt yield, 12% duplicates.' },
+  { label: 'Civitai', status: 'ok', statusLabel: 'ok', connected: true, last: '4m ago', next: 'in 6m', found: 120, kept: 37, filtered: 61, dupes: 22, report: '1,932 posts · prompts 96% · metadata 71% · enriched 18% · AI 100% · efficiency 0.31', rec: 'Raise priority: high prompt yield, 18% duplicates.' },
   { label: 'Lexica', status: 'experimental', statusLabel: 'experimental', connected: true, last: '11m ago', next: 'in 4m', found: 60, kept: 9, filtered: 44, dupes: 7, report: '644 posts · prompts 100% · metadata 0% · enriched 0% · AI 100% · efficiency 0.15' },
-  { label: 'Midjourney Explore', browser: true, status: 'off', statusLabel: 'needs setup', connected: false, last: 'never', next: 'in 58m', found: 0, kept: 0, filtered: 0, dupes: 0, needsSetup: true },
+  { label: 'Midjourney Explore', browser: true, status: 'off', statusLabel: 'needs setup', connected: false, last: '—', next: 'in 58m', found: 0, kept: 0, filtered: 0, dupes: 0, needsSetup: true },
   { label: 'TensorArt', browser: true, status: 'ok', statusLabel: 'ok', connected: true, last: '38m ago', next: 'in 22m', found: 48, kept: 21, filtered: 19, dupes: 8, report: '512 posts · prompts 88% · metadata 64% · enriched 9% · AI 100% · efficiency 0.44' },
   { label: 'SeaArt', browser: true, status: 'ok', statusLabel: 'ok', connected: true, last: '52m ago', next: 'in 8m', found: 40, kept: 12, filtered: 25, dupes: 3, report: '301 posts · prompts 79% · metadata 41% · enriched 6% · AI 100% · efficiency 0.30' },
   { label: 'PixAI', browser: true, status: 'ok', statusLabel: 'ok', connected: true, paused: true, last: '2d ago', next: 'paused', found: 40, kept: 4, filtered: 33, dupes: 3, report: '188 posts · prompts 92% · metadata 12% · enriched 2% · AI 100% · efficiency 0.10' },

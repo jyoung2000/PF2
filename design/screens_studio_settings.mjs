@@ -12,10 +12,10 @@ export function studioDoc() {
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
           <div>${label('Before')}<p style="margin:0;background:${mix(T.well, 60)};border:1px solid ${T.line};border-radius:${R.el};padding:12px;font-size:13px;color:${T.mute};white-space:pre-wrap">portrait of an old fisherman, sunset</p></div>
-          <div>${label('After')}<p style="margin:0;background:${T.well};border:1px solid ${mix(T.ember, 30)};border-radius:${R.el};padding:12px;font-size:13.5px;white-space:pre-wrap">Weathered portrait of an elderly fisherman at golden hour, salt-worn skin and deep-set eyes, wind-tousled grey beard, oilskin jacket, harbour bokeh behind him, 85mm lens, shallow depth of field, warm rim light, subtle film grain, cinematic color grading</p></div>
+          <div>${label('After')}<p style="margin:0;background:${T.well};border:1px solid ${mix(T.ember, 30)};border-radius:${R.el};padding:12px;font-size:13.5px;white-space:pre-wrap">Weathered portrait of an elderly fisherman at golden hour, salt-worn skin and deep-set eyes, wind-tousled grey beard, oilskin jacket, harbor bokeh behind him, 85mm lens, shallow depth of field, warm rim light, subtle film grain, cinematic color grading</p></div>
         </div>
         <p style="margin:0;font-size:12.5px;color:${T.mute}"><span style="color:${T.faint}">Suggested negative: </span><span style="font-family:${F.mono}">blurry, low quality, watermark, extra fingers, plastic skin</span></p>
-        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px">${note('Added lens + depth of field', 'Flux responds strongly to camera language (seen in 71% of top prompts)')}${note('Named the light', '“golden hour” anchors the palette the collection favours')}${note('Specified texture', 'tactile detail is the collection’s strongest shared trait')}</ul>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px">${note('Added lens + depth of field', 'Flux responds strongly to camera language (seen in 71% of top prompts)')}${note('Named the light', '“golden hour” anchors the palette the collection favors')}${note('Specified texture', 'tactile detail is the collection’s strongest shared trait')}</ul>
         <div style="display:flex;gap:8px">${btn('Copy')}${btn('Save')}${btn('⚡ Generate', { kind: 'accent' })}</div>
       </div>
     </div>

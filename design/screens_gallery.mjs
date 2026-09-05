@@ -102,7 +102,7 @@ export function detailDoc() {
       <section>${sectionLabel('Negative prompt', copyBtn)}<p style="margin:0;max-width:68ch;font-size:12.5px;line-height:1.625;color:${T.mute};white-space:pre-wrap;background:${mix(T.well, 60)};border:1px solid ${T.line};border-radius:${R.el};padding:12px">blurry, low quality, watermark, text, extra fingers, deformed hands</p></section>
       <section>${label('Model &amp; parameters')}<div style="display:flex;flex-wrap:wrap;gap:6px">${chip('Flux.1 Dev', `color:${T.fg};border-color:${mix(T.mute, 40)}`)}${chip('Flux')}${chip('1.0')}${chip('832×1216')}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${paramChip('seed', '918273645')}${paramChip('steps', '28')}${paramChip('cfg_scale', '3.5')}${paramChip('sampler', 'euler')}${paramChip('scheduler', 'simple')}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${chip('rim-light', `color:${T.emberSoft};border-color:${mix(T.ember, 30)}`)}${chip('shallow-dof', `color:${T.emberSoft};border-color:${mix(T.ember, 30)}`)}</div></section>
       <div style="display:flex;flex-direction:column;gap:20px">
-        <div style="display:flex;flex-wrap:wrap;gap:6px">${smallBtn('Use in Studio')}${smallBtn('✦ Use as Inspiration', { kind: 'accent' })}${btn('🎬 Use in Film', { extra: 'font-size:12px' })}${smallBtn('Find similar')}${smallBtn('View creator')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${smallBtn('Use in Studio')}${smallBtn('✦ Use as Inspiration', { kind: 'accent' })}${smallBtn('🎬 Use in Film')}${smallBtn('Find similar')}${smallBtn('View creator')}</div>
         <section><div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">${label('Why this is inspiring', 'margin-bottom:0')}<span style="font-family:${F.display};font-size:20px;font-variant-numeric:tabular-nums;color:${T.ember}">84</span></div><div style="display:flex;flex-direction:column;gap:4px">${scoreBar('Visual quality', 88, 22)}${scoreBar('Prompt quality', 92, 18)}${scoreBar('Technical detail', 70, 11)}${scoreBar('Novelty', 64, 9)}${scoreBar('Engagement', 58, 12)}${scoreBar('Model relevance', 100, 8)}${scoreBar('Metadata richness', 80, 4)}</div><p style="margin:6px 0 0;font-size:11.5px;color:${T.faint}">Definitely AI · 96% · candidate score 78</p></section>
         <section>${label('Detected')}<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px">${chip('Flux.1 Dev', `color:${T.fg}`)}${chip('85mm')}${chip('medium close-up')}${chip('eye level')}${chip('neon', `color:${mix(P.amber200, 90)}`)}${chip('rule of thirds')}${chip('rim-light', `color:${T.emberSoft};border-color:${mix(T.ember, 30)}`)}${chip('2:3')}</div></section>
       </div>
@@ -112,6 +112,6 @@ export function detailDoc() {
   </aside>`
   const body = header('Gallery') + galleryMain({ hover: false }) +
     `<div style="position:absolute;inset:0;z-index:60;background:${mix(T.ink, 60)};backdrop-filter:blur(2px)"></div>` + drawer
-  return document({ title: 'Post detail', width: 1440, height: 1000, fixedHeight: true, body })
+  return document({ title: 'Post detail', width: 1440, height: 1500, fixedHeight: true, body })
 }
 const chevronRe = /<svg[^>]*><path d="M3 4.5l3 3 3-3"><\/path><\/svg>/

@@ -1,9 +1,9 @@
 import { T, R, F, P, mix, esc, btn, chip, card, input, select, label, header, main, pills, art, shotDiagram, document } from './lib.mjs'
 
 const SCENES = [
-  { n: '01', title: 'Rooftop dawn', shots: 4, tc: '00:24', approved: true, selected: true, gap: null },
-  { n: '02', title: 'The chase', shots: 6, tc: '01:26', warn: 2 },
-  { n: '03', title: 'Handover', shots: 2, tc: '01:38', gapOverride: '2.5' },
+  { n: '01', title: 'Rooftop dawn', shots: 4, tc: '00:18', approved: true, selected: true, gap: null },
+  { n: '02', title: 'The chase', shots: 6, tc: '00:38', warn: 2 },
+  { n: '03', title: 'Handover', shots: 2, tc: '00:51', gapOverride: '2.5' },
 ]
 const SHOTS = [
   { label: '1A', abbr: 'WS', title: 'City at dawn', dur: 6, loc: 'Rooftop', strategy: 'AI video', takes: 2, status: P.emerald400, seed: 3, media: true },
@@ -31,7 +31,7 @@ function strip() {
   const block = (label, d, selected = false, transition = false) => `<div style="position:relative;height:48px;width:${Math.max(28, Math.round(d * px))}px;border:1px solid ${selected ? T.ember : T.line};background:${selected ? mix(T.ember, 15) : T.panel};border-radius:${R.el};margin-right:2px;font-size:10.5px;padding:4px 6px;overflow:hidden;cursor:pointer;line-height:1.625"><div style="font-family:${F.mono};color:${T.faint}">${label}</div><div style="font-variant-numeric:tabular-nums">${d}s</div>${transition ? `<span style="position:absolute;right:0;top:0;height:100%;width:4px;background:${mix(T.ember, 60)}"></span>` : ''}</div>`
   const gap = (s) => `<div style="height:48px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin-right:2px;width:${Math.max(14, Math.round(s * px))}px"><div style="width:100%;height:24px;background:${T.ink};border:1px dashed ${T.line};border-radius:${R.el}"></div><div style="font-size:9px;color:${T.faint}">${s}s</div></div>`
   const scene = (n, title, shots) => `<div style="display:flex;flex-direction:column"><div style="font-size:10px;color:${T.faint};margin-bottom:4px;padding:0 4px">S${n} ${title}</div><div style="display:flex">${shots}</div></div>`
-  return `<div style="overflow:hidden;padding-bottom:8px"><div style="display:flex;align-items:flex-end;min-width:max-content">
+  return `<div style="overflow-x:auto;padding-bottom:8px"><div style="display:flex;align-items:flex-end;min-width:max-content">
     <div style="display:flex;align-items:flex-end">${scene('01', 'Rooftop dawn', block('1A', 6) + block('1B', 4, true) + block('1C', 3) + block('1D', 5, false, true))}${gap(1)}</div>
     <div style="display:flex;align-items:flex-end">${scene('02', 'The chase', block('2A', 3) + block('2B', 2) + block('2C', 4) + block('2D', 2) + block('2E', 3) + block('2F', 5))}${gap(1)}</div>
     <div style="display:flex;align-items:flex-end">${scene('03', 'Handover', block('3A', 6) + block('3B', 6))}</div>
@@ -50,7 +50,7 @@ function inspector() {
     <div style="display:flex;align-items:center;gap:8px"><span style="font-family:${F.mono};font-size:11px;color:${T.faint}">1B</span>${input('Mara wakes', { extra: `height:32px;padding-top:0;padding-bottom:0;display:flex;align-items:center;font-family:${F.display};flex:1;width:auto` })}${DOT(P.emerald300)}${btn('✕', { kind: 'ghost', extra: 'padding:6px 4px' })}</div>
     <div style="border-radius:${R.el};overflow:hidden;background:${T.ink};aspect-ratio:16 / 9;display:flex;align-items:center;justify-content:center;position:relative">${art(22, 1280, 720)}<span style="position:absolute;bottom:4px;left:4px;background:${mix(T.ink, 80)};padding:0 6px;border-radius:4px;font-size:10.5px;line-height:1.625">take 2 · fal · wan · $0.42 · QA PASS</span></div>
     <div style="display:flex;gap:6px;overflow:hidden;padding-bottom:4px">${take(1, 'text to video', 'succeeded', 'WARN', false)}${take(2, 'image to video', 'succeeded', 'PASS', true)}</div>
-    <details style="font-size:11.5px"><summary style="color:${P.amber300};cursor:pointer">⚠ 1 continuity note(s)</summary></details>
+    <details style="font-size:11.5px"><summary style="color:${P.amber300};cursor:pointer">⚠ 1 continuity note(s)</summary><ul style="margin:4px 0 0;padding:0;list-style:none"><li style="color:${P.amber300}">Lighting jumps from golden hour (1A) to this shot’s preset<span style="color:${T.faint}"> · match the scene default or lock lighting on both shots (heuristic)</span></li></ul></details>
     <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${btn('Generate video', { kind: 'accent' })}${small('Repair / regenerate…')}${small('Footage')}${small('Import file')}${select('AI video', { extra: 'margin-left:auto;width:160px;font-size:12px' })}</div>
     <section style="display:flex;flex-direction:column;gap:8px">
       <div>${label('Action / prompt')}<div style="display:block;width:100%;min-height:70px;padding:6px 12px;font-size:12.5px;line-height:1.625;background:${T.well};border:1px solid ${T.line};border-radius:${R.el};margin-top:4px">Mara jolts awake on the rooftop cot, city hum below, breath fogging in the cold dawn light</div></div>
@@ -67,7 +67,7 @@ function inspector() {
     </section>
     <section style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px">
       ${card(`<div style="display:flex;align-items:center;gap:4px;font-size:11.5px"><span style="font-weight:500">Start frame</span><span style="color:${T.faint};margin-left:auto">generated</span></div><div style="aspect-ratio:16 / 9;background:${T.well};border-radius:${R.el};overflow:hidden;margin-top:4px">${art(24, 1280, 720)}</div>`, `background:${T.well};padding:8px`)}
-      ${card(`<div style="display:flex;align-items:center;gap:4px;font-size:11.5px"><span style="font-weight:500">End frame</span><span>🔒</span><span style="color:${T.faint};margin-left:auto">chained ← shot 1C</span></div><div style="aspect-ratio:16 / 9;background:${T.well};border-radius:${R.el};overflow:hidden;margin-top:4px">${art(25, 1280, 720)}</div>`, `background:${T.well};padding:8px`)}
+      ${card(`<div style="display:flex;align-items:center;gap:4px;font-size:11.5px"><span style="font-weight:500">End frame</span><span>🔒</span><span style="color:${T.faint};margin-left:auto">chained ← shot 1A</span></div><div style="aspect-ratio:16 / 9;background:${T.well};border-radius:${R.el};overflow:hidden;margin-top:4px">${art(25, 1280, 720)}</div>`, `background:${T.well};padding:8px`)}
     </section>
     <div style="display:flex;gap:6px">${input('Tell the Director: “make it tense, intimate, expensive, keep Mara’s face”', { placeholder: true, extra: 'height:32px;padding-top:0;padding-bottom:0;display:flex;align-items:center;font-size:12.5px;flex:1;width:auto;white-space:nowrap;overflow:hidden' })}${btn('Ask Director', { disabled: true })}</div>
   `, 'padding:12px;display:flex;flex-direction:column;gap:12px')
