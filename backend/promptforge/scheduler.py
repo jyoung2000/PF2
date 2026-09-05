@@ -89,6 +89,12 @@ def start() -> None:
                            id="intel_queue", max_instances=1, coalesce=True)
     except ImportError:
         pass
+    try:
+        from .film import jobs as film_jobs
+        _scheduler.add_job(film_jobs.tick, "interval", minutes=1,
+                           id="film_jobs", max_instances=1, coalesce=True)
+    except ImportError:
+        pass
     _scheduler.start()
     bus.info("system", "scheduler started")
 

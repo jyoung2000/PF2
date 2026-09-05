@@ -64,6 +64,14 @@ def _optional_startup(app: FastAPI) -> None:
         genqueue.start_worker()
     except ImportError:
         pass
+    try:
+        # Film Studio: register job handlers (export, runs) and re-queue work
+        # a previous process left running — checkpoints make retries cheap
+        from .film import export as _film_export, production as _film_production  # noqa: F401
+        from .film import jobs as film_jobs
+        film_jobs.recover_on_boot()
+    except ImportError:
+        pass
 
 
 def _optional_shutdown(app: FastAPI) -> None:

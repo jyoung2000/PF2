@@ -55,6 +55,71 @@ class GenerationProvider:
         raise NotImplementedError
 
 
+def image_inputs(params: dict) -> dict:
+    """Film Studio / Studio image inputs carried in params (never sent as-is):
+    {"image": path|url, "end_image": path|url, "references": [path|url…],
+    "strength": float}. Adapters map them onto their own field names via
+    `params["_input_map"]` (from the pricing catalog `modes[...].inputs`)."""
+    inputs = params.get("_inputs") if isinstance(params.get("_inputs"), dict) else {}
+    return {k: v for k, v in inputs.items() if v not in (None, "", [])}
+
+
+def input_map(params: dict, defaults: dict) -> dict:
+    m = dict(defaults)
+    given = params.get("_input_map") if isinstance(params.get("_input_map"), dict) else {}
+    m.update({k: v for k, v in given.items() if isinstance(v, (str, bool))})
+    return m
+
+
+def data_uri(path_or_url: str) -> str:
+    """Local file → base64 data URI (providers accept these for image inputs);
+    http(s)/data URLs pass through untouched."""
+    if path_or_url.startswith(("http://", "https://", "data:")):
+        return path_or_url
+    import base64
+    import mimetypes
+    from pathlib import Path
+    p = Path(path_or_url)
+    mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+    return f"data:{mime};base64," + base64.b64encode(p.read_bytes()).decode("ascii")
+
+
+def apply_image_inputs(payload: dict, params: dict, defaults: dict,
+                       convert=data_uri) -> dict:
+    """Place image/end_image/references/strength into the payload using the
+    provider's field names. `list: True` in the map wraps single images in a
+    list (multi-image edit endpoints)."""
+    inputs = image_inputs(params)
+    if not inputs:
+        return payload
+    m = input_map(params, defaults)
+    as_list = bool(m.get("list"))
+    for key in ("image", "end_image"):
+        if inputs.get(key) and m.get(key):
+            val = convert(str(inputs[key]))
+            field = m[key]
+            if as_list and key == "image":
+                payload.setdefault(field, [])
+                if isinstance(payload[field], list):
+                    payload[field].append(val)
+            else:
+                payload[field] = val
+    refs = inputs.get("references") or []
+    if refs and m.get("references"):
+        field = m["references"]
+        vals = [convert(str(r)) for r in refs[:6]]
+        if isinstance(payload.get(field), list):
+            payload[field] += vals
+        else:
+            payload[field] = vals if (as_list or len(vals) > 1) else vals[0]
+    if inputs.get("strength") is not None and m.get("strength"):
+        try:
+            payload[m["strength"]] = float(inputs["strength"])
+        except (TypeError, ValueError):
+            pass
+    return payload
+
+
 def build_common_payload(prompt: str, negative: str | None, params: dict,
                          kind: str) -> dict:
     """Provider-neutral fields; adapters reshape as needed."""

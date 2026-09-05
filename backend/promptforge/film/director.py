@@ -25,7 +25,8 @@ from . import shotctx, story
 from .models import (MEDIA_STRATEGIES, FilmAsset, FilmJob, FilmProject, FilmScene,
                      FilmShot)
 
-PROPOSAL_KINDS = ("director_story", "director_scene", "director_shot", "production_plan")
+PROPOSAL_KINDS = ("director_story", "director_scene", "director_shot", "production_plan",
+                  "reference_proposal")
 SHOT_TYPE_KEYS = [st["key"] for st in presets.SHOT_TYPES]
 LIGHTING_KEYS = [lp["key"] for lp in presets.LIGHTING_PRESETS]
 _MAX_SCENES, _MAX_SHOTS = 40, 20
@@ -383,6 +384,9 @@ def _summary_of(kind: str, proposal: dict) -> dict:
     if kind == "director_shot":
         return {"changed": sorted((proposal.get("changes") or {}).keys()),
                 "blocked": proposal.get("blocked", [])}
+    if kind == "reference_proposal":
+        return {"beats": len(proposal.get("scenes") or []), "pacing_profile": proposal.get("pacing_profile"),
+                "estimated_cost_usd": proposal.get("estimated_cost_usd")}
     return {"scene_count": proposal.get("scene_count"), "shot_count": proposal.get("shot_count"),
             "estimated_cost_usd": (proposal.get("estimates") or {}).get("total_usd")}
 
@@ -767,6 +771,34 @@ def apply(s: Session, job: FilmJob, edits: dict | None = None, mode: str = "appe
             g.status = "pending"
             g.decided_at = None
         result = {"plan_keys": sorted(plan.keys()), "estimated_cost_usd": plan.get("estimated_cost_usd")}
+
+    elif job.kind == "reference_proposal":
+        settings_patch = {k: proposal[k] for k in ("pacing_profile", "aspect_ratio", "target_runtime_s") if proposal.get(k)}
+        proj_svc.update_project(s, project, settings=settings_patch)
+        ref = dict(project.reference or {})
+        ref["proposal_accepted"] = {"job_id": job.id, "at": datetime.now(timezone.utc).isoformat(),
+                                   "retained": proposal.get("retained"), "changed": proposal.get("changed")}
+        project.reference = ref
+        plan = dict(project.plan or {})
+        plan.update({"narrative_structure": proposal.get("structure"), "media_strategy": {"summary": proposal.get("media_strategy")},
+                     "audio_strategy": proposal.get("audio_strategy"), "target_runtime_s": proposal.get("target_runtime_s"),
+                     "aspect_ratio": proposal.get("aspect_ratio"), "pacing_profile": proposal.get("pacing_profile"),
+                     "reference": {"source": proposal.get("source"), "retained": proposal.get("retained")},
+                     "estimated_cost_usd": proposal.get("estimated_cost_usd"), "approved": False})
+        project.plan = plan
+        created_scenes: list[int] = []
+        if (edits or {}).get("create_structure", not proj_svc.scenes_of(s, project.id)):
+            for i, beat in enumerate(proposal.get("scenes") or []):
+                sc = proj_svc.create_scene(s, project, title=beat.get("title") or f"Beat {i + 1}", intent=beat.get("intent"))
+                created_scenes.append(sc.id)
+                for j, d in enumerate(beat.get("shot_durations_s") or [beat.get("duration_s") or 4]):
+                    st_key = "establishing" if j == 0 else ("medium" if j % 2 else "close_up")
+                    proj_svc.create_shot(s, sc, title=f"{beat.get('title') or 'Beat'} · {j + 1}", duration_s=d,
+                                         overrides={"shot_type": st_key})
+        if project.status == "draft":
+            project.status = "planning"
+        result = {"settings": settings_patch, "scene_ids": created_scenes,
+                  "structure_created": bool(created_scenes)}
 
     r["applied"] = True
     r["applied_at"] = datetime.now(timezone.utc).isoformat()

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import httpx
 
-from .base import GenerationProvider, ProviderError, build_common_payload
+from .base import (GenerationProvider, ProviderError, apply_image_inputs,
+                   build_common_payload)
 
 API = "https://api.wavespeed.ai/api/v3"
 PROBE_ID = "00000000000000000000000000000000"
@@ -46,6 +47,8 @@ class WaveSpeedProvider(GenerationProvider):
             payload["size"] = f"{common['width']}*{common['height']}"
         if "seed" in common:
             payload["seed"] = common["seed"]
+        apply_image_inputs(payload, params, {"image": "image", "end_image": "end_image",
+                                             "references": "images", "strength": "strength"})
         with self._client(key) as c:
             resp = c.post(f"{API}/{model_id}", json=payload)
         if resp.status_code in (401, 403):

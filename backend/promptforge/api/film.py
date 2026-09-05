@@ -869,3 +869,611 @@ def job_action(job_id: int, action: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(j)
     return board_svc.job_dict(j)
+
+
+# ============================================================ Phase S3 =====
+# capabilities · costs · takes · frames · local media · footage · audio ·
+# subtitles · QA/repair · runs · export · reference video
+from fastapi.responses import PlainTextResponse  # noqa: E402
+
+from ..film import audio as audio_svc            # noqa: E402
+from ..film import capabilities, costs, export as export_svc, footage, graphics, production  # noqa: E402
+from ..film import qa as qa_svc                  # noqa: E402
+from ..film import reference as reference_svc    # noqa: E402
+from ..film import subtitles as sub_svc          # noqa: E402
+from ..film import takes as take_svc             # noqa: E402
+from ..film.models import FilmAudioTrack, FilmClip, FilmTake  # noqa: E402
+
+
+def _s3_guard(fn, *args, **kw):
+    try:
+        return fn(*args, **kw)
+    except costs.BudgetBlocked as e:
+        raise HTTPException(409, {"message": str(e), "budget": e.check})
+    except production.GateRequired as e:
+        raise HTTPException(409, {"message": str(e), "missing_gates": e.missing})
+    except take_svc.TakeBlocked as e:
+        raise HTTPException(409, {"message": str(e)})
+    except (take_svc.TakeError, footage.FootageError, audio_svc.AudioError, export_svc.ExportError,
+            reference_svc.ReferenceError, proj_svc.ProjectError, ValueError) as e:
+        raise HTTPException(422, str(e))
+
+
+def _take(db: Session, take_id: int) -> FilmTake:
+    t = db.get(FilmTake, take_id)
+    if t is None:
+        raise HTTPException(404, "Take not found")
+    return t
+
+
+# ------------------------------------------------------------ capabilities -
+@router.get("/capabilities")
+def get_capabilities(db: Session = Depends(get_db)):
+    return capabilities.matrix(db)
+
+
+@router.get("/projects/{project_id}/costs")
+def project_costs(project_id: int, db: Session = Depends(get_db)):
+    return costs.spend(db, _project(db, project_id))
+
+
+class CostCheck(BaseModel):
+    amount_usd: float | None = None
+    approve: bool = False
+
+
+@router.post("/projects/{project_id}/costs/check")
+def project_cost_check(project_id: int, body: CostCheck, db: Session = Depends(get_db)):
+    return costs.check(db, _project(db, project_id), body.amount_usd, approve=body.approve)
+
+
+# ------------------------------------------------------------------- takes -
+class TakeBody(BaseModel):
+    kind: str = "video"
+    mode: str | None = None
+    family: str | None = None
+    provider: str | None = None
+    params: dict = {}
+    change: list[str] = []
+    preserve: list[str] = []
+    instruction: str | None = None
+    approve_cost: bool = False
+
+
+@router.post("/shots/{shot_id}/takes")
+def create_take(shot_id: int, body: TakeBody, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    t = _s3_guard(take_svc.create_take, db, sh, kind=body.kind, mode=body.mode, family=body.family,
+                  provider=body.provider, params=body.params, change=body.change, preserve=body.preserve,
+                  instruction=body.instruction, approve_cost=body.approve_cost)
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+@router.get("/shots/{shot_id}/takes")
+def list_takes(shot_id: int, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    take_svc.sync_pending(db, sh.project_id)
+    db.commit()
+    return {"takes": [proj_svc.take_dict(t) for t in take_svc.takes_of(db, sh.id)],
+            "selected_take_id": sh.selected_take_id}
+
+
+@router.post("/shots/{shot_id}/takes/import")
+async def import_take(shot_id: int, file: UploadFile, kind: str = Form("footage"), select: bool = Form(True),
+                      db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    data = await file.read()
+    t = _s3_guard(take_svc.import_take, db, sh, data, file.content_type, file.filename, kind=kind,
+                  select=select)
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+@router.get("/takes/{take_id}")
+def get_take(take_id: int, db: Session = Depends(get_db)):
+    return proj_svc.take_dict(_take(db, take_id))
+
+
+@router.post("/takes/{take_id}/select")
+def select_take(take_id: int, db: Session = Depends(get_db)):
+    t = _take(db, take_id)
+    sh = _shot(db, t.shot_id)
+    _s3_guard(take_svc.select_take, db, sh, t)
+    db.commit()
+    return proj_svc.shot_dict(db, sh, include_takes=True)
+
+
+@router.get("/takes/{take_id}/compare/{other_id}")
+def compare_takes(take_id: int, other_id: int, db: Session = Depends(get_db)):
+    return take_svc.compare(db, _take(db, take_id), _take(db, other_id))
+
+
+@router.post("/takes/{take_id}/qa")
+def take_qa(take_id: int, db: Session = Depends(get_db)):
+    t = _take(db, take_id)
+    t.qa = qa_svc.check_take(db, t)
+    sh = _shot(db, t.shot_id)
+    if sh.selected_take_id == t.id:
+        sh.qa = t.qa
+    db.commit()
+    return t.qa
+
+
+# ------------------------------------------------------------------ frames -
+class FrameBody(BaseModel):
+    kind: str                       # previous_shot | post | ref | clear | lock
+    post_id: int | None = None
+    ref_id: int | None = None
+    locked: bool | None = None
+
+
+@router.post("/shots/{shot_id}/frames/{which}")
+def set_frame(shot_id: int, which: str, body: FrameBody, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    if which not in take_svc.FRAME_KINDS:
+        raise HTTPException(404, "which must be start_frame | end_frame")
+    if body.kind == "previous_shot":
+        _s3_guard(take_svc.use_previous_last_frame, db, sh)
+    elif body.kind == "post" and body.post_id:
+        _s3_guard(take_svc.frame_from_post, db, sh, which, body.post_id)
+    elif body.kind == "ref" and body.ref_id:
+        _s3_guard(take_svc.frame_from_ref, db, sh, which, body.ref_id)
+    elif body.kind == "clear":
+        take_svc.set_frame(db, sh, which, None)
+    elif body.kind == "lock":
+        frame = dict(getattr(sh, which) or {})
+        if not frame:
+            raise HTTPException(422, "No frame to lock yet.")
+        frame["locked"] = bool(body.locked) if body.locked is not None else not frame.get("locked")
+        take_svc.set_frame(db, sh, which, frame)
+    else:
+        raise HTTPException(422, "kind must be previous_shot | post | ref | clear | lock")
+    db.commit()
+    return proj_svc.shot_dict(db, sh)
+
+
+@router.post("/shots/{shot_id}/frames/{which}/upload")
+async def upload_frame(shot_id: int, which: str, file: UploadFile, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    if which not in take_svc.FRAME_KINDS:
+        raise HTTPException(404, "which must be start_frame | end_frame")
+    data = await file.read()
+    _s3_guard(take_svc.store_frame_upload, db, sh, which, data, file.content_type, file.filename)
+    db.commit()
+    return proj_svc.shot_dict(db, sh)
+
+
+@router.post("/shots/{shot_id}/frames/{which}/generate")
+def generate_frame(shot_id: int, which: str, body: TakeBody | None = None, db: Session = Depends(get_db)):
+    sh = _shot(db, shot_id)
+    if which not in take_svc.FRAME_KINDS:
+        raise HTTPException(404, "which must be start_frame | end_frame")
+    body = body or TakeBody()
+    t = _s3_guard(take_svc.create_take, db, sh, kind=which, mode=body.mode, family=body.family,
+                  provider=body.provider, params=body.params, instruction=body.instruction,
+                  approve_cost=body.approve_cost)
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+# ------------------------------------------------------------- local media -
+class StillBody(BaseModel):
+    source: str = "start_frame"     # start_frame | end_frame | post | ref
+    post_id: int | None = None
+    ref_id: int | None = None
+
+
+@router.post("/shots/{shot_id}/still")
+def still_take(shot_id: int, body: StillBody, db: Session = Depends(get_db)):
+    """Ken Burns still → video take (local, free)."""
+    sh = _shot(db, shot_id)
+    if body.source in take_svc.FRAME_KINDS:
+        src = take_svc.frame_path(getattr(sh, body.source))
+    elif body.source == "post" and body.post_id:
+        from ..models import Post
+        post = db.get(Post, body.post_id)
+        src = take_svc.abs_path(post.media_path if post and post.media_type == "image" else (post.thumb_path if post else None))
+    elif body.source == "ref" and body.ref_id:
+        r = db.get(FilmAssetRef, body.ref_id)
+        src = take_svc.abs_path(r.path) if r else None
+    else:
+        src = None
+    if src is None:
+        raise HTTPException(422, "No image found for that source.")
+    settings = proj_svc.merge_settings(_project(db, sh.project_id).settings, None)
+    rel = storage.project_rel(sh.project_id, "takes", storage.new_name(".mp4"))
+    try:
+        graphics.still_video(src, storage.resolve(rel), float(sh.duration_s or 4), settings.get("aspect_ratio"),
+                             int(settings.get("fps") or 24))
+    except Exception as e:
+        raise HTTPException(502, f"ffmpeg failed: {e}")
+    t = _s3_guard(take_svc.import_take, db, sh, storage.resolve(rel).read_bytes(), "video/mp4", "still.mp4",
+                  kind="video", source="still", provenance={"origin": "still", "source": body.source,
+                                                             "post_id": body.post_id, "ref_id": body.ref_id})
+    storage.remove(rel)
+    t.provider, t.mode = "local", "still_to_video"
+    if sh.media_strategy == "ai_video":
+        sh.media_strategy = "still"
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+class CardBody(BaseModel):
+    text: str
+    subtitle: str | None = None
+    style: str = "title"            # title | lower_third | caption | end_card
+    background_post_id: int | None = None
+    background_ref_id: int | None = None
+
+
+@router.post("/shots/{shot_id}/card")
+def card_take(shot_id: int, body: CardBody, db: Session = Depends(get_db)):
+    """Motion-graphics card take (local, free)."""
+    sh = _shot(db, shot_id)
+    if not body.text.strip():
+        raise HTTPException(422, "Card text is empty.")
+    settings = proj_svc.merge_settings(_project(db, sh.project_id).settings, None)
+    bg = None
+    if body.background_post_id:
+        from ..models import Post
+        post = db.get(Post, body.background_post_id)
+        bg = take_svc.abs_path(post.media_path if post and post.media_type == "image" else (post.thumb_path if post else None))
+    elif body.background_ref_id:
+        r = db.get(FilmAssetRef, body.background_ref_id)
+        bg = take_svc.abs_path(r.path) if r else None
+    rel = storage.project_rel(sh.project_id, "takes", storage.new_name(".mp4"))
+    try:
+        graphics.card_video(body.text.strip(), storage.resolve(rel), float(sh.duration_s or 3), body.subtitle,
+                            body.style if body.style in graphics.STYLES else "title", settings.get("aspect_ratio"),
+                            int(settings.get("fps") or 24), background=bg)
+    except Exception as e:
+        raise HTTPException(502, f"ffmpeg failed: {e}")
+    t = _s3_guard(take_svc.import_take, db, sh, storage.resolve(rel).read_bytes(), "video/mp4", "card.mp4",
+                  kind="graphics", source="card", provenance={"origin": "motion_graphics", "style": body.style,
+                                                              "text": body.text[:200]})
+    storage.remove(rel)
+    t.provider, t.mode = "local", "motion_graphics"
+    if sh.media_strategy == "ai_video":
+        sh.media_strategy = "motion_graphics"
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+# ----------------------------------------------------------------- footage -
+@router.get("/footage/sources")
+def footage_sources(db: Session = Depends(get_db)):
+    return {"sources": footage.configured_sources(db)}
+
+
+@router.get("/footage/search")
+def footage_search(q: str, media_type: str = "video", sources: str | None = None, db: Session = Depends(get_db)):
+    src = [x.strip() for x in sources.split(",") if x.strip()] if sources else None
+    return _s3_guard(footage.search, db, q, src, media_type)
+
+
+class AttachResult(BaseModel):
+    shot_id: int
+    result: dict
+
+
+@router.post("/footage/attach")
+def footage_attach(body: AttachResult, db: Session = Depends(get_db)):
+    sh = _shot(db, body.shot_id)
+    clip = _s3_guard(footage.download_result, db, body.result)
+    t = _s3_guard(footage.attach_clip, db, sh, clip)
+    db.commit()
+    return {"clip": footage.clip_dict(clip), "take": proj_svc.take_dict(t),
+            "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+@router.post("/footage/upload")
+async def footage_upload(file: UploadFile, project_id: int | None = Form(None), title: str | None = Form(None),
+                         description: str | None = Form(None), tags: str | None = Form(None),
+                         db: Session = Depends(get_db)):
+    data = await file.read()
+    clip = _s3_guard(footage.import_user_clip, db, data, file.content_type, file.filename, project_id=project_id,
+                     title=title, description=description,
+                     tags=[t.strip() for t in (tags or "").split(",") if t.strip()])
+    db.commit()
+    return footage.clip_dict(clip)
+
+
+@router.get("/footage/clips")
+def footage_clips(q: str | None = None, project_id: int | None = None, media_type: str | None = None,
+                  db: Session = Depends(get_db)):
+    if q:
+        return {"results": footage.search_clips(db, q, project_id, media_type)}
+    stmt = select(FilmClip).order_by(FilmClip.id.desc()).limit(200)
+    if project_id is not None:
+        stmt = stmt.where((FilmClip.project_id == project_id) | (FilmClip.project_id.is_(None)))
+    return {"clips": [footage.clip_dict(c) for c in db.execute(stmt).scalars()]}
+
+
+@router.get("/footage/clips/{clip_id}")
+def footage_clip(clip_id: int, db: Session = Depends(get_db)):
+    c = db.get(FilmClip, clip_id)
+    if c is None:
+        raise HTTPException(404, "Clip not found")
+    return footage.clip_dict(c)
+
+
+class ClipAttach(BaseModel):
+    shot_id: int
+    start_s: float | None = None
+    end_s: float | None = None
+
+
+@router.post("/footage/clips/{clip_id}/attach")
+def footage_clip_attach(clip_id: int, body: ClipAttach, db: Session = Depends(get_db)):
+    c = db.get(FilmClip, clip_id)
+    if c is None:
+        raise HTTPException(404, "Clip not found")
+    sh = _shot(db, body.shot_id)
+    t = _s3_guard(footage.attach_clip, db, sh, c, body.start_s, body.end_s)
+    db.commit()
+    return {"take": proj_svc.take_dict(t), "shot": proj_svc.shot_dict(db, sh, include_takes=True)}
+
+
+@router.post("/footage/clips/{clip_id}/describe")
+def footage_clip_describe(clip_id: int, db: Session = Depends(get_db)):
+    c = db.get(FilmClip, clip_id)
+    if c is None:
+        raise HTTPException(404, "Clip not found")
+    words = _director_guard(footage.describe_with_llm, db, c)
+    db.commit()
+    return {"keywords": c.keywords or [], "added": words, "llm": words is not None}
+
+
+# ------------------------------------------------------------------- audio -
+@router.get("/projects/{project_id}/audio")
+def project_audio(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    tl = timeline.compute(db, p)
+    return {"tracks": [audio_svc.track_dict(t, tl) for t in audio_svc.tracks_of(db, p.id)],
+            "mix": audio_svc.mix_plan(db, p), "capabilities": audio_svc.capability_flags(db),
+            "kinds": list(audio_svc.KINDS)}
+
+
+@router.post("/projects/{project_id}/audio")
+async def add_audio(project_id: int, file: UploadFile, kind: str = Form("music"), label: str | None = Form(None),
+                    anchor_kind: str = Form("timeline"), anchor_id: int | None = Form(None),
+                    offset_s: float = Form(0.0), gain_db: float = Form(0.0), db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    data = await file.read()
+    t = _s3_guard(audio_svc.add_track, db, p, data, file.content_type, file.filename, kind=kind, label=label,
+                  anchor_kind=anchor_kind, anchor_id=anchor_id, offset_s=offset_s, gain_db=gain_db)
+    db.commit()
+    return audio_svc.track_dict(t, timeline.compute(db, p))
+
+
+class AudioPatch(BaseModel):
+    label: str | None = None
+    kind: str | None = None
+    anchor_kind: str | None = None
+    anchor_id: int | None = None
+    offset_s: float | None = None
+    gain_db: float | None = None
+    muted: bool | None = None
+    loop: bool | None = None
+    trim_start_s: float | None = None
+    trim_end_s: float | None = None
+    fade_in_s: float | None = None
+    fade_out_s: float | None = None
+
+
+@router.patch("/audio/{track_id}")
+def patch_audio(track_id: int, body: AudioPatch, db: Session = Depends(get_db)):
+    t = db.get(FilmAudioTrack, track_id)
+    if t is None:
+        raise HTTPException(404, "Track not found")
+    _s3_guard(audio_svc.update_track, db, t, **body.model_dump(exclude_unset=True))
+    db.commit()
+    return audio_svc.track_dict(t, timeline.compute(db, _project(db, t.project_id)))
+
+
+@router.delete("/audio/{track_id}")
+def delete_audio(track_id: int, db: Session = Depends(get_db)):
+    t = db.get(FilmAudioTrack, track_id)
+    if t is None:
+        raise HTTPException(404, "Track not found")
+    audio_svc.remove_track(db, t)
+    db.commit()
+    return {"deleted": track_id}
+
+
+# --------------------------------------------------------------- subtitles -
+@router.get("/projects/{project_id}/subtitles")
+def get_subtitles(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return {**sub_svc.subtitle_dict(sub_svc.get(db, p.id)), "validation": sub_svc.validate(db, p)}
+
+
+class SubtitleBody(BaseModel):
+    cues: list[dict] | None = None
+    style: dict | None = None
+    burn_in: bool | None = None
+    language: str | None = None
+
+
+@router.put("/projects/{project_id}/subtitles")
+def put_subtitles(project_id: int, body: SubtitleBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    st = sub_svc.ensure(db, p)
+    cues = body.cues if body.cues is not None else st.cues
+    st = sub_svc.set_cues(db, p, cues, source="manual" if body.cues is not None else st.source,
+                          style=body.style, burn_in=body.burn_in, language=body.language)
+    db.commit()
+    return {**sub_svc.subtitle_dict(st), "validation": sub_svc.validate(db, p)}
+
+
+@router.post("/projects/{project_id}/subtitles/from-script")
+def subtitles_from_script(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    st = sub_svc.from_script(db, p)
+    db.commit()
+    return {**sub_svc.subtitle_dict(st), "validation": sub_svc.validate(db, p)}
+
+
+class SubtitleImport(BaseModel):
+    text: str
+
+
+@router.post("/projects/{project_id}/subtitles/import")
+def subtitles_import(project_id: int, body: SubtitleImport, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    cues = sub_svc.parse(body.text)
+    if not cues:
+        raise HTTPException(422, "No cues found — paste SRT or WebVTT text.")
+    st = sub_svc.set_cues(db, p, cues, source="imported")
+    db.commit()
+    return {**sub_svc.subtitle_dict(st), "validation": sub_svc.validate(db, p)}
+
+
+@router.post("/projects/{project_id}/subtitles/resync")
+def subtitles_resync(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    st = sub_svc.resync(db, p)
+    db.commit()
+    return {**sub_svc.subtitle_dict(st), "validation": sub_svc.validate(db, p)}
+
+
+@router.get("/projects/{project_id}/subtitles.srt")
+def subtitles_srt(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    st = sub_svc.get(db, p.id)
+    return PlainTextResponse(sub_svc.to_srt(st) if st else "", media_type="application/x-subrip")
+
+
+@router.get("/projects/{project_id}/subtitles.vtt")
+def subtitles_vtt(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    st = sub_svc.get(db, p.id)
+    return PlainTextResponse(sub_svc.to_vtt(st) if st else "WEBVTT\n", media_type="text/vtt")
+
+
+# --------------------------------------------------------------- QA/repair -
+@router.get("/projects/{project_id}/qa")
+def project_qa(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    report = qa_svc.check_project(db, p)
+    db.commit()
+    return report
+
+
+@router.get("/projects/{project_id}/repairs")
+def project_repairs(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    out = qa_svc.repair_queue(db, p)
+    db.commit()
+    return {"repairs": out}
+
+
+# -------------------------------------------------------------------- runs -
+class RunBody(BaseModel):
+    kind: str = "video"
+    scene_ids: list[int] = []
+    shot_ids: list[int] = []
+    sample: bool = False
+    force: bool = False
+    approve_cost: bool = False
+    skip_done: bool = True
+    inline: bool = False
+
+
+@router.post("/projects/{project_id}/runs")
+def start_run(project_id: int, body: RunBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    job = _s3_guard(production.start_run, db, p, kind=body.kind, scene_ids=body.scene_ids or None,
+                    shot_ids=body.shot_ids or None, sample=body.sample, force=body.force,
+                    approve_cost=body.approve_cost, skip_done=body.skip_done)
+    db.commit()
+    job_svc.start(job.id, inline=body.inline)
+    db.refresh(job)
+    return board_svc.job_dict(job)
+
+
+@router.get("/projects/{project_id}/sample-shots")
+def sample_shots(project_id: int, scene_id: int | None = None, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return {"shots": [proj_svc.shot_dict(db, sh) for sh in production.sample_shots(db, p, scene_id)]}
+
+
+# ------------------------------------------------------------------ export -
+class ExportBody(BaseModel):
+    label: str | None = None
+    burn_in: bool | None = None
+    include_audio: bool = True
+    quality: str = "1080p"
+    force: bool = False
+    inline: bool = False
+
+
+@router.post("/projects/{project_id}/export")
+def start_export(project_id: int, body: ExportBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    job = _s3_guard(export_svc.start_export, db, p, label=body.label, burn_in=body.burn_in,
+                    include_audio=body.include_audio, quality=body.quality, force=body.force)
+    db.commit()
+    job_svc.start(job.id, inline=body.inline)
+    db.refresh(job)
+    return board_svc.job_dict(job)
+
+
+@router.get("/projects/{project_id}/exports")
+def list_exports(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return {"exports": export_svc.exports_of(db, p), "plan": export_svc.plan(db, p)}
+
+
+# --------------------------------------------------------------- reference -
+@router.get("/projects/{project_id}/reference")
+def get_reference(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return {"reference": p.reference or {}, "yt_dlp": _has_ytdlp()}
+
+
+def _has_ytdlp() -> bool:
+    try:
+        import yt_dlp  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+@router.post("/projects/{project_id}/reference/upload")
+async def reference_upload(project_id: int, file: UploadFile, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    data = await file.read()
+    out = _s3_guard(reference_svc.analyze_upload, db, p, data, file.content_type, file.filename)
+    db.commit()
+    return {"reference": out}
+
+
+class ReferenceBody(BaseModel):
+    post_id: int | None = None
+    clip_id: int | None = None
+    url: str | None = None
+
+
+@router.post("/projects/{project_id}/reference")
+def reference_from(project_id: int, body: ReferenceBody, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    if body.post_id:
+        out = _s3_guard(reference_svc.analyze_post, db, p, body.post_id)
+    elif body.clip_id:
+        out = _s3_guard(reference_svc.analyze_clip, db, p, body.clip_id)
+    elif body.url:
+        out = _s3_guard(reference_svc.analyze_url, db, p, body.url)
+    else:
+        raise HTTPException(422, "Send post_id, clip_id or url.")
+    db.commit()
+    return {"reference": out}
+
+
+@router.post("/projects/{project_id}/reference/propose")
+def reference_propose(project_id: int, body: DirectBody | None = None, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    job = _director_guard(lambda: _s3_guard(reference_svc.propose, db, p, use_llm=(body.use_llm if body else True)))
+    db.commit()
+    return director.proposal_dict(job)

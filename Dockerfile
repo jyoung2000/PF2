@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # ffmpeg (media pipeline), curl (healthcheck), gosu (PUID/PGID drop), tzdata (TZ)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg curl gosu tzdata ca-certificates \
+        ffmpeg curl gosu tzdata ca-certificates fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import httpx
 
-from .base import GenerationProvider, ProviderError, build_common_payload
+from .base import (GenerationProvider, ProviderError, apply_image_inputs,
+                   build_common_payload, data_uri)
 
 API = "https://api.replicate.com/v1"
 
@@ -37,6 +38,23 @@ class ReplicateProvider(GenerationProvider):
         username = resp.json().get("username", "?")
         return {"ok": True, "detail": f"Connected as {username}"}
 
+    def _file_url(self, c: httpx.Client, path_or_url: str) -> str:
+        """Replicate takes data URIs only for small files; larger local
+        files go through its files API (POST /v1/files → urls.get)."""
+        if path_or_url.startswith(("http://", "https://", "data:")):
+            return path_or_url
+        from pathlib import Path
+        p = Path(path_or_url)
+        if p.stat().st_size <= 200_000:
+            return data_uri(path_or_url)
+        resp = c.post(f"{API}/files", files={"content": (p.name, p.read_bytes())})
+        if resp.status_code >= 400:
+            raise ProviderError(f"Replicate file upload failed (HTTP {resp.status_code}).", "upload")
+        url = ((resp.json() or {}).get("urls") or {}).get("get")
+        if not url:
+            raise ProviderError("Replicate file upload returned no URL.", "upload")
+        return url
+
     def submit(self, key: str, model_id: str, prompt: str,
                negative: str | None, params: dict, kind: str) -> str:
         common = build_common_payload(prompt, negative, params, kind)
@@ -51,6 +69,9 @@ class ReplicateProvider(GenerationProvider):
         if "seed" in common:
             inputs["seed"] = common["seed"]
         with self._client(key) as c:
+            apply_image_inputs(inputs, params, {"image": "image", "end_image": "end_image",
+                                                "references": "image_input", "strength": "prompt_strength"},
+                               convert=lambda v: self._file_url(c, v))
             resp = c.post(f"{API}/models/{model_id}/predictions",
                           json={"input": inputs})
         if resp.status_code == 401:

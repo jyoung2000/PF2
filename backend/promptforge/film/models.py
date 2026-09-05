@@ -275,3 +275,45 @@ class FilmJob(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class FilmAudioTrack(Base):
+    """Timeline audio (spec N): dialogue | narration | voice | music |
+    ambience | sfx. Anchored to the project timeline (start_s) or to a
+    shot/scene so it re-syncs when timing changes."""
+    __tablename__ = "film_audio_tracks"
+    __table_args__ = (Index("ix_film_audio_project", "project_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(20), default="music")
+    label: Mapped[str | None] = mapped_column(String(200))
+    path: Mapped[str] = mapped_column(Text)                       # film/projects/{id}/audio/…
+    source: Mapped[str] = mapped_column(String(30), default="upload")   # upload | tts | music | sfx | import
+    provider: Mapped[str | None] = mapped_column(String(50))
+    anchor_kind: Mapped[str] = mapped_column(String(10), default="timeline")   # timeline | shot | scene
+    anchor_id: Mapped[int | None] = mapped_column(Integer)
+    offset_s: Mapped[float] = mapped_column(Float, default=0.0)   # relative to the anchor start
+    duration_s: Mapped[float | None] = mapped_column(Float)
+    trim_start_s: Mapped[float] = mapped_column(Float, default=0.0)
+    trim_end_s: Mapped[float | None] = mapped_column(Float)
+    gain_db: Mapped[float] = mapped_column(Float, default=0.0)
+    muted: Mapped[bool] = mapped_column(Boolean, default=False)
+    fade_in_s: Mapped[float] = mapped_column(Float, default=0.0)
+    fade_out_s: Mapped[float] = mapped_column(Float, default=0.0)
+    loop: Mapped[bool] = mapped_column(Boolean, default=False)
+    params: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FilmSubtitle(Base):
+    """One subtitle track per project (spec O): cues with optional shot
+    anchors so they follow timing changes; style for burn-in."""
+    __tablename__ = "film_subtitles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"), unique=True)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    cues: Mapped[list] = mapped_column(JSON, default=list)   # [{id, start_s, end_s, text, shot_id?, rel_start_s?, rel_end_s?}]
+    style: Mapped[dict] = mapped_column(JSON, default=dict)  # {font_size, color, outline, position}
+    source: Mapped[str] = mapped_column(String(20), default="manual")   # manual | script | imported | generated
+    burn_in: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

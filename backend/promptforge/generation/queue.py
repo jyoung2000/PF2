@@ -73,6 +73,22 @@ def _fail(gid: int, message: str) -> None:
             g.error = message[:1000]
             g.finished_at = utcnow()
     bus.error("generation", f"#{gid} failed — {message}")
+    _notify_film(gid, "failed")
+
+
+def _notify_film(gid: int, status: str) -> None:
+    """Film Studio takes ride this queue (S3): tell them how their
+    generation ended. Guarded so the library never depends on film."""
+    try:
+        with session_scope() as s:
+            g = s.get(Generation, gid)
+            take_id = (g.params or {}).get("_film_take_id") if g is not None else None
+        if not take_id:
+            return
+        from ..film import takes as film_takes
+        film_takes.on_generation(gid, status)
+    except Exception as e:  # noqa: BLE001 — never break the worker over a hook
+        bus.warn("film", f"take hook for generation {gid} failed: {e}")
 
 
 def process_generation(gid: int) -> None:
@@ -177,6 +193,7 @@ def process_generation(gid: int) -> None:
                 s.add(CollectionPost(collection_id=collection_id,
                                      post_id=post_id))
     bus.info("generation", f"#{gid} succeeded → post {post_id}")
+    _notify_film(gid, "succeeded")
 
     # learning feedback loop — every generation is a learning event
     try:

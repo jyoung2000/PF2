@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import httpx
 
-from .base import GenerationProvider, ProviderError, build_common_payload
+from .base import (GenerationProvider, ProviderError, apply_image_inputs,
+                   build_common_payload)
 
 QUEUE = "https://queue.fal.run"
 PROBE_MODEL = "fal-ai/flux/dev"
@@ -52,6 +53,8 @@ class FalProvider(GenerationProvider):
             payload["num_images"] = 1
         if "seed" in common:
             payload["seed"] = common["seed"]
+        apply_image_inputs(payload, params, {"image": "image_url", "end_image": "tail_image_url",
+                                             "references": "image_urls", "strength": "strength"})
         with self._client(key) as c:
             resp = c.post(f"{QUEUE}/{model_id}", json=payload)
         if resp.status_code in (401, 403):
