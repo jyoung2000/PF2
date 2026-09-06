@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from ..aliases import display_family
 from .base import GenerationProvider
 from .fal import FalProvider
+from .muapi import MuAPIProvider
 from .pricing import estimate, family_kind, load_catalog
 from .replicate_provider import ReplicateProvider
 from .wavespeed import WaveSpeedProvider
@@ -17,7 +18,8 @@ def all_providers() -> dict[str, GenerationProvider]:
     global _providers
     if _providers is None:
         _providers = {p.name: p for p in
-                      (FalProvider(), ReplicateProvider(), WaveSpeedProvider())}
+                      (FalProvider(), ReplicateProvider(), WaveSpeedProvider(),
+                       MuAPIProvider())}
     return _providers
 
 

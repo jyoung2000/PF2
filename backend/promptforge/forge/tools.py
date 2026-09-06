@@ -20,9 +20,12 @@ from . import catalog
 
 # mode → media kind for modes beyond the film matrix
 EXTRA_MODE_KINDS = {"upscale": "image", "remove_background": "image",
+                    "upscale_video": "video", "remove_background_video": "video",
                     "tts": "audio", "music": "audio", "sfx": "audio",
+                    "dialogue": "audio", "audio_analysis": "audio",
                     "transcription": "audio", "video_to_audio": "audio",
-                    "text_to_3d": "3d", "image_to_3d": "3d"}
+                    "text_to_3d": "3d", "image_to_3d": "3d",
+                    "vision_analysis": "image"}
 
 TOOLS: dict[str, dict] = {
     "generate_image":   {"mode": "text_to_image",   "label": "Generate image",
@@ -47,7 +50,13 @@ TOOLS: dict[str, dict] = {
     "generate_3d":      {"mode": "text_to_3d",      "label": "Generate 3D",
                          "required": {"prompt": str}, "optional": {"params": dict}},
     "video_to_audio":   {"mode": "video_to_audio",  "label": "Video → audio",
+                         "required": {"video": str}, "optional": {"prompt": str, "params": dict}},
+    "upscale_video":    {"mode": "upscale_video",   "label": "Upscale video",
                          "required": {"video": str}, "optional": {"params": dict}},
+    "analyze_audio":    {"mode": "audio_analysis",  "label": "Analyze audio",
+                         "required": {"audio": str, "prompt": str}, "optional": {"params": dict}},
+    "generate_sfx":     {"mode": "sfx",             "label": "Generate sound effects",
+                         "required": {"prompt": str}, "optional": {"params": dict}},
 }
 
 
@@ -136,22 +145,16 @@ def invoke(s: Session, name: str, args: dict, allow_fallback: bool = False) -> d
     clean = _validate_args(name, args)
     mode = spec["mode"]
     kind = _mode_kind(mode)
-    if kind in ("audio", "3d"):
-        # honest: the queue ingests image/video outputs; audio/3d land the
-        # moment an adapter declares them AND the ingest path learns the type
-        offers = _offers_for_mode(s, mode, args.get("family"), args.get("provider"))
-        if not offers:
-            raise ToolError(capabilities.EXTRA_CAPABILITIES.get(
-                mode, f"no connected provider declares {mode}"),
-                next_action="declare the mode for a connected provider in the pricing catalog")
-
     offers = _offers_for_mode(s, mode, args.get("family"), args.get("provider"))
     if not offers:
-        raise ToolError(
-            f"{spec['label']} is not available: no connected provider declares "
-            f"{mode.replace('_', ' ')}"
-            + (f" for {args['family']}" if args.get("family") else ""),
-            next_action="connect a provider under Settings → AI providers")
+        # same wording the availability report gives, so the UI and the error
+        # tell the user the same actionable thing
+        reason = capabilities.EXTRA_CAPABILITIES.get(mode)
+        detail = (f"{spec['label']} is not available: "
+                  + (reason or f"no connected provider declares {mode.replace('_', ' ')}"
+                     + (f" for {args['family']}" if args.get("family") else "")))
+        raise ToolError(detail,
+                        next_action="connect a provider under Settings → AI providers")
 
     params = dict(clean.get("params") or {})
     fam_order = sorted(offers, key=lambda o: (

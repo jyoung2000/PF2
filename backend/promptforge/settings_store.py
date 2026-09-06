@@ -20,11 +20,13 @@ SECRET_KEYS = {
     "civitai_api_key", "anthropic_api_key", "openai_api_key",
     "fal_api_key", "replicate_api_token", "wavespeed_api_key",
     "baserow_token", "discord_bot_token", "grok_api_key",
+    "muapi_api_key",
 }
 
 # setting key -> env var that provides its default
 ENV_MAP = {
     "civitai_api_key": "CIVITAI_API_KEY",
+    "muapi_api_key": "MUAPI_API_KEY",
     "lexica_search_terms": "LEXICA_SEARCH_TERMS",
     "llm_provider": "PF_LLM_PROVIDER",
     "anthropic_api_key": "ANTHROPIC_API_KEY",

@@ -122,6 +122,9 @@ def process_generation(gid: int) -> None:
             return
     kind = router.kind_of(family) if family else "image"
     negative = params.pop("_negative", None)
+    # Non-visual outputs (speech, transcripts, 3D meshes) have no Post
+    # representation — they land in the artifact store instead (Phase 2).
+    artifact_kind = kind if kind in ("audio", "3d") else None
 
     bus.info("generation", f"#{gid} submitting to {provider_name} ({model_id})")
     from .base import ProviderError
@@ -134,19 +137,26 @@ def process_generation(gid: int) -> None:
     bus.info("generation", f"#{gid} {provider_name} job {job_ref} — polling")
     deadline = time.time() + POLL_TIMEOUT_S
     output_url = None
+    output_text = None
     while time.time() < deadline:
         result = provider.poll(key, model_id, job_ref)
         status = result.get("status")
         if status == "succeeded":
             output_url = result.get("output_url")
+            output_text = result.get("output_text")
             break
         if status == "failed":
             _fail(gid, result.get("error") or "provider reported failure")
             return
         time.sleep(POLL_INTERVAL_S)
-    if not output_url:
+    if not output_url and not output_text:
         _fail(gid, f"timed out after {POLL_TIMEOUT_S//60} min waiting on "
                    f"{provider_name}")
+        return
+
+    if artifact_kind or output_text is not None:
+        _finish_artifact(gid, artifact_kind or "text", output_url, output_text,
+                         provider_name)
         return
 
     bus.info("generation", f"#{gid} downloading output")
@@ -211,6 +221,41 @@ def process_generation(gid: int) -> None:
                                  collection_id, template_name)
     except Exception as e:
         bus.warn("generation", f"learning feedback failed: {e}")
+
+
+def _finish_artifact(gid: int, kind: str, url: str | None, text: str | None,
+                     provider_name: str) -> None:
+    """Land an audio / 3D / text output as an artifact and close the job."""
+    from ..models import utcnow
+    try:
+        from ..forge import artifacts
+        if text is not None and not url:
+            record = artifacts.store_text(text, kind, gid)
+        else:
+            client = httpx.Client(timeout=300, follow_redirects=True)
+            try:
+                record = artifacts.store_download(client, url, kind, gid)
+            finally:
+                client.close()
+    except Exception as e:
+        _fail(gid, f"output download failed: {e}")
+        return
+    with session_scope() as s:
+        g = s.get(Generation, gid)
+        if g is None:
+            return
+        g.status = "succeeded"
+        g.cost_actual = g.cost_estimate
+        g.finished_at = utcnow()
+        params = dict(g.params or {})
+        params["_artifact"] = record
+        g.params = params
+        spend = settings_store.get(s, "gen_spend", None) or {}
+        spend[provider_name] = round(
+            float(spend.get(provider_name, 0)) + float(g.cost_estimate or 0), 4)
+        settings_store.put(s, "gen_spend", spend)
+    bus.info("generation", f"#{gid} succeeded → {kind} artifact {record['path']}")
+    _notify_film(gid, "succeeded")
 
 
 def _find_collection(s, g: Generation) -> int | None:

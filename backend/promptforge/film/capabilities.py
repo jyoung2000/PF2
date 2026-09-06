@@ -26,20 +26,28 @@ MODE_KINDS = {m["key"]: m["kind"] for m in MODES}
 # served by the same provider endpoint, with the storyboard frame / reference as the image input
 ALIASES = {"storyboard_to_image": "image_to_image", "storyboard_to_video": "image_to_video",
            "reference_to_video": "image_to_video"}
-BASE_MODE = {"image": "text_to_image", "video": "text_to_video"}
+BASE_MODE = {"image": "text_to_image", "video": "text_to_video",
+             "audio": "text_to_audio", "3d": "text_to_3d"}
 
 # capabilities no shipped adapter declares yet — reported honestly as unsupported
+# Capabilities the shipped catalog can serve once a provider that declares
+# them is connected (MuAPI declares all of these) — the reason names what to
+# connect. Anything with no catalog offer at all stays flatly unsupported.
 EXTRA_CAPABILITIES = {
-    "tts": "No configured provider declares text-to-speech.",
-    "music": "No configured provider declares music generation.",
-    "sfx": "No configured provider declares sound-effect generation.",
+    "tts": "No connected provider declares text-to-speech — connect MuAPI in Settings → AI providers.",
+    "music": "No connected provider declares music generation — connect MuAPI in Settings → AI providers.",
+    "sfx": "No connected provider declares sound-effect generation — connect MuAPI in Settings → AI providers.",
+    "dialogue": "No connected provider declares multi-speaker dialogue — connect MuAPI in Settings → AI providers.",
+    "audio_analysis": "No connected provider declares audio analysis — connect MuAPI in Settings → AI providers.",
     "audio_enhance": "No configured provider declares audio enhancement.",
     "talking_head": "No configured provider declares talking-head / avatar generation.",
     "lip_sync": "No configured provider declares lip sync.",
     "inpainting": "No configured provider declares masked inpainting.",
-    "upscale": "No configured provider declares upscaling.",
-    "remove_background": "No configured provider declares background removal.",
-    "transcription": "No configured provider declares speech-to-text.",
+    "upscale": "No connected provider declares upscaling — connect MuAPI in Settings → AI providers.",
+    "upscale_video": "No connected provider declares video upscaling — connect MuAPI in Settings → AI providers.",
+    "remove_background": "No connected provider declares background removal — connect MuAPI in Settings → AI providers.",
+    "transcription": "No connected provider declares speech-to-text — connect MuAPI in Settings → AI providers.",
+    "vision_analysis": "No connected provider declares vision analysis.",
 }
 LOCAL_CAPABILITIES = {   # things PF2 does itself with ffmpeg/Pillow — always available when ffmpeg is present
     "still_to_video": "Ken Burns still → video (ffmpeg)",
@@ -64,7 +72,9 @@ def offers(s: Session, kind: str | None = None) -> list[dict]:
         if kind and fkind != kind:
             continue
         for provider, p_entry in (entry.get("providers") or {}).items():
-            modes = {BASE_MODE[fkind]: p_entry.get("model_id")}
+            modes = {}
+            if BASE_MODE.get(fkind):
+                modes[BASE_MODE[fkind]] = p_entry.get("model_id")
             for mkey, m in (p_entry.get("modes") or {}).items():
                 if isinstance(m, dict) and m.get("model_id"):
                     modes[mkey] = m["model_id"]

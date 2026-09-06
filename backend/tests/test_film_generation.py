@@ -515,7 +515,7 @@ def test_asset_ai_tools_add_generated_references(client, app_env, providers):
     tools = {t["key"]: t for t in client.get(f"/api/film/assets/{jack['id']}/tools").json()["tools"]}
     assert tools["generate"]["supported"] and not tools["variation"]["supported"]
     assert "reference image first" in tools["variation"]["reason"]
-    assert tools["upscale"]["supported"] is False and "No configured provider" in tools["upscale"]["reason"]
+    assert tools["upscale"]["supported"] is False and "No connected provider" in tools["upscale"]["reason"]
     assert client.post(f"/api/film/assets/{jack['id']}/generate", json={"tool": "variation"}).status_code == 422
     g = client.post(f"/api/film/assets/{jack['id']}/generate", json={"tool": "generate", "instruction": "rain on his face"}).json()
     assert g["mode"] == "text_to_image" and g["prompt"].startswith("Character reference portrait")

@@ -34,6 +34,7 @@ def test_tools_report_honest_availability(client):
     assert "connect" in by["generate_image"]["reason"].lower()
     assert by["generate_speech"]["supported"] is False
     assert "text-to-speech" in by["generate_speech"]["reason"]
+    assert "MuAPI" in by["generate_speech"]["reason"]      # says what to connect
     assert by["edit_image"]["input_schema"]["required"] == {"prompt": "str", "image": "str"}
     _connect(["fal"])
     r = client.get("/api/forge/tools").json()["tools"]
@@ -51,7 +52,9 @@ def test_invoke_validates_args_and_capability(client):
     r = client.post("/api/forge/tools/generate_speech", json={"prompt": "hello"})
     assert r.status_code == 409
     d = r.json()["detail"]
-    assert "text-to-speech" in d["message"] and d["next_action"]
+    # the error names what to connect, matching the availability report
+    assert "text-to-speech" in d["message"] and "MuAPI" in d["message"]
+    assert d["next_action"]
 
 
 def test_invoke_runs_through_queue_with_job_status(client, fake_provider):

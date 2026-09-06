@@ -503,6 +503,30 @@
               }
             }
           }
+        },
+        "muapi": {
+          "model_id": "seedance-2.5-pro",
+          "price_per_second": {
+            "720p": 0.05,
+            "1080p": 0.1,
+            "4k": 0.25
+          },
+          "modes": {
+            "image_to_video": {
+              "model_id": "seedance-2.5-pro-i2v",
+              "inputs": {
+                "image": "image_url"
+              }
+            },
+            "start_end_to_video": {
+              "model_id": "seedance-2.5-pro-flf",
+              "inputs": {
+                "image": "images_list",
+                "end_image": "last_image",
+                "list": true
+              }
+            }
+          }
         }
       }
     },
@@ -562,6 +586,208 @@
           "model_id": "tencent/hunyuan-video",
           "price_per_second": {
             "720p": 0.085
+          }
+        }
+      }
+    },
+    "image-tools": {
+      "kind": "image",
+      "providers": {
+        "muapi": {
+          "model_id": "ai-image-upscaler",
+          "modes": {
+            "upscale": {
+              "model_id": "ai-image-upscaler",
+              "inputs": {
+                "image": "image_url"
+              }
+            },
+            "upscale_premium": {
+              "model_id": "topaz-image-upscale",
+              "inputs": {
+                "image": "image_url"
+              }
+            },
+            "upscale_restore": {
+              "model_id": "seedvr2-image-upscale",
+              "inputs": {
+                "image": "image_url"
+              }
+            },
+            "remove_background": {
+              "model_id": "ai-background-remover",
+              "inputs": {
+                "image": "image_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "video-tools": {
+      "kind": "video",
+      "providers": {
+        "muapi": {
+          "model_id": "ai-video-upscaler",
+          "modes": {
+            "upscale_video": {
+              "model_id": "ai-video-upscaler",
+              "inputs": {
+                "video": "video_url"
+              }
+            },
+            "upscale_video_premium": {
+              "model_id": "topaz-video-upscale",
+              "inputs": {
+                "video": "video_url"
+              }
+            },
+            "remove_background_video": {
+              "model_id": "video-background-remover",
+              "inputs": {
+                "video": "video_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "whisper": {
+      "kind": "audio",
+      "providers": {
+        "muapi": {
+          "model_id": "openai-whisper",
+          "modes": {
+            "transcription": {
+              "model_id": "openai-whisper",
+              "inputs": {
+                "audio": "audio_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "gemini-audio": {
+      "kind": "audio",
+      "providers": {
+        "muapi": {
+          "model_id": "gemini-audio-vision",
+          "modes": {
+            "audio_analysis": {
+              "model_id": "gemini-audio-vision",
+              "inputs": {
+                "audio": "audio_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "minimax-speech": {
+      "kind": "audio",
+      "providers": {
+        "muapi": {
+          "model_id": "minimax-speech-2.6-hd",
+          "modes": {
+            "tts": {
+              "model_id": "minimax-speech-2.6-hd"
+            },
+            "tts_fast": {
+              "model_id": "minimax-speech-2.6-turbo"
+            }
+          }
+        }
+      }
+    },
+    "elevenlabs-speech": {
+      "kind": "audio",
+      "providers": {
+        "muapi": {
+          "model_id": "elevenlabs-tts-turbo-2-5",
+          "modes": {
+            "tts": {
+              "model_id": "elevenlabs-tts-turbo-2-5"
+            },
+            "dialogue": {
+              "model_id": "elevenlabs-text-to-dialogue-v3"
+            }
+          }
+        }
+      }
+    },
+    "mmaudio": {
+      "kind": "audio",
+      "providers": {
+        "muapi": {
+          "model_id": "mmaudio-v2-text-to-audio",
+          "modes": {
+            "music": {
+              "model_id": "mmaudio-v2-text-to-audio"
+            },
+            "sfx": {
+              "model_id": "mmaudio-v2-text-to-audio"
+            },
+            "video_to_audio": {
+              "model_id": "mmaudio-v2-video-to-video",
+              "inputs": {
+                "video": "video_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "tripo3d": {
+      "kind": "3d",
+      "providers": {
+        "muapi": {
+          "model_id": "tripo3d-h31-text-to-3d",
+          "modes": {
+            "text_to_3d": {
+              "model_id": "tripo3d-h31-text-to-3d"
+            },
+            "image_to_3d": {
+              "model_id": "tripo3d-h31-image-to-3d",
+              "inputs": {
+                "image": "image_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "meshy": {
+      "kind": "3d",
+      "providers": {
+        "muapi": {
+          "model_id": "meshy-6-text-to-3d",
+          "modes": {
+            "text_to_3d": {
+              "model_id": "meshy-6-text-to-3d"
+            },
+            "image_to_3d": {
+              "model_id": "meshy-6-image-to-3d",
+              "inputs": {
+                "image": "image_url"
+              }
+            }
+          }
+        }
+      }
+    },
+    "openrouter-vision": {
+      "kind": "image",
+      "providers": {
+        "muapi": {
+          "model_id": "openrouter-vision",
+          "modes": {
+            "vision_analysis": {
+              "model_id": "openrouter-vision",
+              "inputs": {
+                "references": "images_list"
+              }
+            }
           }
         }
       }
