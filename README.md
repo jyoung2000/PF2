@@ -185,6 +185,7 @@ The **Film** section turns PromptForge into a self-hosted AI film studio on top 
 4. **Director** — *Direct story / scene / shot* and *Draft plan* produce **proposals** (through your configured AI provider, or a deterministic breakdown when none is set up). Accept, reject or edit them; locked properties are never changed, and every choice lands in the decision log with its reason and cost basis. Optional: analyse a reference video (ffprobe, scene cuts, pacing, keyframes — never copied) and let the Director propose a grounded structure.
 5. **Storyboard** — image-first shot cards, a contact-sheet mode with bulk approval, a visual shot-type library (18 diagrammed presets, favourites, custom), visual camera (framing, angle, lens strip, motion) and lighting (draggable key/fill/rim, presets) controls, per-shot media strategy (AI video, image + animation, your footage, stock/archival, motion graphics, still), start/end frames (upload, generate, gallery, *use previous shot's last frame*), takes with compare, targeted *Repair / regenerate* (change vs preserve), continuity warnings in flexible/balanced/strict modes.
 6. **Timeline** — proportional strip with drag-to-resize durations, a project default scene gap with per-scene overrides (apply-all / reset), audio tracks with a simple mixer, subtitles (from the script's dialogue, SRT/VTT import/export, burn-in), pre-render QA with a repair queue, and export (conformed clips, gaps, dissolves and fades, mixed audio, sidecar SRT/VTT, a `sources.json` with every take's provenance) followed by a post-render review.
+7. **Editor** — a professional multi-track NLE over the same data. *Build timeline from storyboard* materialises one clip per shot at the exact storyboard timing (scene gaps become empty track space; the storyboard itself is never touched); from then on the edit is yours: drag/move/trim with magnetic snapping (toggle + break-out), split at the playhead, plain and ripple delete, insert gap, marquee multi-select, markers, unlimited video/audio/caption tracks with mute/solo/lock, per-clip speed, fades, gain, effects (opacity, scale, position, rotation, crop, colour, blur) and transitions, caption clips burned into the master, a frame-accurate preview player (derived clock, safe areas, timecode, loop) that resolves the sequence exactly like the export does, keyboard shortcuts (press `?`), and server-side undo/redo that survives restarts — every edit is saved as it happens. A **review queue** collects finished takes for approve / reject / regenerate (budget-aware) / compare / swap-into-timeline, and selection syncs both ways with the storyboard. When a sequence exists it drives export: what you see is exactly what renders (dissolves hold the outgoing frame in place, so runtime never shifts).
 
 Costs come from the pricing catalog (`pricing.json` → `/data/pricing.json`) and are shown as *unavailable* when no price exists. Provider capabilities (image→video, start/end frames, reference images) come from the catalog's `modes` per provider; TTS, music, SFX, talking heads and lip sync are reported as unsupported until an adapter declares them. Stock footage needs API keys (Pexels, Pixabay, Unsplash) while Archive.org, NASA and Wikimedia Commons work without; licenses are stored exactly as reported.
 
@@ -426,6 +427,22 @@ integrations. Everything configurable from the GUI at runtime.
   stays open) — proven with fake browsers, and through the real UI against
   stand-ins: Civitai inline paste → "Key accepted", TensorArt modal login →
   "Login detected — session saved", Done → "session: valid".
+- ✅ Editor (E1–E8, +21 backend tests → 319, +12 frontend tests → 46): a
+  professional multi-track timeline editor at Film → Editor over four
+  additive tables (tracks/clips/markers/revisions, D61-migrated — verified
+  in the container on a DB with the tables and the review column dropped);
+  build-from-storyboard with literal positions; drag/trim/split/ripple/
+  marquee/snapping/zoom/markers/track M-S-L; per-clip trim, speed, fades,
+  gain, effects and burned caption clips, all honoured by the export through
+  ONE shared resolver so the master matches the editor to the frame
+  (ffprobe-verified: trims, retimes, gaps, in-place dissolves that never
+  shorten runtime); server-side snapshot undo/redo that survives restarts;
+  a generation review queue (approve/reject/regenerate/compare/swap) and
+  two-way storyboard↔editor selection sync; nine reference editors studied
+  with licenses checked first (`docs/editor-audit.md` — patterns only, no
+  code copied). Verified live with Playwright journeys (zero page errors)
+  and the sandbox container booted on seeded data, across `docker restart`,
+  and on the legacy-shaped DB.
 - ⏸ Deferred (documented): Windows `.exe` is built per-machine via the included
   PyInstaller script/workflow (no Windows builder in the dev environment);
   SeaArt + PixAI adapters are marked *experimental* in the GUI (their internal

@@ -59,6 +59,14 @@ const SCREENS = [
     act: async (page) => { await page.locator('[data-shot-card]').first().click(); await page.waitForTimeout(1200) } },
   { name: 'film-timeline', route: '/film/timeline', group: 'Film Studio', label: 'Timeline',
     note: 'Preview, audio, subtitles, QA and export.', settle: 2000 },
+  { name: 'film-editor', route: '/film/editor', group: 'Film Studio', label: 'Editor',
+    note: 'The multi-track editor: media bin, preview, inspector, timeline with markers and track controls.', settle: 2500,
+    act: async (page) => {
+      const build = page.locator('[data-testid="btn-build-timeline"]')
+      if (await build.count()) { await build.click(); await page.waitForTimeout(1500) }
+      await page.locator('[data-testid^="clip-"]').first().dispatchEvent('pointerdown')
+      await page.waitForTimeout(600)
+    } },
   { name: 'studio-templates', route: '/studio', group: 'Studio', label: 'Templates',
     note: 'Templates learned from each collection.' },
   { name: 'studio-enhance', route: '/studio/enhance', group: 'Studio', label: 'Enhance',
@@ -100,7 +108,8 @@ const ROUTE_MAP = [
   ['/inspiration/analytics', 'inspiration-analytics.html'], ['/inspiration', 'inspiration.html'],
   ['/film/assets', 'film-assets.html'], ['/film/story', 'film-story.html'],
   ['/film/director', 'film-director.html'], ['/film/storyboard', 'film-storyboard.html'],
-  ['/film/timeline', 'film-timeline.html'], ['/film', 'film-projects.html'],
+  ['/film/timeline', 'film-timeline.html'], ['/film/editor', 'film-editor.html'],
+  ['/film', 'film-projects.html'],
   ['/forge/models', 'forge-models.html'], ['/forge/lab', 'forge-lab.html'],
   ['/forge/plans', 'forge-plans.html'], ['/forge/workflows', 'forge-workflows.html'],
   ['/forge/usage', 'forge-usage.html'], ['/forge', 'forge-compose.html'],

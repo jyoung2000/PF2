@@ -74,6 +74,15 @@
       "page": "page-1"
     },
     {
+      "file": "FilmEditor.dc.html",
+      "title": "Film Studio · Editor",
+      "x": 0,
+      "y": 4560,
+      "w": 1440,
+      "h": 1080,
+      "page": "page-1"
+    },
+    {
       "file": "Studio.dc.html",
       "title": "Prompt Studio · Enhance",
       "x": 1540,

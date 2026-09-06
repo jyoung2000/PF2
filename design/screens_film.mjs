@@ -93,3 +93,52 @@ export function filmDoc() {
   </div>`)
   return document({ title: 'Film Studio · Storyboard', width: 1440, height: 1540, body })
 }
+
+// ---------------------------------------------------------------- Editor ---
+export function editorDoc() {
+  const msl = (m = false, s = false, l = false) => ['M', 'S', 'L'].map((k, i) => {
+    const on = [m, s, l][i]
+    const cols = [[P.red300 ?? '#fca5a5', 'rgba(239,68,68,0.3)'], [P.amber300, 'rgba(245,158,11,0.3)'], ['#7dd3fc', 'rgba(14,165,233,0.3)']][i]
+    return `<span style="width:20px;height:20px;border-radius:4px;border:1px solid ${on ? cols[0] : T.line};background:${on ? cols[1] : 'transparent'};color:${on ? cols[0] : T.faint};font-size:9.5px;display:inline-flex;align-items:center;justify-content:center">${k}</span>`
+  }).join('')
+  const clip = (label, x, w, opts = {}) => `<div style="position:absolute;left:${x}px;top:2px;width:${w}px;height:${opts.h ?? 56}px;border:1px solid ${opts.selected ? T.ember : opts.missing ? 'rgba(245,158,11,0.6)' : T.line};background:${opts.selected ? mix(T.ember, 20) : opts.missing ? 'rgba(245,158,11,0.1)' : T.panel};border-radius:${R.el};overflow:hidden;font-size:10.5px;padding:2px 6px;line-height:1.5${opts.selected ? `;box-shadow:0 0 0 1px ${mix(T.ember, 60)}` : ''}">${opts.art != null ? `<div style="position:absolute;inset:0;opacity:0.35">${art(opts.art, 640, 360)}</div>` : ''}<div style="position:relative"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(label)}</div><div style="color:${T.faint};font-variant-numeric:tabular-nums">${opts.dur}${opts.speed ? ` ${opts.speed}×` : ''}</div></div>${opts.transition ? `<span style="position:absolute;right:0;top:0;height:100%;width:5px;background:${mix(T.ember, 70)}"></span>` : ''}</div>`
+  const trackRow = (labelTxt, h, msls, laneBg, clips) => `<div style="display:flex"><div style="flex-shrink:0;width:148px;display:flex;align-items:center;gap:4px;padding:0 8px;border-right:1px solid ${T.line};background:${T.well}"><span style="font-family:${F.mono};font-size:11px;color:${T.faint};width:24px">${labelTxt}</span>${msls}</div><div style="position:relative;flex:1;height:${h}px;background:${laneBg};border-radius:${R.el};margin:2px 0">${clips}</div></div>`
+  const ruler = Array.from({ length: 9 }, (_, i) => `<span style="position:absolute;left:${148 + i * 130}px;bottom:2px;font-family:${F.mono};font-size:9.5px;color:${T.faint}">0:${String(i * 5).padStart(2, '0')}</span><span style="position:absolute;left:${148 + i * 130}px;top:8px;bottom:0;width:1px;background:${mix(T.faint, 40)}"></span>`).join('')
+  const timeline = card(`
+    <div style="position:relative;height:26px;border-bottom:1px solid ${T.line};background:${mix(T.well, 60)}">${ruler}</div>
+    <div style="position:relative;height:18px"><span style="position:absolute;left:230px;color:#fbbf24;font-size:11px">◆</span><span style="position:absolute;left:520px;color:#f87171;font-size:11px">◆</span><span style="position:absolute;left:8px;font-size:10px;color:${T.faint}">markers</span></div>
+    <div style="position:relative">
+      ${trackRow('V2', 64, msl(), 'rgba(14,15,18,0.7)', clip('insert · B-roll', 340, 120, { dur: '4.5s', art: 31 }))}
+      ${trackRow('V1', 64, msl(), 'rgba(14,15,18,0.7)', [clip('1.1 City at dawn', 8, 150, { dur: '5.5s', art: 27, transition: true }), clip('1.2 Mara wakes', 160, 108, { dur: '4.0s', art: 28, selected: true, speed: '1.5' }), clip('1.3 The package', 272, 84, { dur: '3.0s', art: 29 }), clip('2.1 The chase', 470, 150, { dur: '5.5s', art: 30 }), clip('2.2 Handover', 624, 96, { dur: '3.5s', missing: true })].join(''))}
+      ${trackRow('A1', 44, msl(false, false, false), 'rgba(14,15,18,0.4)', clip('synth bed · −6 dB', 8, 300, { dur: '11.0s', h: 36 }))}
+      ${trackRow('C1', 34, msl(true), 'rgba(14,15,18,0.25)', clip('“Opening”', 20, 90, { dur: '2.0s', h: 26 }))}
+      <div style="position:absolute;left:262px;top:-44px;bottom:0;width:1px;background:#f87171"><span style="position:absolute;top:-2px;left:-4px;color:#f87171;font-size:10px">▼</span></div>
+    </div>
+  `, 'padding:0;overflow:hidden')
+  const num = (l, v, suffix = 's') => `<label style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="color:${T.mute};width:80px;flex-shrink:0">${l}</span>${input(v, { extra: 'height:28px;width:80px;padding-top:0;padding-bottom:0;display:flex;align-items:center;font-variant-numeric:tabular-nums' })}<span style="color:${T.faint}">${suffix}</span></label>`
+  const binRow = (n, title, meta, seed, add = true) => `<div style="background:${T.panel};border:1px solid ${T.line};border-radius:${R.card};padding:6px;display:flex;align-items:center;gap:6px;font-size:11.5px"><div style="width:48px;aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:${T.well}">${seed != null ? art(seed, 320, 180) : ''}</div><div style="flex:1;min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(title)}</div><div style="color:${T.faint}">${meta}</div></div>${add ? btn('+ Add', { extra: 'font-size:11px;padding:2px 8px' }) : ''}</div>`
+  const body = header('Film') + main(`<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h1 style="margin:0;font-family:${F.display};font-weight:500;font-size:19px;line-height:1.625">Film Studio</h1>${select('Night Delivery', { extra: 'max-width:240px' })}${pills(['Projects', 'Assets', 'Story', 'Director', 'Storyboard', 'Timeline', 'Editor'], 'Editor')}</div>
+    <div style="display:grid;grid-template-columns:230px minmax(0,1fr) 250px;gap:8px">
+      <div style="background:${T.panel};border:1px solid ${T.line};border-radius:${R.card};padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:4px">${chip('shots', `border-color:${T.ember};color:${T.fg}`)}${chip('footage')}${chip('audio')}</div>
+        ${binRow(1, '1.1 City at dawn', '5.5s · take 1 · in timeline', 27)}
+        ${binRow(2, '1.2 Mara wakes', '4.0s · take 2 · in timeline', 28)}
+        ${binRow(3, '2.2 Handover', '3.5s · no media', null)}
+      </div>
+      <div style="background:${T.panel};border:1px solid ${T.line};border-radius:${R.card};padding:10px;display:flex;flex-direction:column;gap:8px">
+        <div style="aspect-ratio:16/9;background:${T.ink};border-radius:${R.el};overflow:hidden;position:relative"><div style="position:absolute;inset:0">${art(28, 1280, 720)}</div><div style="position:absolute;left:0;right:0;bottom:16px;text-align:center"><span style="background:rgba(0,0,0,0.7);color:#fff;font-size:14px;padding:2px 8px;border-radius:4px">Opening</span></div><div style="position:absolute;inset:5%;border:1px solid rgba(255,255,255,0.35);pointer-events:none"></div></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12.5px">${btn('⏮︎', { extra: 'padding:4px 8px' })}${btn('▶', { kind: 'accent', extra: 'padding:4px 12px' })}${btn('⏭︎', { extra: 'padding:4px 8px' })}${chip('loop')}${chip('safe', `border-color:${T.ember};color:${T.fg}`)}<span style="margin-left:auto;font-family:${F.mono};font-size:13px;font-variant-numeric:tabular-nums">00:00:04:12</span><span style="color:${T.faint}">/ 00:00:22:00</span></div>
+      </div>
+      <div style="background:${T.panel};border:1px solid ${T.line};border-radius:${R.card};padding:10px;display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:${F.display};font-size:13px;flex:1">1.2 Mara wakes</span>${chip('take', 'font-size:10px')}</div>
+        ${num('Start', '5.5')}${num('Duration', '4.0')}${num('Trim in', '0.5')}${num('Speed', '1.5', '×')}${num('Fade out', '0.3')}${num('Gain', '0', 'dB')}
+        <details open><summary style="font-size:12px;color:${T.mute};cursor:pointer">Effects · <span style="color:${T.ember}">2</span></summary><div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">${num('Scale', '0.8', '')}${num('Opacity', '0.9', '')}</div></details>
+        <span style="font-size:11px;color:${T.faint};text-decoration:underline">Open shot in storyboard →</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px">${btn('✂ Split')}${btn('Delete')}${btn('Ripple delete')}${chip('🧲 snap', `border-color:${T.ember};color:${T.fg}`)}${btn('◆ Marker')}${btn('T Caption')}<span style="color:${T.line}">|</span>${btn('↩', { extra: 'padding:4px 8px' })}${btn('↪', { disabled: true, extra: 'padding:4px 8px' })}<span style="color:${T.line}">|</span>${btn('−', { extra: 'padding:4px 8px' })}<span style="color:${T.faint};font-variant-numeric:tabular-nums">32px/s</span>${btn('+', { extra: 'padding:4px 8px' })}${btn('QC')}${btn(`Review <span style="background:${T.ember};color:${T.ink};border-radius:9999px;font-size:10px;font-weight:700;padding:0 5px;margin-left:4px">3</span>`)}<span style="margin-left:auto;color:${T.faint}">all changes saved</span>${btn('⌨ shortcuts', { kind: 'ghost' })}${btn('Rebuild from storyboard', { kind: 'ghost' })}</div>
+    ${timeline}
+  </div>`)
+  return document({ title: 'Film Studio · Editor', width: 1440, height: 1080, body })
+}

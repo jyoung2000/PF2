@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs'
 import { galleryDoc, mobileDoc, detailDoc } from './screens_gallery.mjs'
 import { collectionsDoc, modelsDoc, inspirationDoc } from './screens_library.mjs'
-import { filmDoc } from './screens_film.mjs'
+import { filmDoc, editorDoc } from './screens_film.mjs'
 import { studioDoc, settingsDoc } from './screens_studio_settings.mjs'
 import { tokensDoc } from './screens_tokens.mjs'
 import { forgeDoc } from './screens_forge.mjs'
@@ -15,6 +15,7 @@ const files = {
   'Models.dc.html': modelsDoc(),
   'Inspiration.dc.html': inspirationDoc(),
   'Film.dc.html': filmDoc(),
+  'FilmEditor.dc.html': editorDoc(),
   'Studio.dc.html': studioDoc(),
   'Settings.dc.html': settingsDoc(),
   'Forge.dc.html': forgeDoc(),
@@ -32,6 +33,7 @@ const canvas = {
     { file: 'Models.dc.html', title: 'Models', x: 1540, y: 1660, w: 1440, h: 760, page: 'page-1' },
     { file: 'Inspiration.dc.html', title: 'Inspiration · Overview', x: 3080, y: 1660, w: 1440, h: 1080, page: 'page-1' },
     { file: 'Film.dc.html', title: 'Film Studio · Storyboard', x: 0, y: 2900, w: 1440, h: 1540, page: 'page-1' },
+    { file: 'FilmEditor.dc.html', title: 'Film Studio · Editor', x: 0, y: 4560, w: 1440, h: 1080, page: 'page-1' },
     { file: 'Studio.dc.html', title: 'Prompt Studio · Enhance', x: 1540, y: 2900, w: 1440, h: 900, page: 'page-1' },
     { file: 'Settings.dc.html', title: 'Settings', x: 3080, y: 2900, w: 1440, h: 1880, page: 'page-1' },
     { file: 'Tokens.dc.html', title: 'Design tokens & components', x: 0, y: 0, w: 1200, h: 1940, page: 'page-2' },
