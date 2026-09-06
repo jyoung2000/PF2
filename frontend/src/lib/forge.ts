@@ -30,6 +30,11 @@ export interface ModelEntry {
   weaknesses: string[]
   fallback_families: string[]
   last_verified: string | null
+  deprecation: string | null
+  api_available: boolean | null
+  source_urls: string[]
+  evidence: string | null
+  confidence: number | null
   offers: ModelOffer[]
   generatable: boolean
   observed: { post_count: number; last_seen: string | null } | null
@@ -62,6 +67,7 @@ export interface RouteCandidate {
   parameter_recommendations: Record<string, unknown>
   prompt_recommendation: { style: string; notes: string | null }
   history: { attempts: number; successes: number }
+  provenance?: { confidence: number | null; source_urls: string[]; evidence: string | null; last_verified: string | null }
 }
 
 export interface RouteResult {
@@ -125,6 +131,34 @@ export interface JobStatus {
   fallback_of?: number
 }
 
+export interface MultimodalView {
+  available: boolean
+  mode: string
+  backend?: string
+  reason?: string
+  frames_examined?: number
+  overall_score?: number | null
+  dimensions?: Record<string, number>
+  issues?: string[]
+  recommendations?: string[]
+  evidence?: string[]
+  confidence?: number
+  transcript?: string | null
+}
+
+export interface EvaluationView {
+  findings?: { kind: string; severity: string; message: string }[]
+  verdict?: string
+  unavailable?: string[]
+  multimodal?: MultimodalView
+  overall_score?: number | null
+  dimensions?: Record<string, number>
+  recommendations?: string[]
+  evidence?: string[]
+  confidence?: number
+  mode?: string
+}
+
 export interface VariantRunView {
   id: number
   generation_id: number | null
@@ -133,7 +167,7 @@ export interface VariantRunView {
   provider: string | null
   user_score: number | null
   user_notes: string | null
-  evaluation: { findings?: { kind: string; severity: string; message: string }[]; verdict?: string; unavailable?: string[] }
+  evaluation: EvaluationView
   cost: number | null
   latency_s: number | null
   output_post_id: number | null
@@ -244,8 +278,10 @@ export const forge = {
     api.post<{ run_id: number; generation_id: number; status: string }>(`/api/forge/variants/${variantId}/run`, { allow_fallback: allowFallback }),
   scoreRun: (runId: number, body: { score?: number; notes?: string; winner?: boolean }) =>
     api.post(`/api/forge/runs/${runId}/score`, body),
+  evaluators: () => api.get<{ backends: { kind: string; name: string; detail: string }[]; vision_available: boolean; reason: string | null }>('/api/forge/evaluators'),
+  nodeTypes: () => api.get<{ node_types: { type: string; label: string; category: string; supported: boolean; reason?: string; ports: { in: string[]; out: string[] } }[] }>('/api/forge/workflow-node-types'),
   refineRun: (runId: number, useLlm = false) =>
-    api.post<{ evaluation: VariantRunView['evaluation']; proposal: { prompt: string; negative: string | null; diff: { op: string; text: string }[]; changes: string[]; unchanged: boolean }; new_variant_id: number | null }>(`/api/forge/runs/${runId}/refine`, { use_llm: useLlm }),
+    api.post<{ evaluation: EvaluationView; proposal: { prompt: string; negative: string | null; diff: { op: string; text: string }[]; changes: string[]; unchanged: boolean }; new_variant_id: number | null }>(`/api/forge/runs/${runId}/refine`, { use_llm: useLlm }),
   plans: () => api.get<{ plans: { id: number; name: string; status: string; asset_count: number }[] }>('/api/forge/plans'),
   plan: (id: number) => api.get<PlanView>(`/api/forge/plans/${id}`),
   createPlan: (brief: string, useLlm = false) => api.post<PlanView>('/api/forge/plans', { brief, use_llm: useLlm }),

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Link, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { EmptyState, Modal, SkeletonGrid, Spinner } from '../../components/Primitives'
-import { ExperimentView, fmtUsd, forge, VariantRunView, VariantView } from '../../lib/forge'
+import { EvaluationView, ExperimentView, fmtUsd, forge, VariantRunView, VariantView } from '../../lib/forge'
 import { useFetch } from '../../lib/hooks'
 import { toastError, toastSuccess } from '../../lib/toast'
 
@@ -16,6 +16,71 @@ function Stars({ value, onSet }: { value: number | null; onSet: (n: number) => v
         </button>
       ))}
     </span>
+  )
+}
+
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  const tone = value >= 75 ? 'bg-emerald-400' : value >= 50 ? 'bg-ember' : 'bg-red-400'
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-28 shrink-0 text-faint capitalize">{label.replace(/_/g, ' ')}</span>
+      <span className="flex-1 h-1.5 rounded-full bg-well overflow-hidden">
+        <span className={`block h-full ${tone}`} style={{ width: `${value}%` }} />
+      </span>
+      <span className="w-7 text-right tabular-nums">{value}</span>
+    </div>
+  )
+}
+
+/** What actually judged this result — including when nothing could. */
+function EvaluationPanel({ ev }: { ev: EvaluationView | undefined }) {
+  if (!ev) return null
+  const mm = ev.multimodal
+  if (!mm?.available) {
+    return (
+      <div className="rounded-el bg-well/60 border border-line p-2 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <span className="chip !text-[10px]">metadata only</span>
+          <span className="text-faint">confidence {Math.round((ev.confidence ?? 0.3) * 100)}%</span>
+        </div>
+        <p className="text-amber-300">
+          Content was not judged: {mm?.reason ?? 'no evaluator configured'}
+        </p>
+        <Link to="/settings#providers" className="text-mute underline underline-offset-2">
+          Configure an evaluator
+        </Link>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-el bg-well/60 border border-line p-2 space-y-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {ev.overall_score != null && (
+          <span className="font-display text-[15px] tabular-nums text-ember">{ev.overall_score}</span>
+        )}
+        <span className="chip !text-[10px]">{mm.mode}</span>
+        <span className="text-faint">via {mm.backend}</span>
+        {mm.frames_examined ? <span className="text-faint">· {mm.frames_examined} frame{mm.frames_examined === 1 ? '' : 's'}</span> : null}
+        <span className="text-faint ml-auto">confidence {Math.round((ev.confidence ?? 0) * 100)}%</span>
+      </div>
+      <div className="space-y-0.5">
+        {Object.entries(ev.dimensions ?? {}).map(([k, v]) => <ScoreBar key={k} label={k} value={v} />)}
+      </div>
+      {(ev.evidence?.length ?? 0) > 0 && (
+        <details>
+          <summary className="cursor-pointer text-faint">What it saw</summary>
+          <ul className="mt-1 space-y-0.5 text-mute">
+            {ev.evidence!.map((e, i) => <li key={i}>· {e}</li>)}
+          </ul>
+        </details>
+      )}
+      {(ev.recommendations?.length ?? 0) > 0 && (
+        <ul className="space-y-0.5">
+          {ev.recommendations!.map((r, i) => <li key={i} className="text-ember-soft">→ {r}</li>)}
+        </ul>
+      )}
+      {mm.transcript && <p className="text-faint italic">“{mm.transcript.slice(0, 160)}”</p>}
+    </div>
   )
 }
 
@@ -56,6 +121,7 @@ function RunRow({ run, onChanged }: { run: VariantRunView; onChanged: () => void
       </div>
       {(refinement || (run.evaluation?.findings?.length ?? 0) > 0) && (
         <div className="text-[11.5px] space-y-1 border-t border-line/60 pt-1.5">
+          <EvaluationPanel ev={refinement?.evaluation ?? run.evaluation} />
           {(refinement?.evaluation.findings ?? run.evaluation.findings ?? []).map((f, i) => (
             <p key={i} className={f.severity === 'error' ? 'text-red-300' : f.severity === 'warn' ? 'text-amber-300' : 'text-faint'}>
               {f.message}

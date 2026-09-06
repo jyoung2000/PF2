@@ -61,6 +61,13 @@ function CandidateCard({ c, selected, onPick }: { c: RouteCandidate; selected: b
           ))}
         </ul>
       )}
+      {c.provenance && (
+        <p className="mt-1 text-[11px] text-faint" title={c.provenance.evidence ?? ''}>
+          model facts: {Math.round((c.provenance.confidence ?? 0) * 100)}% confidence
+          {c.provenance.source_urls.length > 0 ? ' · sourced' : ' · unverified seed'}
+          {c.provenance.last_verified ? ` · ${c.provenance.last_verified}` : ''}
+        </p>
+      )}
     </button>
   )
 }

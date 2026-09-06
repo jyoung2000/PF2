@@ -23,6 +23,9 @@ function ModelCard({ m, comparing, onCompare }: { m: ModelEntry; comparing: bool
       <div className="mt-2 flex flex-wrap gap-1">
         {capabilityBadges(m).map((b) => <span key={b} className="chip !text-[11px]">{b}</span>)}
       </div>
+      {m.deprecation && (
+        <p className="mt-2 text-[11.5px] text-amber-300">⚠ {m.deprecation}</p>
+      )}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {m.offers.map((o) => (
           <span key={o.provider} className={`chip !text-[11px] ${o.connected ? '!text-fg' : ''}`} title={o.provider_model_id ?? ''}>
@@ -44,7 +47,14 @@ function ModelCard({ m, comparing, onCompare }: { m: ModelEntry; comparing: bool
           {m.commercial_use && <p><span className="text-faint">Commercial use:</span> {m.commercial_use}</p>}
           {m.local_hardware && <p><span className="text-faint">Local:</span> {m.local_hardware}</p>}
           {m.fallback_families.length > 0 && <p><span className="text-faint">Fallbacks:</span> {m.fallback_families.join(', ')}</p>}
-          <p className="text-[11px] text-faint">last verified {m.last_verified ?? '—'} · edit in DATA_DIR/models_catalog.json (your copy wins)</p>
+          <p className="text-[11px] text-faint">
+            {m.evidence ? <>Evidence: {m.evidence}<br /></> : null}
+            confidence {Math.round((m.confidence ?? 0) * 100)}% · last verified {m.last_verified ?? '—'}
+            {m.source_urls.length > 0 && (
+              <> · <a href={m.source_urls[0]} target="_blank" rel="noreferrer" className="underline underline-offset-2">source</a></>
+            )}
+            <br />edit in DATA_DIR/models_catalog.json (your copy wins)
+          </p>
         </div>
       )}
     </div>

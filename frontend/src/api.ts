@@ -102,10 +102,30 @@ export interface Suggestions {
 
 export class ApiError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  /** Structured failure detail when the endpoint sends one (Forge tools do). */
+  info?: { message: string; recoverable?: boolean; next_action?: string | null; provider?: string | null }
+  constructor(status: number, message: string, info?: ApiError['info']) {
     super(message)
     this.status = status
+    this.info = info
   }
+}
+
+/** Turn an error body into a sentence a person can act on, never raw JSON. */
+export function errorMessage(body: unknown, fallback: string): string {
+  if (typeof body === 'string') return body
+  if (body && typeof body === 'object') {
+    const d = body as Record<string, unknown>
+    if (typeof d.message === 'string') {
+      const next = typeof d.next_action === 'string' && d.next_action ? ` — ${d.next_action}` : ''
+      return `${d.message}${next}`
+    }
+    // FastAPI validation errors: [{loc, msg, type}]
+    if (Array.isArray(body) && body.length && typeof (body[0] as Record<string, unknown>)?.msg === 'string') {
+      return (body as Record<string, unknown>[]).map((e) => String(e.msg)).join('; ')
+    }
+  }
+  return fallback
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -115,13 +135,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!resp.ok) {
     let detail = resp.statusText
+    let info: ApiError['info']
     try {
       const body = await resp.json()
-      detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail ?? body)
+      const raw = body?.detail ?? body
+      detail = errorMessage(raw, resp.statusText)
+      if (raw && typeof raw === 'object' && typeof raw.message === 'string') info = raw
     } catch {
       /* keep statusText */
     }
-    throw new ApiError(resp.status, detail)
+    throw new ApiError(resp.status, detail, info)
   }
   if (resp.status === 204) return undefined as T
   return resp.json() as Promise<T>
@@ -181,7 +204,7 @@ export const uploadScraperSession = async (name: string, file: File): Promise<Sc
   const resp = await fetch(`/api/scrapers/${name}/session`, { method: 'POST', body: form })
   const body = await resp.json()
   if (!resp.ok) {
-    throw new ApiError(resp.status, typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail ?? body))
+    throw new ApiError(resp.status, errorMessage(body?.detail ?? body, resp.statusText))
   }
   return body as ScraperInfo
 }
