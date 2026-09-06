@@ -10,6 +10,7 @@ import {
   getPostIntel,
   getSimilar,
   PostIntel,
+  PromptProvenance,
   saveInspirationContext,
 } from '../lib/inspiration'
 import { toastError, toastSuccess } from '../lib/toast'
@@ -39,6 +40,69 @@ const SOURCE_LABEL: Record<string, string> = {
   ai: 'AI analysis',
   user: 'you',
   explicit: 'explicit',
+}
+
+// I11/§121: a prompt is either what the creator published, something we
+// reconstructed from published pieces, or a guess. The panel says which —
+// never letting an inferred prompt read as the creator's own words.
+const KIND_STYLE: Record<string, string> = {
+  observed: 'text-emerald-300 border-emerald-400/30',
+  reconstructed: 'text-amber-300 border-amber-400/30',
+  inferred: 'text-rose-300 border-rose-400/30',
+}
+const KIND_LABEL: Record<string, string> = {
+  observed: 'Observed',
+  reconstructed: 'Reconstructed',
+  inferred: 'Inferred',
+}
+
+function PromptProvenanceView({ prov }: { prov: PromptProvenance }) {
+  const [open, setOpen] = useState(false)
+  const frags = prov.fragments ?? []
+  return (
+    <section>
+      <h3 className="label">Prompt source</h3>
+      <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+        {prov.kind && (
+          <span className={`chip ${KIND_STYLE[prov.kind] ?? ''}`}>{KIND_LABEL[prov.kind]}</span>
+        )}
+        <span className="chip !text-fg">{prov.label}</span>
+        {prov.confidence != null && <span className="text-faint">{Math.round(prov.confidence * 100)}% confidence</span>}
+      </div>
+      {prov.ai_written && (
+        <p className="text-[11.5px] text-rose-300/90 mt-1">
+          Written by an AI from what it read — not the creator&rsquo;s published words.
+        </p>
+      )}
+      {prov.evidence && <p className="text-[11.5px] text-faint italic mt-1">“{prov.evidence}”</p>}
+      {prov.notes.map((n) => (
+        <p key={n} className="text-[11.5px] text-mute mt-0.5">
+          {n}
+        </p>
+      ))}
+      {frags.length > 0 && (
+        <>
+          <button className="text-[11.5px] text-mute hover:text-fg mt-1" onClick={() => setOpen(!open)}>
+            {frags.length} published fragment{frags.length === 1 ? '' : 's'} {open ? '▾' : '▸'}
+          </button>
+          {open && (
+            <ul className="mt-1 space-y-1 text-[11.5px]">
+              {frags.map((f, i) => (
+                <li key={`${f.ref ?? 'frag'}${i}`} className="pl-2 border-l border-line">
+                  <span className="text-faint">
+                    {f.location}
+                    {f.author_is_creator ? ' · creator' : ''}
+                    {f.ref ? ` · ${f.ref}` : ''}
+                  </span>
+                  <span className="block text-mute">{f.text.slice(0, 300)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  )
 }
 
 function ScoreBar({ row }: { row: { component: string; value: number; contribution: number } }) {
@@ -267,6 +331,9 @@ export function IntelPanel({ post, onOpenPost }: { post: PostDetail; onOpenPost:
           {intel.pipeline_state && <> · {intel.pipeline_state}</>}
         </p>
       </section>
+
+      {/* prompt provenance (I11) */}
+      {intel.prompt_provenance?.source && <PromptProvenanceView prov={intel.prompt_provenance} />}
 
       {/* detected */}
       <section>

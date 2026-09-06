@@ -126,7 +126,9 @@ def test_llm_analysis_respects_provenance_and_whitelists(app_env):
         assert e.assertions["_alternates"]["prompt"][0]["source"] == "ai"  # kept as alternate
         assert e.pipeline_state == "analyzed"
         b = s.get(Post, blank)
-        assert b.prompt == "orbit shot of a neon temple" and b.prompt_source == "ai"
+        assert b.prompt == "orbit shot of a neon temple"
+        # §21: an LLM quoting the page is `ai_extraction`, never "the creator said so"
+        assert b.prompt_source == "ai_extraction"
         assert b.model_name == "Kling" and b.model_family == "kling" and b.model_source == "ai"
         assert b.params["model_inferred"] is True
         assert b.assertions["model"]["confidence"] == 0.55

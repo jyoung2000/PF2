@@ -21,7 +21,7 @@ TECH_TERMS_RE = re.compile(
     r"\b(model|prompt|workflow|settings?|seed|lora|checkpoint|controlnet|camera|lighting|"
     r"generat(?:ed|ion)|video model|image model|upscal(?:e|ed|er)|negative prompt|sampler|"
     r"steps|cfg|comfy|midjourney|kling|veo|sora|runway|flux|sref|--ar|--v\b)", re.I)
-MAX_COMMENTS = 25
+MAX_COMMENTS = 25          # default; settings `research_max_comments` wins
 
 
 def technical(text: str | None) -> bool:
@@ -39,29 +39,81 @@ def prioritize_comments(comments: list[dict], author_handle: str | None) -> list
     for c in comments:
         c["technical"] = technical(c.get("text"))
         c["by_author"] = bool(handle) and (c.get("author") or "").lstrip("@").lower() == handle
-    return sorted(comments, key=key)[:MAX_COMMENTS]
+    from .. import settings_store
+    from ..db import session_scope as _scope
+    try:
+        with _scope() as s:
+            cap = int(settings_store.get(s, "research_max_comments") or MAX_COMMENTS)
+    except Exception:  # noqa: BLE001 — budgeting must never break enrichment
+        cap = MAX_COMMENTS
+    return sorted(comments, key=key)[:max(1, cap)]
 
 
 def _apply_comment_evidence(post: Post, comments: list[dict]) -> None:
-    """Creators often post the prompt/model in their own reply."""
-    from .extract import extract_from_text
+    """Creators often publish the prompt in their own reply — and sometimes
+    split it across several (§22/§76). The shared parser assembles those
+    fragments; provenance decides whether the result may replace what we
+    already have (§122), and every fragment is kept as evidence (§52)."""
+    from . import prompt_parser
+    from ..aliases import normalize_model
+
+    caption = ((post.observed or {}).get("text") or {}).get("body") or post.prompt
+    replies = [{"id": c.get("id"), "text": c.get("text"), "author": c.get("author"),
+                "url": c.get("url"), "is_creator": bool(c.get("by_author")),
+                "score": c.get("likes")}
+               for c in comments if c.get("text")]
+    if not replies:
+        return
+    parsed = prompt_parser.parse_thread(caption, replies, platform=post.platform,
+                                        creator=post.author)
     assertions = dict(post.assertions or {})
-    for c in comments:
-        if not c.get("by_author") or not c.get("text"):
-            continue
-        ex = extract_from_text(c["text"])
-        if ex["prompt"] and ex["prompt_method"] == "labelled":
-            if provenance.assert_field(assertions, "prompt", ex["prompt"], "extracted", 0.88,
-                                       f"author's reply in thread ({c.get('id')})"):
-                post.prompt = ex["prompt"]
-                post.prompt_source = "extracted"
-        if ex["model_name"] and ex["model_stated"]:
-            if provenance.assert_field(assertions, "model", ex["model_name"], "extracted", 0.85,
-                                       f"author named the model in a reply ({c.get('id')})"):
-                from ..aliases import normalize_model
-                post.model_name = ex["model_name"]
-                post.model_family = normalize_model(ex["model_name"])
-                post.model_source = "explicit"
+    params = dict(post.params or {})
+
+    creator_frags = [f for f in parsed.fragments
+                     if f.author_is_creator and f.source.startswith("explicit")]
+    if parsed.prompt and creator_frags:
+        current = params.get("prompt_source") or post.prompt_source
+        rank = prompt_parser.coarse_source(parsed.prompt_source) or "extracted"
+        refs = [f.ref for f in creator_frags if f.ref]
+        if len(creator_frags) > 1:
+            evidence = (f"assembled from {len(creator_frags)} published fragments "
+                        "in the author's reply thread")
+        else:
+            evidence = ("published by the creator in the author's reply "
+                        f"({parsed.prompt_source.replace('_', ' ')})")
+        if refs:
+            evidence += " [" + ", ".join(str(r) for r in refs[:4]) + "]"
+        # The ladder (§122) decides whether this MAY replace what we have; the
+        # provenance ranks (D66) decide whether it actually does. A candidate
+        # that loses either check is still kept as evidence, never dropped.
+        may_promote = prompt_parser.stronger_source(parsed.prompt_source, current) or (
+            parsed.prompt_source == "assembled" and parsed.prompt != post.prompt)
+        won = may_promote and provenance.assert_field(
+            assertions, "prompt", parsed.prompt, rank, parsed.confidence, evidence)
+        if won:
+            post.prompt = parsed.prompt
+            post.prompt_source = parsed.prompt_source
+            params["prompt_source"] = parsed.prompt_source
+            params["prompt_fragments"] = [f.as_dict() for f in parsed.fragments]
+            if parsed.notes:
+                params["prompt_notes"] = parsed.notes
+        else:
+            provenance.record_alternate(assertions, "prompt", parsed.prompt, rank,
+                                        parsed.confidence, evidence)
+            params.setdefault("prompt_fragments", [f.as_dict() for f in parsed.fragments])
+    if parsed.negative and not post.negative_prompt:
+        if provenance.assert_field(assertions, "negative_prompt", parsed.negative,
+                                   "extracted", 0.85, "negative prompt in the creator's reply"):
+            post.negative_prompt = parsed.negative
+    if parsed.model_name and parsed.model_stated:
+        if provenance.assert_field(assertions, "model", parsed.model_name, "extracted", 0.85,
+                                   "the model was named in the thread"):
+            post.model_name = parsed.model_name
+            post.model_family = normalize_model(parsed.model_name)
+            post.model_source = "explicit"
+    for key, value in (parsed.params or {}).items():
+        params.setdefault(key, value)
+    post.params = params
     post.assertions = assertions
 
 

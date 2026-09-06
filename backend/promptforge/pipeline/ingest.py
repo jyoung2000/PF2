@@ -15,7 +15,7 @@ from .. import fts, settings_store
 from ..aliases import normalize_model
 from ..config import get_config
 from ..db import session_scope
-from ..intel import dedupe, provenance, scoring
+from ..intel import dedupe, prompt_parser, provenance, scoring
 from ..intel import queue as intel_queue
 from ..logbus import bus
 from ..models import Creator, EngagementSnapshot, Post
@@ -87,12 +87,24 @@ def _build_envelope(sp: ScrapedPost, embedded: dict, params: dict) -> tuple[dict
 
     assertions: dict = {}
     if sp.prompt:
-        conf_flag = params.get("prompt_confidence")
-        if conf_flag:
-            src_name, conf = "extracted", (0.5 if conf_flag == "low" else 0.9)
-            evidence = f"{sp.platform}: mined from post text ({conf_flag} confidence)"
+        # I11: adapters that use the shared parser report exactly WHERE the
+        # prompt came from (§20/§92). Map that fine-grained source onto the
+        # envelope's provenance ranks (D66) and keep the detail as evidence.
+        fine = params.get("prompt_source")
+        if fine and fine in prompt_parser.PROMPT_SOURCES:
+            src_name = prompt_parser.coarse_source(fine) or "extracted"
+            conf = prompt_parser.SOURCE_CONFIDENCE.get(fine, 0.5)
+            evidence = f"{sp.platform}: {fine.replace('_', ' ')}"
+            frags = params.get("prompt_fragments") or []
+            if len(frags) > 1:
+                evidence += f" — assembled from {len(frags)} published fragments"
         else:
-            src_name, conf, evidence = "observed", 0.96, f"{sp.platform}: structured prompt field"
+            conf_flag = params.get("prompt_confidence")
+            if conf_flag:
+                src_name, conf = "extracted", (0.5 if conf_flag == "low" else 0.9)
+                evidence = f"{sp.platform}: mined from post text ({conf_flag} confidence)"
+            else:
+                src_name, conf, evidence = "observed", 0.96, f"{sp.platform}: structured prompt field"
         provenance.assert_field(assertions, "prompt", sp.prompt, src_name, conf, evidence)
     if embedded.get("prompt"):
         provenance.assert_field(assertions, "prompt", embedded["prompt"], "metadata", 0.95,
@@ -228,7 +240,14 @@ def ingest_one(sp: ScrapedPost, client: httpx.Client,
                     or sp.negative_prompt or embedded.get("negative_prompt"))
         model_name = provenance.canonical(assertions, "model") or sp.model_name or params.get("model")
         model_source = _MODEL_SOURCE_LABEL.get(provenance.source_of(assertions, "model") or "")
+        # I11: the column carries the LADDER value (§20) — the coarse rank is
+        # always recoverable via prompt_parser.coarse_source(). Rows whose
+        # prompt came from somewhere the parser did not classify keep the rank.
         prompt_source = provenance.source_of(assertions, "prompt")
+        fine_source = params.get("prompt_source")
+        if fine_source in prompt_parser.PROMPT_SOURCES and (
+                prompt_parser.coarse_source(fine_source) == prompt_source):
+            prompt_source = fine_source
         eng_total = scoring.engagement_total(observed.get("engagement"))
 
         with session_scope() as s:

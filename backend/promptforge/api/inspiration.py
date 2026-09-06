@@ -11,10 +11,32 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..intel import clusters, creators, dedupe, provenance, queue, scoring, similar, snapshots, sources, trends
+from ..intel import (clusters, creators, dedupe, prompt_parser, provenance, queue,
+                     scoring, similar, snapshots, sources, trends)
 from ..models import Cluster, Creator, Post
 from ..schemas import post_card
 from .search import search as base_search
+
+# Human labels for the prompt-source ladder (§20) — the GUI shows these, so a
+# reconstructed or model-written prompt can never pass for the creator's words.
+PROMPT_SOURCE_LABELS = {
+    "embedded_metadata": "Embedded generation metadata",
+    "structured_api": "The platform's own prompt field",
+    "explicit_workflow": "An attached workflow",
+    "explicit_caption": "Published in the post",
+    "explicit_thread": "Published in the creator's own reply",
+    "explicit_comment": "Quoted in a comment",
+    "assembled": "Reconstructed from published fragments",
+    "deterministic_inference": "Inferred from the post text (rules only)",
+    "ai_extraction": "Quoted by an AI reading the page",
+    "ai_inference": "Guessed by an AI — not the creator's words",
+    "unknown": "Unknown",
+    # rows written before I11 carry the coarse provenance rank
+    "observed": "The platform's own prompt field",
+    "metadata": "Embedded generation metadata",
+    "extracted": "Mined from the post text",
+    "ai": "Written by an AI — not the creator's words",
+}
 
 router = APIRouter(prefix="/api/inspiration", tags=["inspiration"])
 
@@ -72,6 +94,23 @@ def post_intel(post_id: int, db: Session = Depends(get_db)):
         "evidence": provenance.evidence_list(p.assertions),
         "alternates": (p.assertions or {}).get("_alternates", {}),
         "prompt_source": p.prompt_source,
+        # I11: the UI shows WHERE the prompt came from and what it was built
+        # from — an assembled or inferred prompt must never read as the
+        # creator's own words (§21/§121).
+        "prompt_provenance": {
+            "source": p.prompt_source,
+            "rank": prompt_parser.coarse_source(p.prompt_source),
+            "label": PROMPT_SOURCE_LABELS.get(p.prompt_source or "", "Unknown"),
+            "kind": ("observed" if prompt_parser.is_explicit_source(p.prompt_source)
+                     else "reconstructed" if p.prompt_source == "assembled"
+                     else "inferred" if p.prompt_source else None),
+            "explicit": prompt_parser.is_explicit_source(p.prompt_source),
+            "ai_written": prompt_parser.is_ai_source(p.prompt_source),
+            "confidence": ((p.assertions or {}).get("prompt") or {}).get("confidence"),
+            "evidence": ((p.assertions or {}).get("prompt") or {}).get("evidence"),
+            "fragments": (p.params or {}).get("prompt_fragments") or [],
+            "notes": (p.params or {}).get("prompt_notes") or [],
+        },
         "observed": p.observed or {},
         "enrichment": p.enrichment or {},
         "links": dedupe.links_for(db, p.id),

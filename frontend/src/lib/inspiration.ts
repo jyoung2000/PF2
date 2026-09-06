@@ -17,6 +17,30 @@ export interface EvidenceRow {
   evidence?: string | null
 }
 
+/** I11: where a prompt actually came from (§20/§121). `kind` is the honest
+ *  three-way label the GUI must show — observed | reconstructed | inferred. */
+export interface PromptFragment {
+  text: string
+  source: string
+  location: string
+  confidence: number
+  ref: string | null
+  author_is_creator: boolean | null
+}
+
+export interface PromptProvenance {
+  source: string | null
+  rank: string | null
+  label: string
+  kind: 'observed' | 'reconstructed' | 'inferred' | null
+  explicit: boolean
+  ai_written: boolean
+  confidence: number | null
+  evidence: string | null
+  fragments: PromptFragment[]
+  notes: string[]
+}
+
 export interface PostIntel {
   id: number
   scores: {
@@ -39,6 +63,7 @@ export interface PostIntel {
   evidence: EvidenceRow[]
   alternates: Record<string, EvidenceRow[]>
   prompt_source: string | null
+  prompt_provenance: PromptProvenance | null
   observed: Record<string, unknown>
   enrichment: {
     comments?: { id: string; author: string; text: string; likes: number; technical?: boolean; by_author?: boolean }[]

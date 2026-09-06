@@ -138,7 +138,8 @@ def _apply(post: Post, result: dict, source: str) -> None:
         if provenance.assert_field(assertions, "prompt", prompt.strip(), "ai", conf,
                                    f"extracted by {source} from post text"):
             post.prompt = prompt.strip()
-            post.prompt_source = "ai"
+            # §21: an LLM QUOTING text it read is still not the creator's word
+            post.prompt_source = "ai_extraction"
 
     model = result.get("model")
     if isinstance(model, str) and model.strip():

@@ -9,7 +9,7 @@ from sqlalchemy import or_, select
 from .. import fts
 from ..knowledge import stats as kstats
 from ..models import Post
-from . import dedupe, provenance
+from . import dedupe, prompt_parser, provenance
 
 
 def visual(s, post: Post, limit: int = 24, max_distance: int = 14) -> list[dict]:
@@ -69,8 +69,10 @@ def technique_related(s, post: Post, limit: int = 24) -> list[dict]:
 
 
 def best_for_model(s, family: str, limit: int = 24) -> list[int]:
+    ai_sources = list(prompt_parser.FINE_BY_COARSE["ai"]) + ["ai"]
     stmt = (select(Post).where(Post.model_family == family, Post.prompt.is_not(None),
-                               or_(Post.prompt_source.is_(None), Post.prompt_source != "ai"))
+                               or_(Post.prompt_source.is_(None),
+                                   Post.prompt_source.not_in(ai_sources)))
             .order_by(Post.inspiration_score.desc().nulls_last(), Post.id.desc()).limit(limit * 2))
     out = []
     for p in s.execute(stmt).scalars():

@@ -34,6 +34,21 @@ def assert_field(assertions: dict, field: str, value: Any, source: str,
     return True
 
 
+def record_alternate(assertions: dict, field: str, value: Any, source: str,
+                     confidence: float = 1.0, evidence: str | None = None) -> None:
+    """Keep a candidate that did NOT win as evidence (§52) — used when a
+    caller rejects it on a rule `assert_field` cannot see (the prompt-source
+    ladder, §122). Never duplicates an identical entry."""
+    if value in (None, "", [], {}):
+        return
+    entry = {"value": value, "source": source,
+             "confidence": round(float(confidence), 3), "evidence": evidence}
+    kept = assertions.setdefault("_alternates", {}).setdefault(field, [])
+    if any(e.get("value") == value and e.get("source") == source for e in kept):
+        return
+    kept.append(entry)
+
+
 def canonical(assertions: dict | None, field: str) -> Any:
     return ((assertions or {}).get(field) or {}).get("value")
 

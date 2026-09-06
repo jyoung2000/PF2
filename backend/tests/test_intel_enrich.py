@@ -10,7 +10,8 @@ import httpx
 from sqlalchemy import select
 
 from promptforge import db as db_mod, settings_store
-from promptforge.intel import enrichment, queue, snapshots, sources
+from promptforge.intel import enrichment
+from promptforge.intel import prompt_parser as pp, queue, snapshots, sources
 from promptforge.models import Creator, PipelineJob, Post, ScraperState
 from promptforge.pipeline.ingest import IngestStats
 from promptforge.scrapers import all_adapters, civitai, get_adapter, x as xmod
@@ -95,7 +96,10 @@ def test_enrich_x_post_pulls_prompt_from_authors_reply(app_env, monkeypatch):
         assert p.enrichment["comment_count"] == 3 and [t["id"] for t in p.enrichment["thread"]] == ["2001"]
         assert p.prompt.startswith("cinematic slow orbit of a glass lighthouse")
         assert p.assertions["prompt"]["source"] == "extracted" and "author's reply" in p.assertions["prompt"]["evidence"]
-        assert p.prompt_source == "extracted"
+        # I11: the column carries the LADDER value; the coarse rank stays derivable
+        assert p.prompt_source == "explicit_thread"
+        assert pp.coarse_source(p.prompt_source) == "extracted"
+        assert [f["ref"] for f in p.params["prompt_fragments"] if f["author_is_creator"]] == ["2001"]
         assert p.model_name == "Kling" and p.model_family == "kling" and p.model_source == "explicit"
         assert p.inspiration_score is not None
         # a "Runway" guess from a random commenter never becomes a model assertion

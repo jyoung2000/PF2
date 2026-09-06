@@ -71,7 +71,9 @@ class Post(Base):
     creator_id: Mapped[int | None] = mapped_column(
         ForeignKey("creators.id", ondelete="SET NULL"))
     has_workflow: Mapped[bool | None] = mapped_column(Boolean, default=False)
-    prompt_source: Mapped[str | None] = mapped_column(String(20))  # observed|extracted|metadata|ai
+    # I11: the fine-grained ladder value (intel/prompt_parser.PROMPT_SOURCES);
+    # prompt_parser.coarse_source() collapses it to the D66 provenance rank.
+    prompt_source: Mapped[str | None] = mapped_column(String(32))
     model_source: Mapped[str | None] = mapped_column(String(20))   # explicit|metadata|inferred|ai
     pipeline_state: Mapped[str | None] = mapped_column(String(20), default="stored")
     discovered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -53,9 +53,51 @@ SOURCE_CONFIDENCE = {
 }
 
 
+# The envelope's provenance ranks (D66) are coarser than the ladder: this is
+# the ONE place the two vocabularies are mapped onto each other, so ingest,
+# enrichment, analysis and search can never drift apart (§122).
+COARSE_SOURCE = {
+    "embedded_metadata": "metadata", "explicit_workflow": "metadata",
+    "structured_api": "observed",
+    "explicit_caption": "extracted", "explicit_thread": "extracted",
+    "explicit_comment": "extracted", "assembled": "extracted",
+    "deterministic_inference": "extracted",
+    "ai_extraction": "ai", "ai_inference": "ai",
+    "unknown": "extracted",
+}
+FINE_BY_COARSE: dict[str, tuple[str, ...]] = {}
+for _fine, _coarse in COARSE_SOURCE.items():
+    FINE_BY_COARSE.setdefault(_coarse, ())
+    FINE_BY_COARSE[_coarse] += (_fine,)
+
+
 def stronger_source(new: str | None, existing: str | None) -> bool:
     """True when `new` may overwrite `existing` (§122)."""
     return _RANK.get(new or "unknown", 0) > _RANK.get(existing or "unknown", 0)
+
+
+def coarse_source(fine: str | None) -> str | None:
+    """Ladder value → provenance rank (observed|metadata|extracted|ai).
+
+    Values that are already coarse pass through, so callers can hand this
+    either vocabulary — including rows written before I11."""
+    if not fine:
+        return None
+    if fine in COARSE_SOURCE:
+        return COARSE_SOURCE[fine]
+    return fine if fine in FINE_BY_COARSE else None
+
+
+def is_ai_source(source: str | None) -> bool:
+    """True when the prompt text came from a model rather than the source
+    (§21) — the check every consumer that must not learn from AI text uses."""
+    return coarse_source(source) == "ai"
+
+
+def is_explicit_source(source: str | None) -> bool:
+    """True when the creator or the platform actually published this prompt."""
+    return (source or "").startswith("explicit") or source in (
+        "embedded_metadata", "structured_api")
 
 
 # ---- regexes ---------------------------------------------------------------
@@ -408,7 +450,23 @@ def parse_thread(caption: str | None, replies: list[dict] | None = None, *,
         return base
 
     if base.prompt is None:
-        best = max(author_pieces, key=lambda p: (p.is_explicit, p.confidence, len(p.prompt or "")))
+        pool = [p for p in author_pieces if p.is_explicit] or author_pieces
+        best = max(pool, key=lambda p: (p.is_explicit, p.confidence, len(p.prompt or "")))
+        # §22: the creator may split the prompt across SEVERAL of their own
+        # replies with nothing in the post — that is still a reconstruction,
+        # and dropping the other halves would silently lose published text.
+        rest = [p for p in pool if p is not best and p.is_explicit and p.prompt
+                and p.prompt.strip() not in (best.prompt or "")]
+        if rest:
+            parts = [p.prompt for p in pool if p is best or p in rest]
+            base.prompt = "\n".join(dict.fromkeys(x for x in parts if x))
+            base.prompt_source = "assembled"
+            base.method = "assembled"
+            base.confidence = min(SOURCE_CONFIDENCE["assembled"], best.confidence)
+            base.notes.append(
+                f"reconstructed from {len(rest) + 1} published fragments in the "
+                "creator's own replies")
+            return base
         base.prompt, base.method = best.prompt, best.method
         base.prompt_source = best.prompt_source
         base.confidence = best.confidence

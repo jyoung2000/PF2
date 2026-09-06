@@ -5,6 +5,7 @@ Existing qualifiers stay (tag: model: platform:); new ones:
   technique:slug   camera:35mm|close-up|low-angle      after:YYYY-MM-DD
   before:YYYY-MM-DD   engagement:>1000   inspiration:>80   ai:true|false|uncertain
   model_source:explicit|metadata|inferred|ai   sort:inspiration|engagement|newest|oldest
+  prompt_source:<ladder value>|observed|metadata|extracted|ai|explicit   (I11, §20)
 Values may be quoted. Unknown operators are ignored, never errors."""
 from __future__ import annotations
 
@@ -16,15 +17,30 @@ from sqlalchemy import func, or_, select
 
 from ..aliases import normalize_model
 from ..models import Creator, Post, PostTag, Tag
+from . import prompt_parser
 
 QUALIFIERS = ("tag", "model", "platform", "has", "creator", "technique", "camera", "after",
-              "before", "engagement", "inspiration", "ai", "model_source", "sort")
+              "before", "engagement", "inspiration", "ai", "model_source", "prompt_source",
+              "sort")
 _QUAL_RE = re.compile(r'(?<!\S)(' + "|".join(QUALIFIERS) + r'):("([^"]*)"|(\S+))', re.I)
 _NUM_RE = re.compile(r"^(>=|<=|>|<|=)?\s*(\d+(?:\.\d+)?)$")
 HAS_VALUES = {"prompt", "workflow", "video", "image", "metadata", "comments"}
 AI_TRUE = ("definitely_ai", "probably_ai")
 AI_FALSE = ("probably_not_ai", "definitely_not_ai")
 SORTS = {"inspiration", "engagement", "newest", "oldest", "relevance"}
+
+
+def _prompt_sources(value: str) -> list[str]:
+    """`prompt_source:` accepts a ladder value, a coarse provenance rank, or
+    the shorthand `explicit` — and matches rows written in EITHER vocabulary
+    (pre-I11 rows carry the coarse rank in the column)."""
+    if value in prompt_parser.PROMPT_SOURCES:
+        return [value]
+    if value == "explicit":
+        return [n for n in prompt_parser.PROMPT_SOURCES
+                if prompt_parser.is_explicit_source(n)]
+    fine = prompt_parser.FINE_BY_COARSE.get(value)
+    return [*fine, value] if fine else []
 
 
 @dataclass
@@ -43,6 +59,7 @@ class ParsedQuery:
     inspiration: tuple[str, float] | None = None
     ai: str | None = None                 # "true" | "false" | "uncertain"
     model_source: str | None = None
+    prompt_sources: list[str] = field(default_factory=list)
     sort: str | None = None
     ignored: list[str] = field(default_factory=list)
 
@@ -113,6 +130,12 @@ def parse(q: str) -> ParsedQuery:
                 pq.model_source = low
             else:
                 pq.ignored.append(f"model_source:{value}")
+        elif key == "prompt_source":
+            values = _prompt_sources(low)
+            if values:
+                pq.prompt_sources = values
+            else:
+                pq.ignored.append(f"prompt_source:{value}")
         elif key == "sort":
             if low in SORTS:
                 pq.sort = low
@@ -168,6 +191,8 @@ def apply_filters(stmt, pq: ParsedQuery):
         stmt = stmt.where(Post.ai_status == "uncertain")
     if pq.model_source:
         stmt = stmt.where(Post.model_source == pq.model_source)
+    if pq.prompt_sources:
+        stmt = stmt.where(Post.prompt_source.in_(pq.prompt_sources))
     return stmt
 
 
