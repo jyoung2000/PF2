@@ -245,3 +245,135 @@ def test_migration_covers_editor_tables(client, app_env):
     migrate_schema(eng)
     names = set(inspect(eng).get_table_names())
     assert {"film_timeline_tracks", "film_timeline_clips", "film_markers", "film_revisions"} <= names
+
+
+# ------------------------------------------------------- E3: clip export ---
+from test_film_generation import mp4, wav  # noqa: E402
+
+
+def _import_take(client, shot_id, seconds=3.0):
+    r = client.post(f"/api/film/shots/{shot_id}/takes/import",
+                    files={"file": (f"t{shot_id}.mp4", mp4(seconds, name=f"t{shot_id}-{seconds}"), "video/mp4")},
+                    data={"kind": "footage", "select": "true"})
+    assert r.status_code == 200, r.text
+    return r.json()["take"]
+
+
+def _export(client, pid, **kw):
+    r = client.post(f"/api/film/projects/{pid}/export", json={"inline": True, "force": True, **kw})
+    assert r.status_code == 200, r.text
+    jobs = client.get(f"/api/film/projects/{pid}/exports").json()["exports"]
+    j = jobs[0]
+    assert j["status"] == "done", j.get("error")
+    return j["result"]
+
+
+def _duration(client, url):
+    import subprocess
+    from promptforge.config import get_config
+    # url is /film-media/<rel under film/> — resolve to disk
+    rel = url.split("/film-media/", 1)[1]
+    path = get_config().data_dir / "film" / rel
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                          "-of", "csv=p=0", str(path)], capture_output=True, text=True)
+    return float(out.stdout.strip())
+
+
+def test_plan_dispatch_and_qa(client, app_env):
+    p, shots = _project(client)
+    for sid in shots:
+        _import_take(client, sid, 3.0)
+    plan0 = client.get(f"/api/film/projects/{p['id']}/exports").json()["plan"]
+    assert plan0["mode"] == "storyboard"
+    _build(client, p["id"])
+    plan1 = client.get(f"/api/film/projects/{p['id']}/exports").json()["plan"]
+    assert plan1["mode"] == "sequence"
+    assert [seg["type"] for seg in plan1["segments"]] == ["clip", "clip", "gap", "clip"]
+    qa = client.get(f"/api/film/projects/{p['id']}/qa").json()
+    keys = {c["key"]: c["status"] for c in qa["checks"]}
+    assert keys.get("sequence_media") == "PASS"
+
+
+def test_sequence_export_trim_speed_gap(client, app_env):
+    """Trim + retime + a literal gap all land in the master exactly as the
+    editor shows them."""
+    p, shots = _project(client)
+    for sid in shots[:2]:
+        _import_take(client, sid, 3.0)
+    # rebuild a clean 2-clip sequence by hand for exact numbers
+    seq = _build(client, p["id"])
+    v = _clips(seq)
+    # drop the third (media-less) clip
+    client.post(f"/api/film/projects/{p['id']}/sequence/delete-clips", json={"ids": [v[2]["id"]]})
+    # A: trim 1s into the source, show 1.5s; B: 2x speed for 1s at t=2.5
+    client.patch(f"/api/film/sequence/clips/{v[0]['id']}",
+                 json={"duration_s": 1.5, "trim_start_s": 1.0})
+    r = client.patch(f"/api/film/sequence/clips/{v[1]['id']}",
+                     json={"start_s": 2.5, "duration_s": 1.0, "speed": 2.0, "fade_out_s": 0.3})
+    assert r.status_code == 200, r.text
+    seq = client.get(f"/api/film/projects/{p['id']}/sequence").json()
+    assert seq["runtime_s"] == 3.5
+    res = _export(client, p["id"], quality="720p")
+    assert res["runtime_s"] == 3.5
+    assert abs(_duration(client, res["url"]) - 3.5) < 0.25
+
+
+def test_sequence_export_dissolve_keeps_timing(client, app_env):
+    """An in-place dissolve must NOT shorten the film (held-frame xfade)."""
+    p, shots = _project(client)
+    for sid in shots[:2]:
+        _import_take(client, sid, 3.0)
+    seq = _build(client, p["id"])
+    v = _clips(seq)
+    client.post(f"/api/film/projects/{p['id']}/sequence/delete-clips", json={"ids": [v[2]["id"]]})
+    # butt-join A(0..4→trim to 2) and B at 2, dissolve 0.5 between them
+    client.patch(f"/api/film/sequence/clips/{v[0]['id']}",
+                 json={"duration_s": 2.0, "transition_after": {"kind": "dissolve", "duration_s": 0.5}})
+    client.patch(f"/api/film/sequence/clips/{v[1]['id']}", json={"start_s": 2.0, "duration_s": 2.0})
+    seq = client.get(f"/api/film/projects/{p['id']}/sequence").json()
+    assert seq["runtime_s"] == 4.0
+    res = _export(client, p["id"])
+    assert res["runtime_s"] == 4.0
+    assert abs(_duration(client, res["url"]) - 4.0) < 0.25
+
+
+def test_sequence_export_mixes_audio_clips(client, app_env):
+    p, shots = _project(client)
+    _import_take(client, shots[0], 3.0)
+    client.post(f"/api/film/projects/{p['id']}/audio", data={"kind": "music"},
+                files={"file": ("m.wav", wav(2.0), "audio/wav")})
+    seq = _build(client, p["id"])
+    a = _clips(seq, "audio")[0]
+    client.patch(f"/api/film/sequence/clips/{a['id']}", json={"gain_db": -6.0, "start_s": 0.5})
+    res = _export(client, p["id"])
+    assert res["tracks"] == 1
+    # muting the audio track drops it from the mix
+    atrack = next(t for t in client.get(f"/api/film/projects/{p['id']}/sequence").json()["tracks"]
+                  if t["kind"] == "audio")
+    client.patch(f"/api/film/sequence/tracks/{atrack['id']}", json={"muted": True})
+    res2 = _export(client, p["id"], label="muted")
+    assert res2["tracks"] == 0
+
+
+def test_preview_manifest_matches_flatten(client, app_env):
+    p, shots = _project(client)
+    _import_take(client, shots[0], 3.0)
+    assert client.get(f"/api/film/projects/{p['id']}/sequence/preview").status_code == 404
+    _build(client, p["id"])
+    man = client.get(f"/api/film/projects/{p['id']}/sequence/preview").json()
+    assert man["mode"] == "sequence" and man["fps"] == 24
+    first = man["segments"][0]
+    assert first["media_url"] and first["missing"] is False
+    # top-track override: a V2 clip covering 0..2 wins over V1
+    seq = client.post(f"/api/film/projects/{p['id']}/sequence/tracks", json={"kind": "video"}).json()
+    v2 = [t for t in seq["tracks"] if t["kind"] == "video"][1]
+    take_id = first["take_id"]
+    client.post(f"/api/film/projects/{p['id']}/sequence/clips",
+                json={"track_id": v2["id"], "source_kind": "take", "take_id": take_id,
+                      "start_s": 1.0, "duration_s": 2.0})
+    man = client.get(f"/api/film/projects/{p['id']}/sequence/preview").json()
+    segs = man["segments"]
+    # V1 clip is sliced around the V2 clip
+    assert [round(s["start_s"], 1) for s in segs[:3]] == [0.0, 1.0, 3.0]
+    assert segs[1]["trim_start_s"] == 0.0     # V2 clip plays from its own head
+    assert segs[2]["trim_start_s"] == 3.0     # V1 resumes 3s into its source

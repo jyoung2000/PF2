@@ -1764,3 +1764,11 @@ def seq_redo(project_id: int, db: Session = Depends(get_db)):
 def seq_history(project_id: int, db: Session = Depends(get_db)):
     _project(db, project_id)
     return seq_svc.history(db, project_id)
+
+
+@router.get("/projects/{project_id}/sequence/preview")
+def seq_preview(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    if not seq_svc.exists(db, p.id):
+        raise HTTPException(404, "No sequence — build one from the storyboard first")
+    return seq_svc.preview_manifest(db, p)

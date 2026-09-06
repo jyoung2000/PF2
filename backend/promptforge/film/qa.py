@@ -221,6 +221,15 @@ def check_project(s: Session, project: FilmProject) -> dict:
         checks.append(_check("shot_media", "WARN", f"{len(warning)} shot(s) have media warnings."))
     else:
         checks.append(_check("shot_media", "PASS", "All selected takes pass technical checks."))
+    from . import sequence as seq_svc
+    if seq_svc.exists(s, project.id):
+        # the sequence — not the storyboard — drives export now, so shot-level
+        # media gaps inform but the sequence checks decide
+        for c in checks:
+            if c["key"] in ("missing_media", "shot_media") and c["status"] == "FAIL":
+                c["status"] = "WARN"
+                c["message"] += " (storyboard; the edited sequence drives export)"
+        checks.extend(seq_svc.qc(s, project))
     report = {"verdict": verdict(checks), "checks": checks, "per_shot": per_shot,
               "continuity": {"mode": cont["mode"], "counts": cont["counts"]}}
     report["repairs"] = repair_queue(s, project, report)

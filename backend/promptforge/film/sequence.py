@@ -82,13 +82,14 @@ def _check_overlaps(s: Session, project_id: int) -> None:
 
 
 def _check_clip(c: FilmTimelineClip) -> None:
-    if c.start_s < -EPS:
+    # before the first flush, unset columns are still None (defaults apply at INSERT)
+    if (c.start_s or 0.0) < -EPS:
         raise SequenceError("A clip cannot start before 0.")
-    if c.duration_s < MIN_CLIP_S:
+    if (c.duration_s if c.duration_s is not None else 1.0) < MIN_CLIP_S:
         raise SequenceError(f"Clip duration must be at least {MIN_CLIP_S}s.")
-    if c.trim_start_s < -EPS:
+    if (c.trim_start_s or 0.0) < -EPS:
         raise SequenceError("Trim cannot be negative.")
-    if not (SPEED_MIN <= c.speed <= SPEED_MAX):
+    if not (SPEED_MIN <= (c.speed if c.speed is not None else 1.0) <= SPEED_MAX):
         raise SequenceError(f"Speed must be between {SPEED_MIN} and {SPEED_MAX}.")
 
 
@@ -524,6 +525,163 @@ def delete_marker(s: Session, project: FilmProject, marker: FilmMarker) -> dict:
     s.delete(marker)
     s.flush()
     return sequence_dict(s, project)
+
+
+# ---------------------------------------------------------------- flatten ---
+def _source_path(s: Session, c: FilmTimelineClip) -> tuple[str | None, str | None]:
+    """(DATA_DIR-relative media path, media kind) for a clip's source."""
+    if c.source_kind == "take" and c.take_id:
+        t = s.get(FilmTake, c.take_id)
+        if t is not None and t.media_path:
+            return t.media_path, t.kind
+    elif c.source_kind == "footage" and c.footage_id:
+        f = s.get(FilmClip, c.footage_id)
+        if f is not None and f.path:
+            return f.path, f.media_type
+    elif c.source_kind == "audio" and c.audio_track_id:
+        a = s.get(FilmAudioTrack, c.audio_track_id)
+        if a is not None and a.path:
+            return a.path, "audio"
+    return None, None
+
+
+def flatten(s: Session, project: FilmProject) -> dict:
+    """Resolve the multi-track sequence into exactly what renders: a single
+    ordered list of video segments (topmost unmuted track wins; empty space
+    is black) plus the audio items to mix. Preview and export BOTH consume
+    this, so they can never disagree. Positions are literal — a segment at
+    [start, start+duration) renders there, full stop."""
+    tracks = tracks_of(s, project.id)
+    vid_tracks = [t for t in tracks if t.kind == "video"]
+    solo_v = [t for t in vid_tracks if t.solo]
+    audible_v = solo_v or [t for t in vid_tracks if not t.muted]
+    # highest position renders on top (V2 covers V1)
+    layer = {t.id: t.position for t in audible_v}
+    all_clips = clips_of(s, project.id)
+    vclips = [c for c in all_clips if c.track_id in layer]
+    runtime = max((c.start_s + c.duration_s for c in all_clips), default=0.0)
+    bounds = sorted({0.0} | {c.start_s for c in vclips} | {_round(c.start_s + c.duration_s) for c in vclips}
+                    | ({runtime} if runtime else set()))
+    segments: list[dict] = []
+    for a, b in zip(bounds, bounds[1:]):
+        if b - a < EPS:
+            continue
+        cover = [c for c in vclips if c.start_s <= a + EPS and c.start_s + c.duration_s >= b - EPS]
+        if not cover:
+            segments.append({"type": "gap", "start_s": _round(a), "duration_s": _round(b - a)})
+            continue
+        top = max(cover, key=lambda c: (layer[c.track_id], c.id))
+        offset = a - top.start_s
+        clip_end = top.start_s + top.duration_s
+        path, kind = _source_path(s, top)
+        segments.append({
+            "type": "clip", "clip_id": top.id, "shot_id": top.shot_id, "take_id": top.take_id,
+            "label": top.label, "start_s": _round(a), "duration_s": _round(b - a),
+            "path": path, "media_kind": kind, "missing": path is None,
+            "trim_start_s": _round(top.trim_start_s + offset * top.speed), "speed": top.speed,
+            "gain_db": top.gain_db, "audio_muted": top.muted,
+            # fades belong to the clip's own edges — only the visible edge keeps one
+            "fade_in_s": top.fade_in_s if abs(a - top.start_s) < EPS else 0.0,
+            "fade_out_s": top.fade_out_s if abs(b - clip_end) < EPS else 0.0,
+            "effects": top.effects or {},
+            "join_after": (top.transition_after if abs(b - clip_end) < EPS else None)})
+    # merge segments that are the same clip playing continuously (a lower-track
+    # clip ending underneath creates a boundary that changes nothing visible)
+    merged: list[dict] = []
+    for seg in segments:
+        prev = merged[-1] if merged else None
+        if (prev and seg["type"] == "clip" and prev.get("type") == "clip"
+                and prev.get("clip_id") == seg["clip_id"]
+                and abs(prev["start_s"] + prev["duration_s"] - seg["start_s"]) < EPS):
+            prev["duration_s"] = _round(prev["duration_s"] + seg["duration_s"])
+            prev["fade_out_s"] = seg["fade_out_s"]
+            prev["join_after"] = seg["join_after"]
+        elif (prev and seg["type"] == "gap" and prev.get("type") == "gap"
+                and abs(prev["start_s"] + prev["duration_s"] - seg["start_s"]) < EPS):
+            prev["duration_s"] = _round(prev["duration_s"] + seg["duration_s"])
+        else:
+            merged.append(dict(seg))
+    # a dissolve/wipe only makes sense straight into the next clip
+    for i, seg in enumerate(merged):
+        nxt = merged[i + 1] if i + 1 < len(merged) else None
+        if seg.get("join_after") and (nxt is None or nxt["type"] != "clip"):
+            j = seg["join_after"]
+            seg["join_after"] = j if (j or {}).get("kind") in ("fade_black", "fade_white") else None
+    # audio items: clips on audible audio tracks
+    aud_tracks = [t for t in tracks if t.kind == "audio"]
+    solo_a = [t for t in aud_tracks if t.solo]
+    audible_a = {t.id for t in (solo_a or [t for t in aud_tracks if not t.muted])}
+    audio: list[dict] = []
+    for c in all_clips:
+        if c.track_id not in audible_a or c.muted:
+            continue
+        path, _kind = _source_path(s, c)
+        if path is None:
+            continue
+        loop = bool((c.data or {}).get("loop"))
+        audio.append({"clip_id": c.id, "path": path, "start_s": c.start_s,
+                      "trim_start_s": c.trim_start_s,
+                      "trim_end_s": None if loop else _round(c.trim_start_s + c.duration_s * c.speed),
+                      "speed": c.speed, "gain_db": c.gain_db, "loop": loop,
+                      "fade_in_s": c.fade_in_s, "fade_out_s": c.fade_out_s,
+                      "end_s": _round(c.start_s + c.duration_s), "label": c.label})
+    settings = proj_svc.merge_settings(project.settings, None)
+    return {"mode": "sequence", "segments": merged, "audio": audio,
+            "runtime_s": _round(runtime), "fps": int(settings.get("fps") or 24),
+            "aspect_ratio": settings.get("aspect_ratio")}
+
+
+def preview_manifest(s: Session, project: FilmProject) -> dict:
+    """The flattened render plan with URLs — what the editor's player runs."""
+    fl = flatten(s, project)
+    for seg in fl["segments"]:
+        if seg.get("path"):
+            seg["media_url"] = _media_url(seg["path"])
+    for a in fl["audio"]:
+        a["media_url"] = _media_url(a["path"])
+    caption_clips = []
+    cap_tracks = {t.id for t in tracks_of(s, project.id) if t.kind == "caption" and not t.muted}
+    for c in clips_of(s, project.id):
+        if c.track_id in cap_tracks:
+            caption_clips.append({"clip_id": c.id, "start_s": c.start_s,
+                                  "end_s": _round(c.start_s + c.duration_s),
+                                  "text": (c.data or {}).get("text") or "",
+                                  "style": (c.data or {}).get("style") or {}})
+    fl["captions"] = caption_clips
+    return fl
+
+
+def qc(s: Session, project: FilmProject) -> list[dict]:
+    """Sequence-specific QC rows in the qa.check_project shape."""
+    checks: list[dict] = []
+    if not exists(s, project.id):
+        return checks
+    fl = flatten(s, project)
+    missing = [seg for seg in fl["segments"] if seg["type"] == "clip" and seg["missing"]]
+    if missing:
+        labels = ", ".join(str(seg.get("label") or seg["clip_id"]) for seg in missing[:6])
+        checks.append({"key": "sequence_media", "status": "FAIL", "heuristic": False,
+                       "message": f"{len(missing)} timeline clip(s) have no media yet ({labels}) — "
+                                  "generate/import takes or remove the clips.",
+                       "clips": [seg["clip_id"] for seg in missing]})
+    else:
+        checks.append({"key": "sequence_media", "status": "PASS", "heuristic": False,
+                       "message": "Every timeline clip has media."})
+    if not [seg for seg in fl["segments"] if seg["type"] == "clip"]:
+        checks.append({"key": "sequence_empty", "status": "FAIL", "heuristic": False,
+                       "message": "The sequence has no visible video clips."})
+    gap_total = sum(seg["duration_s"] for seg in fl["segments"] if seg["type"] == "gap")
+    if gap_total > max(2.0, 0.2 * (fl["runtime_s"] or 1)):
+        checks.append({"key": "sequence_gaps", "status": "WARN", "heuristic": True,
+                       "message": f"{gap_total:.1f}s of the sequence is empty (renders black)."})
+    orphaned = [c.id for c in clips_of(s, project.id)
+                if c.source_kind == "audio" and c.audio_track_id
+                and s.get(FilmAudioTrack, c.audio_track_id) is None]
+    if orphaned:
+        checks.append({"key": "sequence_audio", "status": "WARN", "heuristic": False,
+                       "message": f"{len(orphaned)} audio clip(s) lost their source track.",
+                       "clips": orphaned})
+    return checks
 
 
 # -------------------------------------------------------------- serialise ---

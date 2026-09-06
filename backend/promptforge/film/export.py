@@ -21,6 +21,7 @@ from . import events, gates, graphics
 from . import jobs as job_svc
 from . import projects as proj_svc
 from . import qa, storage, subtitles as sub_svc
+from . import sequence as seq_svc
 from . import takes as take_svc
 from . import timeline
 from .models import FilmJob, FilmProject, FilmShot, FilmTake
@@ -58,8 +59,18 @@ def start_export(s: Session, project: FilmProject, label: str | None = None, bur
 
 # ------------------------------------------------------------- planning ---
 def plan(s: Session, project: FilmProject) -> dict:
-    """Everything the render needs, derived from the timeline: ordered
-    segments (clips + black gaps) with per-boundary joins."""
+    """Everything the render needs. When the project has an edited sequence
+    (built in the editor) THAT is the render plan — otherwise the storyboard-
+    derived timeline is, exactly as before."""
+    if seq_svc.exists(s, project.id):
+        fl = seq_svc.flatten(s, project)
+        segments = []
+        for seg in fl["segments"]:
+            row = dict(seg)
+            row["join_after"] = seg.get("join_after")
+            segments.append(row)
+        return {"mode": "sequence", "segments": segments, "audio": fl["audio"],
+                "fps": fl["fps"], "aspect_ratio": fl["aspect_ratio"], "runtime_s": fl["runtime_s"]}
     tl = timeline.compute(s, project)
     settings = proj_svc.merge_settings(project.settings, None)
     segments: list[dict] = []
@@ -82,7 +93,8 @@ def plan(s: Session, project: FilmProject) -> dict:
                 segments.append({"type": "gap", "duration_s": gap, "join_after": {"kind": "cut", "duration_s": 0.0}})
             else:
                 segments[-1]["join_after"] = tr
-    return {"timeline": tl, "segments": segments, "fps": int(settings.get("fps") or 24),
+    return {"mode": "storyboard", "timeline": tl, "segments": segments,
+            "fps": int(settings.get("fps") or 24),
             "aspect_ratio": settings.get("aspect_ratio"), "runtime_s": tl["runtime_s"]}
 
 
@@ -101,23 +113,35 @@ def _fade_parts(seg_join_before: dict | None, seg_join_after: dict | None, durat
 
 
 def conform_clip(src: Path, dest: Path, w: int, h: int, fps: int, duration: float, fade_in: float = 0.0,
-                 fade_out: float = 0.0, fade_color: str = "black", is_image: bool = False) -> Path:
+                 fade_out: float = 0.0, fade_color: str = "black", is_image: bool = False,
+                 src_start: float = 0.0, speed: float = 1.0, hold_extra: float = 0.0) -> Path:
     """Scale+pad to the frame, conform fps, force the exact duration
     (trim, or hold the last frame), apply fades; video only (audio is mixed
-    separately)."""
+    separately). `src_start`/`speed` implement clip trim + retime;
+    `hold_extra` appends that many held-last-frame seconds AFTER the fades
+    (used by in-place dissolves, which never shift timing)."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     if is_image:
         graphics.still_video(src, dest.with_suffix(".still.mp4"), duration, None, fps, size=(w, h))
         src = dest.with_suffix(".still.mp4")
-    vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,"
-          f"fps={fps},tpad=stop_mode=clone:stop_duration={duration + 1:.3f},trim=duration={duration:.3f},setpts=PTS-STARTPTS")
+        src_start, speed = 0.0, 1.0
+    total = duration + max(0.0, hold_extra)
+    vf = ""
+    if speed and abs(speed - 1.0) > 1e-6:
+        vf += f"setpts=(PTS-STARTPTS)/{speed:.4f},"
+    vf += (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,"
+           f"fps={fps},tpad=stop_mode=clone:stop_duration={total + 1:.3f},trim=duration={total:.3f},setpts=PTS-STARTPTS")
     if fade_in > 0:
         vf += f",fade=t=in:st=0:d={fade_in:.3f}:color={fade_color}"
     if fade_out > 0:
         vf += f",fade=t=out:st={max(0.0, duration - fade_out):.3f}:d={fade_out:.3f}:color={fade_color}"
     vf += ",format=yuv420p"
-    media._run(["ffmpeg", "-y", "-v", "error", "-i", str(src), "-vf", vf, "-an", "-r", str(fps),
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(dest)], timeout=1800)
+    cmd = ["ffmpeg", "-y", "-v", "error"]
+    if src_start > 1e-6:
+        cmd += ["-ss", f"{src_start:.3f}"]
+    cmd += ["-i", str(src), "-vf", vf, "-an", "-r", str(fps),
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(dest)]
+    media._run(cmd, timeout=1800)
     if is_image:
         src.unlink(missing_ok=True)
     return dest
@@ -131,15 +155,18 @@ def black_clip(dest: Path, w: int, h: int, fps: int, duration: float) -> Path:
 
 
 def join_video(clips: list[dict], dest: Path, fps: int) -> Path:
-    """clips: [{path, duration_s, join_after}] → one video. Cut/fade joins
-    concat inside a group; dissolve/wipe joins xfade between groups."""
+    """clips: [{path, duration_s, join_after, extended_s?}] → one video.
+    Cut/fade joins concat inside a group; dissolve/wipe joins xfade between
+    groups. A clip carrying `extended_s` was rendered that much longer
+    (held last frame) so the xfade consumes the extension instead of the
+    timeline — total duration stays exact (sequence exports)."""
     groups: list[list[dict]] = [[]]
     joins: list[dict] = []
     for c in clips:
         groups[-1].append(c)
         j = c.get("join_after") or {"kind": "cut"}
         if j.get("kind") in XFADE and float(j.get("duration_s") or 0) > 0:
-            joins.append(j)
+            joins.append({**j, "_ext": float(c.get("extended_s") or 0.0)})
             groups.append([])
     if not groups[-1]:
         groups.pop()
@@ -164,10 +191,12 @@ def join_video(clips: list[dict], dest: Path, fps: int) -> Path:
     for gi in range(1, len(labels)):
         j = joins[gi - 1]
         d = float(j.get("duration_s") or 0)
+        ext = min(float(j.get("_ext") or 0.0), d)
         nxt, nxt_len = labels[gi]
         out = f"[x{gi}]"
-        filters.append(f"{cur}{nxt}xfade=transition={XFADE[j['kind']]}:duration={d:.3f}:offset={max(0.0, cur_len - d):.3f}{out}")
-        cur, cur_len = out, cur_len + nxt_len - d
+        offset = max(0.0, cur_len - d + ext)
+        filters.append(f"{cur}{nxt}xfade=transition={XFADE[j['kind']]}:duration={d:.3f}:offset={offset:.3f}{out}")
+        cur, cur_len = out, offset + nxt_len
     dest.parent.mkdir(parents=True, exist_ok=True)
     media._run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", ";".join(filters), "-map", cur,
                 "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
@@ -191,6 +220,9 @@ def _audio_graph(tracks: list[dict], clip_audio: list[dict], runtime: float) -> 
         if trim_end is not None:
             f += f":end={float(trim_end):.3f}"
         f += ",asetpts=PTS-STARTPTS"
+        sp = float(t.get("speed") or 1.0)
+        if abs(sp - 1.0) > 1e-6:
+            f += _atempo(sp)
         if t.get("loop"):
             f += f",aloop=loop=-1:size=2e9,atrim=duration={max(0.1, runtime - start):.3f}"
         gain = float(t.get("gain_db") or 0)
@@ -207,6 +239,20 @@ def _audio_graph(tracks: list[dict], clip_audio: list[dict], runtime: float) -> 
         n += 1
     chains.append("".join(labels) + f"amix=inputs={len(labels)}:duration=first:normalize=0,atrim=duration={runtime:.3f}[aout]")
     return inputs, ";".join(chains)
+
+
+def _atempo(speed: float) -> str:
+    """atempo chain for any retime factor (each stage stays in [0.5, 2])."""
+    parts = []
+    sp = max(0.05, min(20.0, speed))
+    while sp > 2.0:
+        parts.append("atempo=2.0")
+        sp /= 2.0
+    while sp < 0.5:
+        parts.append("atempo=0.5")
+        sp *= 2.0
+    parts.append(f"atempo={sp:.4f}")
+    return "," + ",".join(parts)
 
 
 def _subtitle_style(style: dict) -> str:
@@ -238,43 +284,72 @@ def run_export(job_id: int) -> dict:
         clips: list[dict] = []
         total = len(segments)
         job_svc.set_progress(job_id, total=total + 2)
+        is_seq = pl.get("mode") == "sequence"
         prev_join = None
         t_cursor = 0.0
         done = set(job_svc.done_items(job_id))
+
+        def _seg_src(seg):
+            if is_seq:
+                return take_svc.abs_path(seg.get("path")), (seg.get("media_kind") == "image")
+            take = s.get(FilmTake, seg["take_id"]) if seg.get("take_id") else None
+            src = take_svc.abs_path(take.media_path) if take else None
+            return src, bool(take and take.kind == "image")
+
+        def _seg_audio(seg, src, dur, at_s):
+            if src is None or not payload.get("include_audio", True):
+                return
+            if is_seq and seg.get("audio_muted"):
+                return
+            if not (qa.probe(src) or {}).get("audio"):
+                return
+            sp = float(seg.get("speed") or 1.0) if is_seq else 1.0
+            trim0 = float(seg.get("trim_start_s") or 0.0) if is_seq else 0.0
+            clip_audio.append({"path": src, "start_s": at_s, "trim_start_s": trim0,
+                               "trim_end_s": trim0 + dur * sp, "speed": sp,
+                               "gain_db": float(seg.get("gain_db") or 0.0) if is_seq else 0.0,
+                               "fade_in_s": float(seg.get("fade_in_s") or 0.0) if is_seq else 0.0,
+                               "fade_out_s": float(seg.get("fade_out_s") or 0.0) if is_seq else 0.0,
+                               "end_s": at_s + dur})
+
         for i, seg in enumerate(segments):
             job_svc.check_stop(job_id)
             out = work / f"seg{i:03d}.mp4"
             dur = float(seg["duration_s"])
             fin, fout, color = _fade_parts(prev_join, seg.get("join_after"), dur)
+            if is_seq and seg["type"] == "clip":
+                fin = max(fin, float(seg.get("fade_in_s") or 0.0))
+                fout = max(fout, float(seg.get("fade_out_s") or 0.0))
+            j_after = seg.get("join_after") or {}
+            hold = float(j_after.get("duration_s") or 0) \
+                if is_seq and j_after.get("kind") in XFADE else 0.0
             key = f"seg{i}"
             if key not in done or not out.exists():
                 job_svc.set_progress(job_id, current=f"conforming {seg.get('label') or 'gap'}")
                 if seg["type"] == "gap":
-                    black_clip(out, w, h, fps, dur)
+                    black_clip(out, w, h, fps, dur + hold)
                 else:
-                    take = s.get(FilmTake, seg["take_id"]) if seg.get("take_id") else None
-                    src = take_svc.abs_path(take.media_path) if take else None
+                    src, is_image = _seg_src(seg)
                     if src is None:
                         if not payload.get("force"):
-                            raise ExportError(f"Shot {seg['label']} has no media — generate or import a take first.")
-                        black_clip(out, w, h, fps, dur)
+                            raise ExportError(f"{'Clip' if is_seq else 'Shot'} {seg.get('label') or '?'} has "
+                                              "no media — generate or import a take first.")
+                        black_clip(out, w, h, fps, dur + hold)
                     else:
-                        is_image = take.kind == "image" or src.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
-                        conform_clip(src, out, w, h, fps, dur, fin, fout, color, is_image=is_image)
-                        info = qa.probe(src) or {}
-                        if info.get("audio") and payload.get("include_audio", True):
-                            clip_audio.append({"path": src, "start_s": t_cursor, "trim_start_s": 0.0,
-                                               "trim_end_s": dur, "gain_db": 0.0, "end_s": t_cursor + dur})
+                        is_image = is_image or src.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+                        conform_clip(src, out, w, h, fps, dur, fin, fout, color, is_image=is_image,
+                                     src_start=float(seg.get("trim_start_s") or 0.0) if is_seq else 0.0,
+                                     speed=float(seg.get("speed") or 1.0) if is_seq else 1.0,
+                                     hold_extra=hold)
+                        _seg_audio(seg, src, dur, t_cursor)
                 job_svc.checkpoint(job_id, key, current=seg.get("label"))
             elif seg["type"] == "clip":
-                take = s.get(FilmTake, seg["take_id"]) if seg.get("take_id") else None
-                src = take_svc.abs_path(take.media_path) if take else None
-                if src is not None and (qa.probe(src) or {}).get("audio") and payload.get("include_audio", True):
-                    clip_audio.append({"path": src, "start_s": t_cursor, "trim_start_s": 0.0, "trim_end_s": dur,
-                                       "gain_db": 0.0, "end_s": t_cursor + dur})
-            clips.append({"path": out, "duration_s": dur, "join_after": seg.get("join_after")})
-            j_after = seg.get("join_after") or {}
-            overlap = float(j_after.get("duration_s") or 0) if j_after.get("kind") in XFADE else 0.0
+                src, _img = _seg_src(seg)
+                _seg_audio(seg, src, dur, t_cursor)
+            clips.append({"path": out, "duration_s": dur, "join_after": seg.get("join_after"),
+                          "extended_s": hold})
+            overlap = 0.0 if is_seq else (float(j_after.get("duration_s") or 0)
+                                          if j_after.get("kind") in XFADE else 0.0)
             t_cursor += dur - overlap
             prev_join = seg.get("join_after")
         job_svc.check_stop(job_id)
@@ -284,10 +359,16 @@ def run_export(job_id: int) -> dict:
         runtime = float(pl["runtime_s"]) or (qa.probe(video) or {}).get("duration") or 1.0
         tracks = []
         if payload.get("include_audio", True):
-            for t in audio_svc.mix_plan(s, project)["tracks"]:
-                p = take_svc.abs_path(next((x.path for x in audio_svc.tracks_of(s, project.id) if x.id == t["id"]), None))
-                if p is not None:
-                    tracks.append({**t, "path": p})
+            if is_seq:
+                for a in pl["audio"]:
+                    p = take_svc.abs_path(a.get("path"))
+                    if p is not None:
+                        tracks.append({**a, "path": p})
+            else:
+                for t in audio_svc.mix_plan(s, project)["tracks"]:
+                    p = take_svc.abs_path(next((x.path for x in audio_svc.tracks_of(s, project.id) if x.id == t["id"]), None))
+                    if p is not None:
+                        tracks.append({**t, "path": p})
         label = (payload.get("label") or datetime.now(timezone.utc).strftime("export-%Y%m%d-%H%M%S"))
         safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in label)[:60] or "export"
         final_rel = storage.project_rel(project.id, "exports", f"{safe}.mp4")
