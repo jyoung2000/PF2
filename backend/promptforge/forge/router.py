@@ -85,9 +85,23 @@ def recommend(s: Session, intent: dict, family: str | None = None,
                 "history": _history(s, offer["provider"], fam),
             })
     if not cands:
+        # be specific: a model can be *known* (intelligence entry) without any
+        # provider selling it — that is a different problem from a typo
+        known = entries.get(family) if family else None
+        if known is not None:
+            detail = (f"{known['display_name']} is in the model catalog but no provider "
+                      "offers it here" +
+                      (f" — {known['deprecation']}" if known.get("deprecation") else
+                       ". Add an offer for it under Settings → AI providers → model catalog, "
+                       "or pick a model with a connected provider."))
+        elif family:
+            detail = (f"'{family}' is not in the model catalog — check the name, or add it "
+                      "under Settings → AI providers.")
+        else:
+            detail = "No catalog offer matches — check the model catalog in Settings."
         return {"intent": intent, "recommended": None, "alternatives": [], "candidates": [],
                 "policy": "explicit" if family or provider else "ranked",
-                "unsupported": "No catalog offer matches — check the model catalog in Settings."}
+                "unsupported": detail}
 
     ests = [c["estimate"] for c in cands if c["estimate"] is not None]
     lo, hi = (min(ests), max(ests)) if ests else (0.0, 0.0)
@@ -130,6 +144,11 @@ def recommend(s: Session, intent: dict, family: str | None = None,
             unsupported.append(v["message"])
 
         sc["quality"] = float(meta.get("quality_prior") or 0.6)
+        if meta.get("deprecation"):
+            unsupported.append(meta["deprecation"])
+            sc["quality"] *= 0.6            # ranked down, never hidden
+        if meta.get("api_available") is False:
+            unsupported.append("this model has no public API — shown for comparison only")
         h = c["history"]
         if h["attempts"] >= MIN_HISTORY:
             sc["reliability"] = float(h["success_rate"])
@@ -178,6 +197,10 @@ def recommend(s: Session, intent: dict, family: str | None = None,
         c["basis"] = basis
         c["unsupported_constraints"] = unsupported
         c["prompt_recommendation"] = meta["prompt"]
+        c["provenance"] = {"confidence": meta.get("confidence"),
+                           "source_urls": meta.get("source_urls") or [],
+                           "evidence": meta.get("evidence"),
+                           "last_verified": meta.get("last_verified")}
         c["parameter_recommendations"] = {
             **{v["param"]: v.get("nearest") or v.get("supported") for v in violations},
             **({"duration_s": c["check"]["params"]["duration_s"]}

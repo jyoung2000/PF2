@@ -71,3 +71,39 @@ def test_registry_endpoint_merges_offers_and_connection(client):
     client.put("/api/forge/models/kling", json={"latency_class": "fast"})
     assert client.get("/api/forge/models/kling").json()["latency_class"] == "fast"
     assert client.get("/api/forge/models/nope").status_code == 404
+
+
+def test_every_entry_carries_provenance(app_env):
+    """Phase 2: facts must say where they came from and how sure we are."""
+    fams = catalog.load_families()
+    for key, e in fams.items():
+        assert e["confidence"] is not None, f"{key} has no confidence"
+        assert 0 <= e["confidence"] <= 1
+        assert e["evidence"], f"{key} has no evidence note"
+        assert e["id"] == key
+    # upstream-sourced entries cite the repository they came from
+    sourced = {k: e for k, e in fams.items() if e["source_urls"]}
+    assert len(sourced) >= 10
+    assert all(u.startswith("https://github.com/") for e in sourced.values()
+               for u in e["source_urls"])
+    # phase-1 seed entries are honestly marked as lower confidence
+    assert fams["flux"]["confidence"] < fams["sora"]["confidence"]
+
+
+def test_deprecated_models_are_ranked_down_but_never_hidden(client):
+    r = client.post("/api/forge/route", json={"brief": "a 10 second cinematic video"}).json()
+    by_family = {c["family"]: c for c in r["candidates"]}
+    if "sora" in by_family:                       # only if it ranks into the top N
+        assert any("sunset" in u for u in by_family["sora"]["unsupported_constraints"])
+    # the deprecation is on the entry either way, and routing exposes provenance
+    entry = client.get("/api/forge/models/sora").json()
+    assert entry["deprecation"] and "2026-09-24" in entry["deprecation"]
+    assert r["recommended"]["provenance"]["confidence"] is not None
+    # a model that is *known* but that no provider sells says exactly that,
+    # and repeats the deprecation — the requirement is never silently dropped
+    forced = client.post("/api/forge/route", json={"brief": "a video", "family": "sora"}).json()
+    assert forced["recommended"] is None
+    assert "no provider offers it here" in forced["unsupported"]
+    assert "2026-09-24" in forced["unsupported"]
+    typo = client.post("/api/forge/route", json={"brief": "a video", "family": "sorra"}).json()
+    assert "not in the model catalog" in typo["unsupported"]

@@ -70,7 +70,14 @@
     "sdxl"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "flux",
+   "canonical_name": "Flux.1 Dev",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "flux-pro": {
    "display_name": "Flux.1 Pro / Kontext",
@@ -137,7 +144,14 @@
     "flux"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "flux-pro",
+   "canonical_name": "Flux.1 Pro / Kontext",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "sdxl": {
    "display_name": "SDXL",
@@ -206,7 +220,14 @@
     "flux"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "sdxl",
+   "canonical_name": "SDXL",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "sd3": {
    "display_name": "Stable Diffusion 3.5",
@@ -271,7 +292,14 @@
     "flux"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "sd3",
+   "canonical_name": "Stable Diffusion 3.5",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "seedream": {
    "display_name": "Seedream",
@@ -340,7 +368,14 @@
     "qwen-image"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "seedream",
+   "canonical_name": "Seedream",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "qwen-image": {
    "display_name": "Qwen-Image",
@@ -397,7 +432,14 @@
     "sd3"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "qwen-image",
+   "canonical_name": "Qwen-Image",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "ideogram": {
    "display_name": "Ideogram",
@@ -462,7 +504,14 @@
     "qwen-image"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "ideogram",
+   "canonical_name": "Ideogram",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "recraft": {
    "display_name": "Recraft V3",
@@ -519,7 +568,14 @@
     "ideogram"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "recraft",
+   "canonical_name": "Recraft V3",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "kling": {
    "display_name": "Kling",
@@ -586,7 +642,14 @@
     "hailuo"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "kling",
+   "canonical_name": "Kling",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "wan": {
    "display_name": "Wan",
@@ -652,7 +715,14 @@
     "ltx-video"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "wan",
+   "canonical_name": "Wan",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "veo": {
    "display_name": "Veo",
@@ -717,7 +787,14 @@
     "wan"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "veo",
+   "canonical_name": "Veo",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "hailuo": {
    "display_name": "Hailuo / MiniMax",
@@ -781,7 +858,14 @@
     "wan"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "hailuo",
+   "canonical_name": "Hailuo / MiniMax",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "seedance": {
    "display_name": "Seedance",
@@ -849,7 +933,14 @@
     "hailuo"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "seedance",
+   "canonical_name": "Seedance",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "ltx-video": {
    "display_name": "LTX-Video",
@@ -913,7 +1004,14 @@
     "wan"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "ltx-video",
+   "canonical_name": "LTX-Video",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
   },
   "hunyuan": {
    "display_name": "Hunyuan Video",
@@ -977,7 +1075,758 @@
     "kling"
    ],
    "last_verified": "2026-09-06",
-   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json",
+   "id": "hunyuan",
+   "canonical_name": "Hunyuan Video",
+   "api_available": true,
+   "deprecation": null,
+   "source_urls": [],
+   "evidence": "seeded from general model knowledge at ship time; not cross-checked against a published source",
+   "confidence": 0.4
+  },
+  "gpt-image": {
+   "id": "gpt-image",
+   "canonical_name": "GPT Image 2",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "editing"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.95,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": [
+    "up to 2K"
+   ],
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": true,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (OpenAI)",
+   "commercial_use": "per OpenAI terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "plain descriptive language; renders in-image text reliably"
+   },
+   "strengths": [
+    "top-ranked overall image quality",
+    "multilingual text rendering",
+    "editing"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "flux-pro",
+    "seedream"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "GPT Image 2",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-image-models"
+   ],
+   "evidence": "listed as best overall quality (Artificial Analysis Text-to-Image Arena Elo 1370), ~$0.09/image, APIs: OpenAI, MuAPI"
+  },
+  "nano-banana": {
+   "id": "nano-banana",
+   "canonical_name": "Nano Banana Pro",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "editing",
+    "reference_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.92,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": [
+    "up to 4K"
+   ],
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": true,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (Google)",
+   "commercial_use": "per Google terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "coherent local edits",
+    "character identity across generations",
+    "4K"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "gpt-image",
+    "flux-pro"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Nano Banana Pro",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-image-models"
+   ],
+   "evidence": "listed for 4K/editing/character consistency, ~$0.12/image, APIs: Gemini, Fal, Replicate, MuAPI"
+  },
+  "z-image": {
+   "id": "z-image",
+   "canonical_name": "Z-Image Turbo",
+   "modality": "image",
+   "tasks": [
+    "text_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.72,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "Apache-2.0",
+   "commercial_use": "yes (Apache-2.0)",
+   "local_hardware": "consumer GPU class \u2014 verify VRAM against the model card",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "price/quality sweet spot",
+    "top open-weights arena rank"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "sdxl",
+    "flux"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Z-Image Turbo",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-image-models"
+   ],
+   "evidence": "listed as the open-weights price/quality pick, Apache-2.0, ~$0.007/image"
+  },
+  "ideogram-character": {
+   "id": "ideogram-character",
+   "canonical_name": "Ideogram Character",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "reference_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": null,
+   "quality_prior": 0.85,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": null,
+   "commercial_use": null,
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "in-image text",
+    "photorealistic character reference"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "ideogram",
+    "nano-banana"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Ideogram Character",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-image-models"
+   ],
+   "evidence": "listed for in-image text + character reference, ~$0.15/image, APIs: Ideogram, Fal, Replicate, MuAPI"
+  },
+  "imagen": {
+   "id": "imagen",
+   "canonical_name": "Imagen 4 Ultra",
+   "modality": "image",
+   "tasks": [
+    "text_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.9,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (Google)",
+   "commercial_use": "per Google terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "photorealism",
+    "prompt adherence"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "gpt-image",
+    "flux-pro"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Imagen 4 Ultra",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-image-models"
+   ],
+   "evidence": "listed for photorealism/prompt adherence, ~$0.06/image, APIs: Gemini/Vertex, MuAPI"
+  },
+  "seedance-25": {
+   "id": "seedance-25",
+   "canonical_name": "Seedance 2.5",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video",
+    "reference_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image",
+    "video",
+    "audio"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.95,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "4:3",
+    "3:4",
+    "16:9",
+    "9:16",
+    "21:9"
+   ],
+   "resolutions": [
+    "480p",
+    "720p",
+    "1080p",
+    "4k"
+   ],
+   "max_duration_s": 30,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": true,
+    "audio": true,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (ByteDance)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "describe the shot sequence; supports first/last frame and omni references"
+   },
+   "strengths": [
+    "multimodal references (up to 50)",
+    "multi-scene continuity",
+    "audio+video in one pass"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "seedance",
+    "kling"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Seedance 2.5",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed as best overall video quality, ~$0.05-0.25/sec by resolution, 4K/up to 30s, 50 refs"
+  },
+  "veo-31": {
+   "id": "veo-31",
+   "canonical_name": "Veo 3.1",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.95,
+   "context_window": null,
+   "aspect_ratios": [
+    "16:9",
+    "9:16"
+   ],
+   "resolutions": [
+    "1080p",
+    "4k"
+   ],
+   "max_duration_s": 8,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": true,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (Google)",
+   "commercial_use": "per Google terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "realism",
+    "native audio",
+    "scene consistency"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "veo",
+    "seedance-25"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Veo 3.1",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed at $0.15 Fast / $0.40 Quality per sec, 1080p/4K, ~8s, APIs: Gemini, MuAPI"
+  },
+  "sora": {
+   "id": "sora",
+   "canonical_name": "Sora 2",
+   "modality": "video",
+   "tasks": [
+    "text_to_video"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.9,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": [
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 25,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (OpenAI)",
+   "commercial_use": "per OpenAI terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "coherence",
+    "long shots"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "veo-31",
+    "seedance-25"
+   ],
+   "api_available": true,
+   "deprecation": "Upstream catalogue records the API sunsetting on 2026-09-24 \u2014 do not build new work against it without re-checking.",
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Sora 2",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed at $0.10 Std / $0.30-0.50 Pro per sec, <=25s, with an API sunset date of 2026-09-24"
+  },
+  "kling-3": {
+   "id": "kling-3",
+   "canonical_name": "Kling v3.0",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video",
+    "reference_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.9,
+   "context_window": null,
+   "aspect_ratios": [
+    "16:9",
+    "9:16",
+    "1:1"
+   ],
+   "resolutions": [
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": true,
+    "audio": true,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": null,
+   "commercial_use": null,
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "motion",
+    "prompt adherence",
+    "camera control endpoint"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "kling",
+    "seedance-25"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Kling v3.0",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed at ~$0.10/sec (up to $0.20 with audio), 1080p, 5-10s; Omni + Pro Motion Control variants"
+  },
+  "runway": {
+   "id": "runway",
+   "canonical_name": "Runway Gen-4.5 / Aleph",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video",
+    "video_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image",
+    "video"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.88,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": [
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (Runway)",
+   "commercial_use": "per Runway terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "video-to-video editing",
+    "performance transfer (Act-Two)"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "seedance-25",
+    "kling-3"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "Runway Gen-4.5 / Aleph",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed as best video-to-video editing, $0.12/sec (Turbo $0.05), 1080p ~10s, APIs: Runway, MuAPI"
+  },
+  "pixverse": {
+   "id": "pixverse",
+   "canonical_name": "PixVerse V6",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.7,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": [
+    "360p",
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 8,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": true,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": null,
+   "commercial_use": null,
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "price scales with resolution",
+    "low-cost tiers"
+   ],
+   "weaknesses": [],
+   "fallback_families": [
+    "wan",
+    "seedance"
+   ],
+   "api_available": true,
+   "deprecation": null,
+   "last_verified": "2026-09-06",
+   "confidence": 0.6,
+   "source": "upstream catalogue (reference, not authority) \u2014 verify before commercial use",
+   "display_name": "PixVerse V6",
+   "source_urls": [
+    "https://github.com/Anil-matcha/awesome-ai-video-models"
+   ],
+   "evidence": "listed $0.033 (360p, no audio) to $0.150 (1080p, with audio), 1080p ~5-8s"
   }
  }
 }

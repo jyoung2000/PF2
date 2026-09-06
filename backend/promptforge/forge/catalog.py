@@ -38,6 +38,7 @@ SUPPORT_FLAGS = ("reference_images", "image_to_image", "image_to_video",
 
 def _defaults() -> dict:
     return {
+        "id": None, "canonical_name": None,
         "display_name": None, "modality": "image", "tasks": [],
         "input_types": ["text"], "output_types": ["image"],
         "availability": "cloud", "free_tier": None, "latency_class": None,
@@ -48,6 +49,9 @@ def _defaults() -> dict:
         "prompt": {"style": "natural_language", "camera_language": False,
                    "max_terms": None, "notes": None},
         "strengths": [], "weaknesses": [], "fallback_families": [],
+        "api_available": None, "deprecation": None,
+        # provenance (Phase 2): where a fact came from and how much to trust it
+        "source_urls": [], "evidence": None, "confidence": None,
         "last_verified": None, "source": None,
     }
 
@@ -140,6 +144,8 @@ def registry(s: Session, modality: str | None = None) -> list[dict]:
         p_entry = price_cat.get(family) or {}
         if not meta.get("display_name"):
             meta = {**meta, "display_name": display_family(family)}
+        if not meta.get("id"):
+            meta = {**meta, "id": family}
         if family in price_cat and family not in families:
             meta = {**meta, "modality": p_entry.get("kind", "image")}
         if modality and meta["modality"] != modality:
