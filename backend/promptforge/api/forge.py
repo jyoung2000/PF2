@@ -229,3 +229,100 @@ def refine_run(run_id: int, body: dict = Body(default={})):
             return out
     except experiments.LabError as e:
         raise HTTPException(404, str(e))
+
+
+# ---------------------------------------------------------- creative plans ---
+@router.post("/plans")
+def create_plan(body: dict = Body(...)):
+    from ..forge import planner
+    brief = str(body.get("brief") or "").strip()
+    if not brief:
+        raise HTTPException(422, "brief is required")
+    with session_scope() as s:
+        plan = planner.create_plan(s, brief, name=body.get("name"),
+                                   use_llm=bool(body.get("use_llm")))
+        s.commit()
+        return planner.plan_view(s, plan.id)
+
+
+@router.get("/plans")
+def list_plans():
+    from sqlalchemy import select
+    from ..forge.models import CreativePlan, PlanAsset
+    with session_scope() as s:
+        out = []
+        for p in s.execute(select(CreativePlan).order_by(CreativePlan.id.desc())).scalars():
+            n = s.query(PlanAsset).filter_by(plan_id=p.id).count()
+            out.append({"id": p.id, "name": p.name, "brief": p.brief, "status": p.status,
+                        "asset_count": n,
+                        "created_at": p.created_at.isoformat() if p.created_at else None})
+        return {"plans": out}
+
+
+@router.get("/plans/{plan_id}")
+def get_plan(plan_id: int):
+    from ..forge import planner
+    try:
+        with session_scope() as s:
+            return planner.plan_view(s, plan_id)
+    except planner.PlanError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.patch("/plans/{plan_id}/assets/{asset_id}")
+def edit_plan_asset(plan_id: int, asset_id: int, body: dict = Body(...)):
+    from ..forge import planner
+    from ..forge.models import PlanAsset
+    with session_scope() as s:
+        a = s.get(PlanAsset, asset_id)
+        if a is None or a.plan_id != plan_id:
+            raise HTTPException(404, "asset not found in this plan")
+        for key in ("purpose", "prompt", "family", "provider", "locked", "order"):
+            if key in body:
+                setattr(a, key, body[key])
+        if "params" in body and isinstance(body["params"], dict):
+            a.params = {**(a.params or {}), **body["params"]}
+        if "depends_on" in body and isinstance(body["depends_on"], list):
+            a.depends_on = [int(x) for x in body["depends_on"]]
+        s.commit()
+        return planner.plan_view(s, plan_id)
+
+
+@router.post("/plans/{plan_id}/assets/{asset_id}/run")
+def run_plan_asset(plan_id: int, asset_id: int, body: dict = Body(default={})):
+    from ..forge import planner, tools
+    try:
+        with session_scope() as s:
+            job = planner.run_asset(s, asset_id,
+                                    allow_fallback=bool(body.get("allow_fallback")))
+            s.commit()
+            return job
+    except planner.PlanError as e:
+        raise HTTPException(409, str(e))
+    except tools.ToolError as e:
+        raise HTTPException(409, detail=e.detail)
+
+
+@router.post("/plans/{plan_id}/run")
+def run_plan(plan_id: int, body: dict = Body(default={})):
+    from ..forge import planner
+    try:
+        with session_scope() as s:
+            out = planner.run_plan(s, plan_id, only_failed=bool(body.get("only_failed")),
+                                   allow_fallback=bool(body.get("allow_fallback")))
+            s.commit()
+            return out
+    except planner.PlanError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/plans/{plan_id}/fork")
+def fork_plan(plan_id: int):
+    from ..forge import planner
+    try:
+        with session_scope() as s:
+            clone = planner.fork_plan(s, plan_id)
+            s.commit()
+            return planner.plan_view(s, clone.id)
+    except planner.PlanError as e:
+        raise HTTPException(404, str(e))
