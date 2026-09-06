@@ -241,3 +241,44 @@ def test_post_intel_view_and_manual_enrichment_enqueue(app_env, client):
     assert e["stage"] == "enrich" and e["state"] == "queued"
     assert client.post(f"/api/inspiration/enrichment/{pid}/run?stage=nope").status_code == 422
     assert client.get(f"/api/inspiration/enrichment/{pid}").json()["enrichment"]["comments"]
+
+
+# ------------------------------------------- I15: the new search qualifiers --
+def test_source_confidence_and_research_qualifiers(app_env, client):
+    """`source:` reads better than `platform:`, `confidence:` filters on the
+    prompt assertion PF2 actually recorded, and `research:` scopes a search to
+    one job's results — a stale job id matches nothing, never errors."""
+    from promptforge.intel import query as iquery
+    from promptforge.models import ResearchJob
+
+    sure = seed_post(platform="reddit", prompt="a certain prompt",
+                     prompt_source="explicit_caption",
+                     assertions={"prompt": {"value": "a certain prompt", "source": "extracted",
+                                            "confidence": 0.95}})
+    unsure = seed_post(platform="reddit", prompt="a shaky prompt",
+                       prompt_source="deterministic_inference",
+                       assertions={"prompt": {"value": "a shaky prompt", "source": "extracted",
+                                              "confidence": 0.4}})
+    elsewhere = seed_post(platform="bluesky", prompt="somewhere else")
+    with db_mod.session_scope() as s:
+        job = ResearchJob(query="kling", status="complete", sources=["reddit"],
+                          result_post_ids=[sure, elsewhere])
+        s.add(job)
+        s.flush()
+        job_id = job.id
+
+    def ids(q: str) -> set[int]:
+        r = client.get("/api/inspiration/search", params={"q": q})
+        assert r.status_code == 200, r.text
+        return {i["id"] for i in r.json()["items"]}
+
+    assert ids("source:reddit") == {sure, unsure}
+    assert ids("source:reddit") == ids("platform:reddit")   # a readable alias
+    assert ids("confidence:>0.8") == {sure}
+    assert ids("confidence:<0.5") == {unsure}
+    assert ids(f"research:{job_id}") == {sure, elsewhere}
+    assert ids(f"research:{job_id} source:reddit") == {sure}
+    assert ids("research:999999") == set()                 # stale id, not an error
+    assert iquery.parse("confidence:9").ignored == ["confidence:9"]
+    assert client.get("/api/inspiration/search",
+                      params={"q": "research:nope"}).json()["ignored"] == ["research:nope"]

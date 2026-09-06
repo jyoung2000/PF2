@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrowserIntelCard } from '../components/BrowserIntelCard'
 import { BaserowCard, DiscordCard } from '../components/IntegrationCards'
 import { KnowledgeCard } from '../components/KnowledgeCard'
 import { ProvidersCard } from '../components/ProvidersCard'
@@ -228,6 +229,7 @@ function IntegrationsSections({
   return (
     <>
       <SocialAccountsCard settings={settings} save={save} />
+      <BrowserIntelCard settings={settings} save={save} />
       <KnowledgeCard settings={settings} save={save} />
       <ProvidersCard settings={settings} save={save} />
       <CompanionCard settings={settings} save={save} />

@@ -2,10 +2,33 @@ import { useEffect, useRef, useState } from 'react'
 import { getSuggestions, Suggestions } from '../api'
 import { useDebounced, useDismiss } from '../lib/hooks'
 
+/** Search qualifiers the backend understands (intel/query.py). Shown as
+ *  completions the moment the user types a `word:` prefix, so the syntax is
+ *  discoverable instead of documented somewhere else. */
+const QUALIFIERS: { token: string; hint: string }[] = [
+  { token: 'model:', hint: 'flux, kling, veo…' },
+  { token: 'tag:', hint: 'your own tags' },
+  { token: 'source:', hint: 'reddit, bluesky, civitai, x…' },
+  { token: 'creator:', hint: 'a handle' },
+  { token: 'has:', hint: 'prompt | workflow | video | image | metadata | comments' },
+  { token: 'prompt_source:', hint: 'explicit | assembled | ai | embedded_metadata…' },
+  { token: 'confidence:', hint: '>0.8 — how sure PF2 is of the prompt' },
+  { token: 'technique:', hint: 'a technique slug' },
+  { token: 'camera:', hint: '35mm, close-up, low-angle' },
+  { token: 'ai:', hint: 'true | false | uncertain' },
+  { token: 'model_source:', hint: 'explicit | metadata | inferred | ai' },
+  { token: 'engagement:', hint: '>1000' },
+  { token: 'inspiration:', hint: '>80' },
+  { token: 'after:', hint: 'YYYY-MM-DD' },
+  { token: 'before:', hint: 'YYYY-MM-DD' },
+  { token: 'research:', hint: 'a research job id' },
+  { token: 'sort:', hint: 'inspiration | engagement | newest | oldest' },
+]
+
 export function SearchBar({
   value,
   onChange,
-  placeholder = 'Search prompts, models, tags…  (try  model:flux  or  tag:cyberpunk)',
+  placeholder = 'Search prompts, models, tags…  (try  model:flux,  has:workflow  or  prompt_source:explicit)',
   autoFocus = false,
 }: {
   value: string
@@ -40,6 +63,13 @@ export function SearchBar({
       live = false
     }
   }, [text, open])
+
+  // qualifier completions: only while typing the KEY, never mid-value
+  const lastWord = text.split(/\s+/).pop() ?? ''
+  const qualifierMatches =
+    lastWord.length >= 1 && !lastWord.includes(':')
+      ? QUALIFIERS.filter((q) => q.token.startsWith(lastWord.toLowerCase())).slice(0, 6)
+      : []
 
   const applySuggestion = (token: string) => {
     const words = text.split(/\s+/)
@@ -88,12 +118,27 @@ export function SearchBar({
           </button>
         )}
       </div>
-      {open && hasSuggestions && (
+      {open && (hasSuggestions || qualifierMatches.length > 0) && (
         <div className="absolute z-50 mt-1.5 w-full card shadow-xl shadow-black/40 py-1.5 fade-in">
-          {sugg!.models.length > 0 && (
-            <div className="px-3 pb-1 pt-0.5 text-[11px] uppercase tracking-wide text-faint">Models</div>
+          {qualifierMatches.length > 0 && (
+            <>
+              <div className="px-3 pb-1 pt-0.5 text-[11px] uppercase tracking-wide text-faint">Qualifiers</div>
+              {qualifierMatches.map((q) => (
+                <button
+                  key={q.token}
+                  className="w-full text-left px-3 py-1.5 hover:bg-well text-[13px] flex justify-between gap-3"
+                  onClick={() => applySuggestion(q.token)}
+                >
+                  <span className="text-fg">{q.token}</span>
+                  <span className="text-faint truncate">{q.hint}</span>
+                </button>
+              ))}
+            </>
           )}
-          {sugg!.models.map((m) => (
+          {sugg?.models.length ? (
+            <div className="px-3 pb-1 pt-0.5 text-[11px] uppercase tracking-wide text-faint">Models</div>
+          ) : null}
+          {(sugg?.models ?? []).map((m) => (
             <button
               key={m.family}
               className="w-full text-left px-3 py-1.5 hover:bg-well text-[13px] flex justify-between"
@@ -106,12 +151,12 @@ export function SearchBar({
               <span className="chip">{m.count}</span>
             </button>
           ))}
-          {sugg!.tags.length > 0 && (
+          {sugg?.tags.length ? (
             <div className="px-3 pb-1 pt-1.5 text-[11px] uppercase tracking-wide text-faint border-t border-line mt-1">
               Tags
             </div>
-          )}
-          {sugg!.tags.map((t) => (
+          ) : null}
+          {(sugg?.tags ?? []).map((t) => (
             <button
               key={t.name}
               className="w-full text-left px-3 py-1.5 hover:bg-well text-[13px] flex justify-between"

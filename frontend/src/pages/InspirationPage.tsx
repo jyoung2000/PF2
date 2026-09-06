@@ -32,12 +32,14 @@ import {
 } from '../lib/inspiration'
 import { toastError, toastSuccess } from '../lib/toast'
 import { MonitoringPage } from './MonitoringPage'
+import { ResearchTab } from './ResearchTab'
 import { ScrapersPage } from './ScrapersPage'
 
 const TABS = [
   { to: '', label: 'Overview', end: true },
   { to: 'sources', label: 'Sources' },
   { to: 'creators', label: 'Creators' },
+  { to: 'research', label: 'Research' },
   { to: 'discover', label: 'Discover' },
   { to: 'clusters', label: 'Clusters' },
   { to: 'queue', label: 'Queue' },
@@ -250,7 +252,7 @@ function CreatorsTab() {
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {data.creators.map((c) => (
-              <button key={c.id} className="card p-3.5 text-left hover:border-ember/50" onClick={() => navigate(`/inspiration/creators/${c.id}`)}>
+              <button key={c.id} className="card p-3.5 text-left min-w-0 hover:border-ember/50" onClick={() => navigate(`/inspiration/creators/${c.id}`)}>
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-full bg-well border border-line flex items-center justify-center font-display font-semibold text-ember">
                     {c.handle[0].toUpperCase()}
@@ -265,7 +267,7 @@ function CreatorsTab() {
                     </div>
                   </div>
                 </div>
-                <p className="text-[11.5px] text-mute mt-2 tabular-nums">
+                <p className="text-[11.5px] text-mute mt-2 tabular-nums break-words">
                   avg eng {c.stats.avg_engagement ?? 0} · AI {pct(c.stats.ai_ratio)} · prompts {pct(c.stats.prompt_availability)}
                   {c.stats.models?.length ? <> · {c.stats.models.map((m) => m.family).join(', ')}</> : null}
                 </p>
@@ -892,6 +894,16 @@ function AnalyticsTab() {
   )
 }
 
+function ResearchRoute() {
+  const { open, drawer } = useDrawer()
+  return (
+    <>
+      <ResearchTab onOpen={open} />
+      {drawer}
+    </>
+  )
+}
+
 // ------------------------------------------------------- discover (I14) ----
 const MODE_LABEL: Record<string, string> = {
   trending: 'Trending',
@@ -1119,6 +1131,7 @@ export function InspirationPage() {
         <Route path="/sources" element={<ScrapersPage />} />
         <Route path="/creators" element={<CreatorsTab />} />
         <Route path="/creators/:id" element={<CreatorDetail />} />
+        <Route path="/research" element={<ResearchRoute />} />
         <Route path="/discover" element={<DiscoverTab />} />
         <Route path="/clusters" element={<ClustersTab />} />
         <Route path="/clusters/:id" element={<ClusterDetail />} />

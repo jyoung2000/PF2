@@ -440,3 +440,108 @@ export function contextToPhrases(ctx: InspirationContext): string[] {
   out.push(...ctx.techniques.map((t) => t.replace(/-/g, ' ')))
   return Array.from(new Set(out.filter(Boolean)))
 }
+
+
+// ---- I13/I15: research jobs -------------------------------------------
+export interface ResearchJob {
+  id: number
+  query: string
+  label: string | null
+  status: 'queued' | 'running' | 'complete' | 'partial' | 'paused' | 'cancelled' | 'failed'
+  sources: string[]
+  params: {
+    intent?: {
+      wants_prompt?: boolean
+      wants_workflow?: boolean
+      models?: string[]
+      techniques?: string[]
+      media_type?: string | null
+      rank?: string
+      evidence?: string[]
+    }
+    routing?: { source: string; score: number; why: string }[]
+    limit?: number
+    per_source?: number
+  }
+  progress: Record<string, { state: string; found?: number; kept?: number; reason?: string }>
+  stats: Record<string, number | string>
+  error: string | null
+  result_post_ids: number[]
+  created_at: string | null
+  started_at: string | null
+  finished_at: string | null
+  items?: (PostCard & { why?: string[]; relevance?: number })[]
+  warning?: string
+}
+
+export interface ResearchPreset {
+  key: string
+  label: string
+  query: string
+  media_type?: string
+  rank?: string
+  wants_prompt?: boolean
+  wants_workflow?: boolean
+  mode?: string
+}
+
+export const listResearch = (limit = 25) =>
+  api.get<{ jobs: ResearchJob[] }>(`/api/inspiration/research?limit=${limit}`)
+export const getResearch = (id: number) => api.get<ResearchJob>(`/api/inspiration/research/${id}`)
+export const researchPresets = () =>
+  api.get<{ presets: ResearchPreset[] }>('/api/inspiration/research/presets')
+export const startResearch = (body: {
+  query?: string
+  sources?: string[] | null
+  preset?: string
+  limit?: number
+  per_source?: number
+  label?: string
+}) => api.post<ResearchJob>('/api/inspiration/research', body)
+export const controlResearch = (id: number, action: 'pause' | 'resume' | 'cancel' | 'rerun' | 'refresh') =>
+  api.post<ResearchJob>(`/api/inspiration/research/${id}/${action}`, {})
+export const researchExportUrl = (id: number, fmt: 'json' | 'csv' | 'md') =>
+  `/api/inspiration/research/${id}/export.${fmt}`
+
+// ---- I8/I15: browser intelligence -------------------------------------
+export interface BrowserWorkflowInfo {
+  id: number
+  source: string
+  task: string
+  version: number
+  status: string
+  /** healthy | unreliable | needs_repair | disabled | superseded */
+  health: string
+  engine: string | null
+  actions: { op: string; [k: string]: unknown }[]
+  notes: string | null
+  success_count: number
+  failure_count: number
+  last_success: string | null
+  last_failure: string | null
+  last_error: string | null
+  last_repaired: string | null
+  created_at: string | null
+}
+
+export interface BrowserStatus {
+  mode: string
+  engines: Record<string, { enabled: boolean; available: boolean; detail: string | null }>
+  usage: { date: string; ai_calls: number; browser_seconds: number; by_purpose?: Record<string, number> }
+  workflows: BrowserWorkflowInfo[]
+  diagnostics: { at?: string; source?: string; task?: string; ok?: boolean; detail?: string }[]
+}
+
+export const getBrowserStatus = () => api.get<BrowserStatus>('/api/inspiration/browser')
+export const repairWorkflow = (id: number) =>
+  api.post<Record<string, unknown>>(`/api/inspiration/workflows/${id}/repair`, {})
+export const disableWorkflow = (id: number) =>
+  api.post<BrowserWorkflowInfo>(`/api/inspiration/workflows/${id}/disable`, {})
+export const getDiscoveryStatus = () =>
+  api.get<{
+    searchable_sources: string[]
+    usable: boolean
+    requires_grok: boolean
+    grok_available: boolean
+    detail: string
+  }>('/api/inspiration/discovery/status')

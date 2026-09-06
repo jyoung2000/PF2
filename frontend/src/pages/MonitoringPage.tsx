@@ -153,7 +153,7 @@ function AccountCard({
     a.status === 'ok' ? 'ok' : a.status === 'error' || a.status === 'not_found' ? 'error' : 'off'
 
   return (
-    <div className={`card p-3.5 flex flex-col gap-2.5 ${a.active ? '' : 'opacity-60'}`}>
+    <div className={`card p-3.5 flex flex-col gap-2.5 min-w-0 ${a.active ? '' : 'opacity-60'}`}>
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden
@@ -161,7 +161,7 @@ function AccountCard({
         >
           {a.handle[0].toUpperCase()}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <a
             href={a.profile_url}
             target="_blank"
@@ -170,7 +170,7 @@ function AccountCard({
           >
             @{a.handle}
           </a>
-          <p className="text-[11.5px] text-faint">
+          <p className="text-[11.5px] text-faint break-words">
             {a.added_by === 'grok' && <span className="text-ember-soft">via Grok · </span>}
             {a.added_by === 'grok' && a.evidence?.source === 'grok' && (
               <span

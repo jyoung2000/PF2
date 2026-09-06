@@ -6,6 +6,7 @@ Existing qualifiers stay (tag: model: platform:); new ones:
   before:YYYY-MM-DD   engagement:>1000   inspiration:>80   ai:true|false|uncertain
   model_source:explicit|metadata|inferred|ai   sort:inspiration|engagement|newest|oldest
   prompt_source:<ladder value>|observed|metadata|extracted|ai|explicit   (I11, §20)
+  source:<platform>   confidence:>0.8   research:<job id>                 (I15)
 Values may be quoted. Unknown operators are ignored, never errors."""
 from __future__ import annotations
 
@@ -19,9 +20,9 @@ from ..aliases import normalize_model
 from ..models import Creator, Post, PostTag, Tag
 from . import prompt_parser
 
-QUALIFIERS = ("tag", "model", "platform", "has", "creator", "technique", "camera", "after",
-              "before", "engagement", "inspiration", "ai", "model_source", "prompt_source",
-              "sort")
+QUALIFIERS = ("tag", "model", "platform", "source", "has", "creator", "technique", "camera",
+              "after", "before", "engagement", "inspiration", "ai", "model_source",
+              "prompt_source", "confidence", "research", "sort")
 _QUAL_RE = re.compile(r'(?<!\S)(' + "|".join(QUALIFIERS) + r'):("([^"]*)"|(\S+))', re.I)
 _NUM_RE = re.compile(r"^(>=|<=|>|<|=)?\s*(\d+(?:\.\d+)?)$")
 HAS_VALUES = {"prompt", "workflow", "video", "image", "metadata", "comments"}
@@ -60,6 +61,8 @@ class ParsedQuery:
     ai: str | None = None                 # "true" | "false" | "uncertain"
     model_source: str | None = None
     prompt_sources: list[str] = field(default_factory=list)
+    confidence: tuple[str, float] | None = None   # on the prompt assertion
+    research_job: int | None = None
     sort: str | None = None
     ignored: list[str] = field(default_factory=list)
 
@@ -94,7 +97,7 @@ def parse(q: str) -> ParsedQuery:
             pq.tags.append(value)
         elif key == "model":
             pq.models.append(value)
-        elif key == "platform":
+        elif key in ("platform", "source"):     # `source:` reads better now
             pq.platforms.append(low)
         elif key == "has":
             (pq.has.add(low) if low in HAS_VALUES else pq.ignored.append(f"has:{value}"))
@@ -136,6 +139,17 @@ def parse(q: str) -> ParsedQuery:
                 pq.prompt_sources = values
             else:
                 pq.ignored.append(f"prompt_source:{value}")
+        elif key == "confidence":
+            n = _num(value)
+            if n is None or not (0 <= n[1] <= 1):
+                pq.ignored.append(f"confidence:{value}")
+            else:
+                pq.confidence = n
+        elif key == "research":
+            if low.isdigit():
+                pq.research_job = int(low)
+            else:
+                pq.ignored.append(f"research:{value}")
         elif key == "sort":
             if low in SORTS:
                 pq.sort = low
@@ -193,7 +207,27 @@ def apply_filters(stmt, pq: ParsedQuery):
         stmt = stmt.where(Post.model_source == pq.model_source)
     if pq.prompt_sources:
         stmt = stmt.where(Post.prompt_source.in_(pq.prompt_sources))
+    if pq.confidence:
+        # the prompt assertion's own confidence (D66) — stored in JSON, so the
+        # comparison is done on the extracted float
+        conf = func.json_extract(Post.assertions, "$.prompt.confidence")
+        stmt = stmt.where(conf.is_not(None), _cmp(conf, *pq.confidence))
+    if pq.research_job is not None:
+        stmt = stmt.where(Post.id.in_(_research_ids(pq.research_job)))
     return stmt
+
+
+def _research_ids(job_id: int) -> list[int]:
+    """The post ids a research job produced (§101) — read once, so a stale
+    job id simply matches nothing instead of erroring."""
+    from ..db import session_scope
+    from ..models import ResearchJob
+    try:
+        with session_scope() as s:
+            job = s.get(ResearchJob, job_id)
+            return list(job.result_post_ids or []) if job else []
+    except Exception:  # noqa: BLE001 — a search must never fail on a bad id
+        return []
 
 
 def apply_tags(stmt, tags: list[str]):
