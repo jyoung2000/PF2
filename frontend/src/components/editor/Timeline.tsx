@@ -10,6 +10,14 @@ import {
   snapDrag, snapPoints, snapTime, tickInterval, timeToPx,
 } from '../../lib/editor'
 
+function capturePointer(e: React.PointerEvent) {
+  try {
+    (e.target as Element).setPointerCapture?.(e.pointerId)
+  } catch {
+    /* synthetic events have no active pointer */
+  }
+}
+
 const TRACK_H: Record<string, number> = { video: 64, audio: 44, caption: 34 }
 const HEADER_W = 148
 const RULER_H = 26
@@ -120,7 +128,7 @@ export function Timeline({
       if (c) orig.set(id, { start: c.start_s, dur: c.duration_s, trim: c.trim_start_s, track: c.track_id })
     }
     setDrag({ mode, clipIds: ids, anchorId: clip.id, startX: e.clientX, orig, grabOffset: pxToTime(localX(e), pxPerSec) - clip.start_s, snapLockX: null, moved: false })
-    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    capturePointer(e)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -247,7 +255,7 @@ export function Timeline({
   const beginScrub = (e: React.PointerEvent) => {
     setScrub(true)
     onSeek(Math.max(0, pxToTime(localX(e), pxPerSec)))
-    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    capturePointer(e)
   }
 
   const [markerDrag, setMarkerDrag] = useState<number | null>(null)
@@ -257,7 +265,7 @@ export function Timeline({
     onSelect([])
     onMarkerSelect(null)
     setMarquee({ x0: localX(e), y0: localY(e), x1: localX(e), y1: localY(e) })
-    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    capturePointer(e)
   }
 
   const view = (c: SeqClip) => preview?.get(c.id) ?? { start: c.start_s, dur: c.duration_s, trim: c.trim_start_s, track: c.track_id }
@@ -318,7 +326,7 @@ export function Timeline({
                   e.stopPropagation()
                   onMarkerSelect(m.id)
                   setMarkerDrag(m.id)
-                  ;(e.target as Element).setPointerCapture?.(e.pointerId)
+                  capturePointer(e)
                 }}
                 data-testid={`marker-${m.id}`}
               >◆</button>

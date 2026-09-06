@@ -408,3 +408,62 @@ def test_review_queue_flow(client, app_env):
     # a queued take can't be reviewed
     takes = client.get(f"/api/film/shots/{shots[2]}/takes").json()["takes"]
     assert client.post(f"/api/film/takes/{takes[0]['id']}/review", json={"status": "approved"}).status_code == 422
+
+
+# ------------------------------------------------------- E7: effects etc ---
+def test_sanitize_effects():
+    from promptforge.film.sequence import sanitize_effects
+    # clamped, defaults dropped, junk ignored
+    out = sanitize_effects({"opacity": 2, "scale": 0.5, "x": -5, "rotation": 45,
+                            "contrast": 1.0, "blur": "junk", "hack": 1,
+                            "crop": {"l": 0.9, "t": 0.1, "r": None}})
+    assert out == {"scale": 0.5, "x": -1.0, "rotation": 45.0,
+                   "crop": {"l": 0.45, "t": 0.1}}
+    assert sanitize_effects(None) == {}
+    assert sanitize_effects({"opacity": 1.0}) == {}
+
+
+def test_sequence_export_effects_and_captions(client, app_env):
+    """Speed is already covered; here: a composited transform (scale +
+    opacity + rotation), colour/blur/crop on the plain path, and a caption
+    clip burned into the master. Duration must stay exact."""
+    p, shots = _project(client)
+    _import_take(client, shots[0], 3.0)
+    _import_take(client, shots[1], 3.0)
+    seq = _build(client, p["id"])
+    v = _clips(seq)
+    client.post(f"/api/film/projects/{p['id']}/sequence/delete-clips", json={"ids": [v[2]["id"]]})
+    # clip A: transform (composite graph); clip B: colour + crop (plain graph)
+    r = client.patch(f"/api/film/sequence/clips/{v[0]['id']}",
+                     json={"duration_s": 2.0, "effects": {"scale": 0.6, "opacity": 0.7, "rotation": 10}})
+    assert r.status_code == 200
+    fx = next(c for c in _clips(r.json()) if c["id"] == v[0]["id"])["effects"]
+    assert fx == {"scale": 0.6, "opacity": 0.7, "rotation": 10.0}
+    client.patch(f"/api/film/sequence/clips/{v[1]['id']}",
+                 json={"start_s": 2.0, "duration_s": 2.0,
+                       "effects": {"brightness": 0.2, "blur": 3, "crop": {"l": 0.1, "r": 0.1}}})
+    # caption clip on C1
+    cap_track = next(t for t in client.get(f"/api/film/projects/{p['id']}/sequence").json()["tracks"]
+                     if t["kind"] == "caption")
+    client.post(f"/api/film/projects/{p['id']}/sequence/clips",
+                json={"track_id": cap_track["id"], "source_kind": "caption", "start_s": 0.5,
+                      "duration_s": 1.5, "data": {"text": "Hello world"}})
+    man = client.get(f"/api/film/projects/{p['id']}/sequence/preview").json()
+    assert man["captions"] == [{"clip_id": man["captions"][0]["clip_id"], "start_s": 0.5,
+                               "end_s": 2.0, "text": "Hello world", "style": {}}]
+    res = _export(client, p["id"])
+    assert res["runtime_s"] == 4.0
+    assert abs(_duration(client, res["url"]) - 4.0) < 0.25
+    # burned caption srt written next to the master
+    from promptforge.config import get_config
+    exp_dir = get_config().data_dir / f"film/projects/{p['id']}/exports"
+    assert list(exp_dir.glob("*.captions.srt")), "caption srt should exist"
+
+
+def test_qa_includes_sequence_rows_when_built(client, app_env):
+    p, shots = _project(client)
+    _build(client, p["id"])
+    qa = client.get(f"/api/film/projects/{p['id']}/qa").json()
+    keys = {c["key"]: c for c in qa["checks"]}
+    assert keys["sequence_media"]["status"] == "FAIL" and len(keys["sequence_media"]["clips"]) == 3
+    assert keys["missing_media"]["status"] == "WARN"   # downgraded — the sequence drives export

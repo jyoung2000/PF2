@@ -36,6 +36,7 @@ export function EditorPage() {
   const [takePick, setTakePick] = useState<SeqClip | null>(null)
   const [review, setReview] = useState(false)
   const [reviewCount, setReviewCount] = useState(0)
+  const [qc, setQc] = useState(false)
   const playheadRef = useRef(0)
   const originRef = useRef({ t0: 0, ph: 0 })
   const sqRef = useRef<Sequence | null>(null)
@@ -229,6 +230,12 @@ export function EditorPage() {
         <button className="btn" disabled={!selection.length} onClick={() => deleteSelection(true)} title="Ripple delete — later clips close the gap (Shift+Del)">Ripple delete</button>
         <button className={`chip ${snapping ? '!border-ember text-fg' : ''}`} onClick={() => setSnapping(!snapping)} title={`Magnetic snapping (${shortcutHint('snap')})`} data-testid="btn-snap">🧲 snap</button>
         <button className="btn" onClick={() => apply(seqApi.addMarker(project.id, { t_s: round3(playheadRef.current) }))} title={`Marker at playhead (${shortcutHint('marker')})`}>◆ Marker</button>
+        <button className="btn" title="Add a caption clip at the playhead (burned into the export)" data-testid="btn-caption"
+                onClick={() => {
+                  const track = sq.tracks.find((t) => t.kind === 'caption' && !t.locked)
+                  if (!track) return toastError('No unlocked caption track.')
+                  apply(seqApi.addClip(project.id, { track_id: track.id, source_kind: 'caption', start_s: nearestFreeStart(track, playheadRef.current, 3), duration_s: 3, data: { text: 'Caption' } }))
+                }}>T Caption</button>
         <span className="mx-1 text-line">|</span>
         <button className="btn !px-2" disabled={!sq.can_undo} onClick={() => apply(seqApi.undo(project.id))} title={`Undo (${shortcutHint('undo')})`} data-testid="btn-undo">↩</button>
         <button className="btn !px-2" disabled={!sq.can_redo} onClick={() => apply(seqApi.redo(project.id))} title={`Redo (${shortcutHint('redo')})`} data-testid="btn-redo">↪</button>
@@ -236,6 +243,7 @@ export function EditorPage() {
         <button className="btn !px-2" onClick={() => setZoomIdx(Math.max(0, zoomIdx - 1))} title={`Zoom out (${shortcutHint('zoomOut')})`}>−</button>
         <span className="text-faint tabular-nums w-14 text-center">{pxPerSec}px/s</span>
         <button className="btn !px-2" onClick={() => setZoomIdx(Math.min(ZOOM_LADDER.length - 1, zoomIdx + 1))} title={`Zoom in (${shortcutHint('zoomIn')})`}>+</button>
+        <button className="btn" onClick={() => setQc(true)} title="Pre-render QC (technical, continuity, sequence checks)" data-testid="btn-qc">QC</button>
         <button className="btn relative" onClick={() => setReview(true)} title="Generation review queue" data-testid="btn-review">
           Review{reviewCount > 0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-ember text-ink text-[10px] font-bold">{reviewCount}</span>}
         </button>
@@ -260,6 +268,7 @@ export function EditorPage() {
         <ReviewQueue projectId={project.id} onClose={() => { setReview(false); load() }}
                      onSequence={setSq} onOpenShot={(shotId) => navigate('/film/storyboard', { state: { shotId } })} />
       )}
+      {qc && <QcModal projectId={project.id} onClose={() => setQc(false)} onSelectClips={(ids) => { setSelection(ids); setQc(false) }} />}
       {takePick && (
         <TakePicker clip={takePick} onClose={() => setTakePick(null)}
                     onPick={(t, alsoShot) => {
@@ -268,6 +277,41 @@ export function EditorPage() {
                       setTakePick(null)
                     }} />
       )}
+    </div>
+  )
+}
+
+function QcModal({ projectId, onClose, onSelectClips }: { projectId: number; onClose: () => void; onSelectClips: (ids: number[]) => void }) {
+  const [report, setReport] = useState<any>(null)
+  const [err, setErr] = useState<string | null>(null)
+  useEffect(() => {
+    film.qa(projectId).then(setReport).catch((e) => setErr(errorMessage(e)))
+  }, [projectId])
+  const color = (v: string) => (v === 'PASS' ? 'text-emerald-300' : v === 'FAIL' ? 'text-red-300' : 'text-amber-300')
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose} data-testid="qc-modal">
+      <div className="card p-4 max-w-xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center mb-2">
+          <h3 className="font-display text-[15px] flex-1">Pre-render QC {report && <span className={color(report.verdict)}>{report.verdict}</span>}</h3>
+          <button className="btn-ghost" onClick={onClose}>✕</button>
+        </div>
+        {!report && !err && <Spinner />}
+        {err && <p className="text-[12px] text-red-300">{err}</p>}
+        {report && (
+          <div className="space-y-1 text-[12.5px]">
+            {report.checks.map((c: any) => (
+              <div key={c.key} className="flex gap-2 items-baseline">
+                <span className={`w-12 shrink-0 ${color(c.status)}`}>{c.status}</span>
+                <span className="flex-1">{c.message}{c.heuristic && <span className="text-faint"> (heuristic)</span>}</span>
+                {c.key === 'sequence_media' && c.clips?.length > 0 && (
+                  <button className="btn text-[11px] py-0.5" onClick={() => onSelectClips(c.clips)}>Select clips</button>
+                )}
+              </div>
+            ))}
+            <p className="text-[11.5px] text-faint pt-1">Repairs and the full report live on the Timeline page's QA tab; export runs its own post-render review.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -68,6 +68,19 @@ export interface Sequence {
   can_redo: boolean
 }
 
+export interface ClipEffects {
+  opacity?: number
+  scale?: number
+  x?: number
+  y?: number
+  rotation?: number
+  blur?: number
+  brightness?: number
+  contrast?: number
+  saturation?: number
+  crop?: { l?: number; t?: number; r?: number; b?: number }
+}
+
 export interface FlatSegment {
   type: 'clip' | 'gap'
   clip_id?: number
@@ -80,6 +93,29 @@ export interface FlatSegment {
   muted?: boolean
   gain_db?: number
   missing?: boolean
+  effects?: ClipEffects
+}
+
+/** CSS for a clip's effects — the preview mirror of the export's ffmpeg
+ *  graph (same value ranges, same centring). */
+export function effectsToCss(e: ClipEffects | undefined): React.CSSProperties {
+  if (!e || !Object.keys(e).length) return {}
+  const css: React.CSSProperties = {}
+  const t: string[] = []
+  if (e.x || e.y) t.push(`translate(${(e.x ?? 0) * 100}%, ${(e.y ?? 0) * 100}%)`)
+  if (e.scale != null && e.scale !== 1) t.push(`scale(${e.scale})`)
+  if (e.rotation) t.push(`rotate(${e.rotation}deg)`)
+  if (t.length) css.transform = t.join(' ')
+  if (e.opacity != null && e.opacity < 1) css.opacity = e.opacity
+  const f: string[] = []
+  if (e.brightness) f.push(`brightness(${1 + e.brightness})`)
+  if (e.contrast != null && e.contrast !== 1) f.push(`contrast(${e.contrast})`)
+  if (e.saturation != null && e.saturation !== 1) f.push(`saturate(${e.saturation})`)
+  if (e.blur) f.push(`blur(${e.blur}px)`)
+  if (f.length) css.filter = f.join(' ')
+  const c = e.crop
+  if (c && (c.l || c.t || c.r || c.b)) css.clipPath = `inset(${(c.t ?? 0) * 100}% ${(c.r ?? 0) * 100}% ${(c.b ?? 0) * 100}% ${(c.l ?? 0) * 100}%)`
+  return css
 }
 
 // ------------------------------------------------------------- geometry ----
@@ -216,7 +252,7 @@ export function flattenVideo(seq: Sequence): FlatSegment[] {
       type: 'clip', clip_id: top.id, start_s: a, duration_s: round3(b - a),
       trim_start_s: round3(top.trim_start_s + (a - top.start_s) * top.speed), speed: top.speed,
       media_url: top.media_url, media_kind: top.media_kind, muted: top.muted, gain_db: top.gain_db,
-      missing: top.missing_media,
+      missing: top.missing_media, effects: top.effects as ClipEffects,
     })
   }
   // merge continuous same-clip segments

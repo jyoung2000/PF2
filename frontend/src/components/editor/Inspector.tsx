@@ -2,7 +2,7 @@
 // retime, audio, fades and transition; a marker's fields; or sequence info.
 // Every change goes through the sequence API (one undo step each).
 import { useEffect, useState } from 'react'
-import { Sequence, SeqClip, SeqMarker } from '../../lib/editor'
+import { ClipEffects, Sequence, SeqClip, SeqMarker } from '../../lib/editor'
 
 function Num({ label, value, onCommit, step = 0.1, min, max, suffix = 's', testid }: {
   label: string
@@ -28,6 +28,42 @@ function Num({ label, value, onCommit, step = 0.1, min, max, suffix = 's', testi
              aria-label={label} data-testid={testid} />
       <span className="text-faint">{suffix}</span>
     </label>
+  )
+}
+
+const EFFECT_FIELDS: { key: keyof ClipEffects; label: string; step: number; min: number; max: number; def: number }[] = [
+  { key: 'opacity', label: 'Opacity', step: 0.05, min: 0, max: 1, def: 1 },
+  { key: 'scale', label: 'Scale', step: 0.05, min: 0.05, max: 4, def: 1 },
+  { key: 'x', label: 'Position X', step: 0.05, min: -1, max: 1, def: 0 },
+  { key: 'y', label: 'Position Y', step: 0.05, min: -1, max: 1, def: 0 },
+  { key: 'rotation', label: 'Rotation °', step: 1, min: -180, max: 180, def: 0 },
+  { key: 'blur', label: 'Blur', step: 0.5, min: 0, max: 50, def: 0 },
+  { key: 'brightness', label: 'Brightness', step: 0.05, min: -1, max: 1, def: 0 },
+  { key: 'contrast', label: 'Contrast', step: 0.05, min: 0, max: 3, def: 1 },
+  { key: 'saturation', label: 'Saturation', step: 0.05, min: 0, max: 3, def: 1 },
+]
+
+function EffectsSection({ effects, onChange }: { effects: ClipEffects; onChange: (e: ClipEffects) => void }) {
+  const active = Object.keys(effects).length > 0
+  const crop = effects.crop ?? {}
+  return (
+    <details className="border-t border-line/60 pt-1" open={active} data-testid="effects-section">
+      <summary className="cursor-pointer text-[12px] text-mute select-none">Effects{active ? ' ·' : ''} {active && <span className="text-ember">{Object.keys(effects).length}</span>}</summary>
+      <div className="space-y-1.5 mt-1.5">
+        {EFFECT_FIELDS.map((f) => (
+          <Num key={f.key} label={f.label} value={Number(effects[f.key] ?? f.def)} step={f.step} min={f.min} max={f.max} suffix=""
+               onCommit={(v) => onChange({ ...effects, [f.key]: v })} testid={`fx-${f.key}`} />
+        ))}
+        <div className="text-[11px] text-mute">Crop (fraction per edge)</div>
+        <div className="grid grid-cols-2 gap-1">
+          {(['l', 't', 'r', 'b'] as const).map((k) => (
+            <Num key={k} label={{ l: 'Left', t: 'Top', r: 'Right', b: 'Bottom' }[k]} value={Number(crop[k] ?? 0)} step={0.02} min={0} max={0.45} suffix=""
+                 onCommit={(v) => onChange({ ...effects, crop: { ...crop, [k]: v } })} />
+          ))}
+        </div>
+        {active && <button className="btn-ghost text-[11.5px]" onClick={() => onChange({})} data-testid="fx-reset">Reset all effects</button>}
+      </div>
+    </details>
   )
 }
 
@@ -103,6 +139,10 @@ export function Inspector({ seq, clip, marker, onPatchClip, onPatchMarker, onDel
                    onChange={(e) => onPatchClip(clip.id, { transition_after: { ...clip.transition_after, duration_s: Number(e.target.value) } }, 'transition')} aria-label="Transition duration" />
           )}
         </div>
+      )}
+      {!isCaption && !isAudio && (
+        <EffectsSection effects={(clip.effects ?? {}) as ClipEffects}
+                        onChange={(e) => onPatchClip(clip.id, { effects: e }, 'effects')} />
       )}
       <div className="text-[11px] text-faint pt-1 border-t border-line/60 space-y-0.5">
         {clip.source_duration_s != null && <div>source {clip.source_duration_s.toFixed(1)}s · showing {clip.trim_start_s.toFixed(1)}–{(clip.trim_start_s + clip.duration_s * clip.speed).toFixed(1)}s</div>}

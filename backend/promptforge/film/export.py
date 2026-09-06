@@ -112,35 +112,91 @@ def _fade_parts(seg_join_before: dict | None, seg_join_after: dict | None, durat
     return fin, fout, color
 
 
+def _effects_chain(e: dict, w: int, h: int) -> tuple[str, bool]:
+    """(filter fragment applied to the fitted clip, needs_composite). The
+    values arrive pre-clamped by sequence.sanitize_effects. Transform
+    effects (scale/x/y/rotation/opacity) composite the clip onto a black
+    canvas so position and partial opacity render exactly like the editor's
+    CSS preview."""
+    parts: list[str] = []
+    crop = e.get("crop") or {}
+    if crop:
+        cl, ct = float(crop.get("l") or 0), float(crop.get("t") or 0)
+        cr, cb = float(crop.get("r") or 0), float(crop.get("b") or 0)
+        parts.append(f"crop=iw*{max(0.05, 1 - cl - cr):.4f}:ih*{max(0.05, 1 - ct - cb):.4f}:iw*{cl:.4f}:ih*{ct:.4f}")
+    eq = []
+    if e.get("brightness") is not None:
+        eq.append(f"brightness={float(e['brightness']):.3f}")
+    if e.get("contrast") is not None:
+        eq.append(f"contrast={float(e['contrast']):.3f}")
+    if e.get("saturation") is not None:
+        eq.append(f"saturation={float(e['saturation']):.3f}")
+    if eq:
+        parts.append("eq=" + ":".join(eq))
+    if e.get("blur"):
+        parts.append(f"gblur=sigma={float(e['blur']):.2f}")
+    scale = float(e.get("scale") or 1.0)
+    needs_composite = (abs(scale - 1.0) > 1e-6 or abs(float(e.get("x") or 0)) > 1e-6
+                       or abs(float(e.get("y") or 0)) > 1e-6 or abs(float(e.get("rotation") or 0)) > 1e-6
+                       or float(e.get("opacity") if e.get("opacity") is not None else 1.0) < 1.0 - 1e-6)
+    if needs_composite:
+        sw, sh = int(round(w * scale / 2) * 2), int(round(h * scale / 2) * 2)
+        parts.append(f"scale={max(2, sw)}:{max(2, sh)}:force_original_aspect_ratio=decrease")
+        rot = float(e.get("rotation") or 0)
+        if abs(rot) > 1e-6:
+            parts.append(f"rotate={rot:.3f}*PI/180:c=black@0:ow=rotw({rot:.3f}*PI/180):oh=roth({rot:.3f}*PI/180)")
+        op = float(e.get("opacity") if e.get("opacity") is not None else 1.0)
+        parts.append("format=yuva420p")
+        if op < 1.0 - 1e-6:
+            parts.append(f"colorchannelmixer=aa={op:.3f}")
+    return ",".join(parts), needs_composite
+
+
 def conform_clip(src: Path, dest: Path, w: int, h: int, fps: int, duration: float, fade_in: float = 0.0,
                  fade_out: float = 0.0, fade_color: str = "black", is_image: bool = False,
-                 src_start: float = 0.0, speed: float = 1.0, hold_extra: float = 0.0) -> Path:
+                 src_start: float = 0.0, speed: float = 1.0, hold_extra: float = 0.0,
+                 effects: dict | None = None) -> Path:
     """Scale+pad to the frame, conform fps, force the exact duration
-    (trim, or hold the last frame), apply fades; video only (audio is mixed
-    separately). `src_start`/`speed` implement clip trim + retime;
-    `hold_extra` appends that many held-last-frame seconds AFTER the fades
-    (used by in-place dissolves, which never shift timing)."""
+    (trim, or hold the last frame), apply per-clip effects and fades; video
+    only (audio is mixed separately). `src_start`/`speed` implement clip
+    trim + retime; `hold_extra` appends that many held-last-frame seconds
+    AFTER the fades (used by in-place dissolves, which never shift timing)."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     if is_image:
         graphics.still_video(src, dest.with_suffix(".still.mp4"), duration, None, fps, size=(w, h))
         src = dest.with_suffix(".still.mp4")
         src_start, speed = 0.0, 1.0
     total = duration + max(0.0, hold_extra)
-    vf = ""
+    fx, composite = _effects_chain(effects or {}, w, h)
+    pre = ""
     if speed and abs(speed - 1.0) > 1e-6:
-        vf += f"setpts=(PTS-STARTPTS)/{speed:.4f},"
-    vf += (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,"
-           f"fps={fps},tpad=stop_mode=clone:stop_duration={total + 1:.3f},trim=duration={total:.3f},setpts=PTS-STARTPTS")
+        pre += f"setpts=(PTS-STARTPTS)/{speed:.4f},"
+    tail = (f"fps={fps},tpad=stop_mode=clone:stop_duration={total + 1:.3f},"
+            f"trim=duration={total:.3f},setpts=PTS-STARTPTS")
     if fade_in > 0:
-        vf += f",fade=t=in:st=0:d={fade_in:.3f}:color={fade_color}"
+        tail += f",fade=t=in:st=0:d={fade_in:.3f}:color={fade_color}"
     if fade_out > 0:
-        vf += f",fade=t=out:st={max(0.0, duration - fade_out):.3f}:d={fade_out:.3f}:color={fade_color}"
-    vf += ",format=yuv420p"
+        tail += f",fade=t=out:st={max(0.0, duration - fade_out):.3f}:d={fade_out:.3f}:color={fade_color}"
+    tail += ",format=yuv420p"
     cmd = ["ffmpeg", "-y", "-v", "error"]
     if src_start > 1e-6:
         cmd += ["-ss", f"{src_start:.3f}"]
-    cmd += ["-i", str(src), "-vf", vf, "-an", "-r", str(fps),
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(dest)]
+    if composite:
+        # clip is transformed then centred (+x/y offsets) on a black canvas
+        e = effects or {}
+        ox = f"(W-w)/2+{float(e.get('x') or 0):.4f}*W"
+        oy = f"(H-h)/2+{float(e.get('y') or 0):.4f}*H"
+        graph = (f"color=c=black:s={w}x{h}:r={fps}:d={total + 1:.3f}[bg];"
+                 f"[0:v]{pre}tpad=stop_mode=clone:stop_duration={total + 1:.3f},{fx}[fg];"
+                 f"[bg][fg]overlay={ox}:{oy}:shortest=0,{tail}[out]")
+        cmd += ["-i", str(src), "-filter_complex", graph, "-map", "[out]"]
+    else:
+        vf = pre + (fx + "," if fx else "")
+        vf += (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+               f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,{tail}")
+        cmd += ["-i", str(src), "-vf", vf]
+    cmd += ["-an", "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+            "-movflags", "+faststart", str(dest)]
     media._run(cmd, timeout=1800)
     if is_image:
         src.unlink(missing_ok=True)
@@ -255,6 +311,21 @@ def _atempo(speed: float) -> str:
     return "," + ",".join(parts)
 
 
+def _srt_ts(sec: float) -> str:
+    ms = int(round(max(0.0, sec) * 1000))
+    h, rem = divmod(ms, 3600000)
+    m, rem = divmod(rem, 60000)
+    s, ms = divmod(rem, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def _cues_to_srt(cues: list[dict]) -> str:
+    out = []
+    for i, c in enumerate(sorted(cues, key=lambda x: x["start_s"]), start=1):
+        out.append(f"{i}\n{_srt_ts(c['start_s'])} --> {_srt_ts(c['end_s'])}\n{(c.get('text') or '').strip()}\n")
+    return "\n".join(out)
+
+
 def _subtitle_style(style: dict) -> str:
     color = (style.get("color") or "#FFFFFF").lstrip("#")
     if len(color) == 6:
@@ -340,7 +411,8 @@ def run_export(job_id: int) -> dict:
                         conform_clip(src, out, w, h, fps, dur, fin, fout, color, is_image=is_image,
                                      src_start=float(seg.get("trim_start_s") or 0.0) if is_seq else 0.0,
                                      speed=float(seg.get("speed") or 1.0) if is_seq else 1.0,
-                                     hold_extra=hold)
+                                     hold_extra=hold,
+                                     effects=(seg.get("effects") or None) if is_seq else None)
                         _seg_audio(seg, src, dur, t_cursor)
                 job_svc.checkpoint(job_id, key, current=seg.get("label"))
             elif seg["type"] == "clip":
@@ -386,6 +458,19 @@ def run_export(job_id: int) -> dict:
             if burn:
                 srt_path = str(storage.resolve(srt_rel)).replace("\\", "/").replace(":", "\\:")
                 vf = f"subtitles='{srt_path}':force_style='{_subtitle_style(st.style or {})}'"
+        if is_seq:
+            # caption-track clips are on-video text: always burned, exactly as
+            # the editor previews them (one style per export; the first
+            # caption clip's style wins over the project subtitle style)
+            caps = [c for c in seq_svc.preview_manifest(s, project)["captions"] if (c.get("text") or "").strip()]
+            if caps:
+                cap_rel = storage.project_rel(project.id, "exports", f"{safe}.captions.srt")
+                storage.write(cap_rel, _cues_to_srt(caps).encode("utf-8"))
+                style = dict((st.style if st else None) or {})
+                style.update(caps[0].get("style") or {})
+                cap_path = str(storage.resolve(cap_rel)).replace("\\", "/").replace(":", "\\:")
+                cap_vf = f"subtitles='{cap_path}':force_style='{_subtitle_style(style)}'"
+                vf = f"{vf},{cap_vf}" if vf else cap_vf
         job_svc.set_progress(job_id, current="mixing + encoding")
         inputs, agraph = _audio_graph(tracks, clip_audio, runtime)
         # the audio graph numbers its inputs from 0; the video is input 0 here, so shift by one

@@ -93,6 +93,44 @@ def _check_clip(c: FilmTimelineClip) -> None:
         raise SequenceError(f"Speed must be between {SPEED_MIN} and {SPEED_MAX}.")
 
 
+# clip effects: known keys with hard ranges — anything else is dropped so the
+# export graph only ever sees values it can render
+EFFECT_RANGES = {"opacity": (0.0, 1.0, 1.0), "scale": (0.05, 4.0, 1.0),
+                 "x": (-1.0, 1.0, 0.0), "y": (-1.0, 1.0, 0.0),
+                 "rotation": (-180.0, 180.0, 0.0), "blur": (0.0, 50.0, 0.0),
+                 "brightness": (-1.0, 1.0, 0.0), "contrast": (0.0, 3.0, 1.0),
+                 "saturation": (0.0, 3.0, 1.0)}
+CROP_KEYS = ("l", "t", "r", "b")
+
+
+def sanitize_effects(e: dict | None) -> dict:
+    """Clamp to renderable ranges and drop defaults, so `{}` means 'none'."""
+    if not e:
+        return {}
+    out: dict = {}
+    for k, (lo, hi, default) in EFFECT_RANGES.items():
+        if k in e and e[k] is not None:
+            try:
+                v = max(lo, min(hi, float(e[k])))
+            except (TypeError, ValueError):
+                continue
+            if abs(v - default) > 1e-6:
+                out[k] = round(v, 4)
+    crop = e.get("crop") or {}
+    if isinstance(crop, dict):
+        c = {}
+        for k in CROP_KEYS:
+            try:
+                v = max(0.0, min(0.45, float(crop.get(k) or 0)))
+            except (TypeError, ValueError):
+                v = 0.0
+            if v > 1e-6:
+                c[k] = round(v, 4)
+        if c:
+            out["crop"] = c
+    return out
+
+
 def _track_guard(t: FilmTimelineTrack) -> None:
     if t.locked:
         raise SequenceConflict(f"Track '{t.label or t.kind}' is locked — unlock it to edit its clips.")
@@ -389,7 +427,9 @@ def _apply_clip_patch(s: Session, project: FilmProject, clip: FilmTimelineClip, 
             setattr(clip, k, fields[k])
     for k in ("effects", "transition_after", "data"):
         if k in fields:                          # None clears transition_after
-            if fields[k] is not None or k == "transition_after":
+            if k == "effects" and fields[k] is not None:
+                clip.effects = sanitize_effects(fields[k])
+            elif fields[k] is not None or k == "transition_after":
                 setattr(clip, k, fields[k])
     _check_clip(clip)
 

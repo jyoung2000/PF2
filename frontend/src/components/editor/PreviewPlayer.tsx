@@ -4,7 +4,7 @@
 // clock lives in the page (derived from performance.now, never
 // accumulated); this component only syncs media to the given time.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { audioAt, captionsAt, flattenVideo, fmtTcF, segmentAt, Sequence } from '../../lib/editor'
+import { audioAt, captionsAt, effectsToCss, flattenVideo, fmtTcF, segmentAt, Sequence } from '../../lib/editor'
 
 export function PreviewPlayer({ seq, playhead, playing, loop, onTogglePlay, onSeek, onToggleLoop, onStep }: {
   seq: Sequence
@@ -47,6 +47,7 @@ export function PreviewPlayer({ seq, playhead, playing, loop, onTogglePlay, onSe
       <div className={`relative bg-ink rounded-el overflow-hidden ${aspect} mx-auto w-full flex items-center justify-center`}>
         {isVideo && (
           <video ref={videoRef} key={seg!.clip_id} src={seg!.media_url!} className="w-full h-full object-contain" playsInline preload="auto"
+                 style={effectsToCss(seg!.effects)} data-testid="preview-video"
                  onError={() => setDecodeError(seg!.clip_id ?? null)} onLoadedData={() => setDecodeError(null)} />
         )}
         {decodeError != null && decodeError === seg?.clip_id && (
@@ -54,7 +55,7 @@ export function PreviewPlayer({ seq, playhead, playing, loop, onTogglePlay, onSe
             This browser can't decode the clip's video (the export still renders it) — thumbnails and timing stay accurate.
           </div>
         )}
-        {isImage && <img src={seg!.media_url!} alt="" className="w-full h-full object-contain" />}
+        {isImage && <img src={seg!.media_url!} alt="" className="w-full h-full object-contain" style={effectsToCss(seg!.effects)} />}
         {seg && seg.type === 'clip' && !seg.media_url && (
           <div className="text-[12px] text-amber-300 px-4 text-center">Clip has no media yet — generate or import a take, or replace it from the review queue.</div>
         )}
