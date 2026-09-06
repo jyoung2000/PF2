@@ -359,3 +359,73 @@ class ClusterPost(Base):
     cluster_id: Mapped[int] = mapped_column(ForeignKey("clusters.id", ondelete="CASCADE"), index=True)
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
     score: Mapped[float | None] = mapped_column(Float)
+
+
+class BrowserWorkflow(Base):
+    """Cached browser workflow (Inspiration 2.0, I8/spec §34–§35): the
+    deterministic action list that fulfils one (source, task) pair, learned
+    once (by Stagehand observation or written by hand) and replayed by plain
+    Playwright until the site changes; repair creates the next version and
+    keeps the old row for history. Actions are validated against
+    browserintel.policy on every write AND every replay."""
+    __tablename__ = "browser_workflows"
+    __table_args__ = (
+        Index("ix_browser_workflows_lookup", "source", "task", "status"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String(30))          # adapter name / platform
+    task: Mapped[str] = mapped_column(String(40))            # e.g. "search", "post_detail"
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active|superseded|broken|disabled
+    engine: Mapped[str] = mapped_column(String(20), default="playwright")  # who discovered it
+    actions: Mapped[list] = mapped_column(JSON, default=list)
+    schema: Mapped[dict] = mapped_column(JSON, default=dict)  # expected extraction shape
+    notes: Mapped[str | None] = mapped_column(Text)
+    success_count: Mapped[int] = mapped_column(Integer, default=0)
+    failure_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_success: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_failure: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_repaired: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class ResearchJob(Base):
+    """One Inspiration research request (Inspiration 2.0, I13/spec §32–§33):
+    the query, the chosen sources/filters, live per-source progress, and the
+    outcome — stored so research is repeatable/refreshable and every result
+    can say which job/source/strategy found it."""
+    __tablename__ = "research_jobs"
+    __table_args__ = (Index("ix_research_jobs_status", "status", "id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    query: Mapped[str] = mapped_column(Text)
+    label: Mapped[str | None] = mapped_column(String(200))
+    params: Mapped[dict] = mapped_column(JSON, default=dict)   # interpreted filters, budgets, preset
+    sources: Mapped[list] = mapped_column(JSON, default=list)  # adapter names chosen
+    status: Mapped[str] = mapped_column(String(16), default="queued")  # queued|running|paused|completed|partial|failed|cancelled
+    progress: Mapped[dict] = mapped_column(JSON, default=dict)  # {source: {state, found, new, error, ...}}
+    stats: Mapped[dict] = mapped_column(JSON, default=dict)     # totals after completion
+    result_post_ids: Mapped[list] = mapped_column(JSON, default=list)  # ranked ids (capped)
+    cursor_state: Mapped[dict] = mapped_column(JSON, default=dict)     # per-source cursors for refresh
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CreatorLink(Base):
+    """Cross-source creator identity link (Inspiration 2.0, I12/spec §73):
+    evidence-based association between two creator rows on different
+    platforms. Never created from a bare name match; the evidence says what
+    tied them (shared URL in bio, same handle + same linked site, user
+    confirmation…)."""
+    __tablename__ = "creator_links"
+    __table_args__ = (UniqueConstraint("creator_a", "creator_b", name="uq_creator_link"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    creator_a: Mapped[int] = mapped_column(ForeignKey("creators.id", ondelete="CASCADE"), index=True)
+    creator_b: Mapped[int] = mapped_column(ForeignKey("creators.id", ondelete="CASCADE"), index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict)   # {kind, detail, urls, observed_at}
+    created_by: Mapped[str] = mapped_column(String(12), default="system")  # system | user
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -2,3 +2,9 @@
 # needed in dev when working on Tier 2 adapters — the core app and the test
 # suite run without it (adapters lazy-import crawl4ai).
 crawl4ai==0.6.3
+
+# Browser Intelligence engines (Inspiration 2.0, I8; both MIT, both lazy-imported;
+# the core app and test suite run without them):
+#   browser-use — autonomous read-only research agent (CDP, no Playwright dep)
+#   stagehand   — observe/act/extract + workflow learning (Python SDK, CDP)
+browser-use==0.13.10

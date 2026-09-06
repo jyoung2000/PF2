@@ -1,0 +1,6 @@
+# Installed as a SEPARATE pip step AFTER requirements-browser.txt (see
+# Dockerfile): stagehand needs websockets>=16.1.1 while browser-use's unused
+# CLI helper (browser-harness) pins 15.0.1 — pip cannot co-resolve them, so
+# this second step deliberately overrides websockets (browser-harness is never
+# imported by PF2's integration; documented in docs/browser-intelligence.md).
+stagehand==4.0.2

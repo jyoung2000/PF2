@@ -1,13 +1,14 @@
 fastapi==0.115.6
-uvicorn[standard]==0.32.1
+starlette==0.41.3  # explicit: re-asserted after the browser-intel install steps (see Dockerfile)
+uvicorn[standard]==0.35.0
 sqlalchemy==2.0.36
 apscheduler==3.11.0
 httpx==0.28.1
-pillow==11.1.0
-pydantic==2.10.4
-pydantic-settings==2.7.1
+pillow==12.3.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
 python-multipart==0.0.20
 discord.py==2.4.0
-websockets==14.1
+websockets==16.1.1
 PyYAML==6.0.2
 python-dotenv==1.0.1

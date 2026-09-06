@@ -1,0 +1,14 @@
+<!doctype html><html><head><title>FixtureBoard v2</title></head><body>
+<h1>FixtureBoard — redesigned</h1>
+<form onsubmit="run(); return false">
+  <input id="search-box" type="search" placeholder="find posts" />
+  <button id="submit-btn" type="submit">Go</button>
+</form>
+<section id="feed" hidden>
+  <div class="card"><a class="headline" href="/post/1">Neon alley at night — Flux prompt inside</a>
+    <em class="by">@mara</em><p class="text">prompt: neon-drenched alley, 35mm, volumetric fog</p></div>
+  <div class="card"><a class="headline" href="/post/2">Kling 2.5 dolly test</a>
+    <em class="by">@kenji</em><p class="text">slow dolly in, rainy tokyo</p></div>
+</section>
+<script>function run(){ document.getElementById('feed').hidden = false }</script>
+</body></html>

@@ -116,6 +116,19 @@ DEFAULTS: dict[str, Any] = {
     "intel_ai_analysis_enabled": True,  # LLM classification/extraction for high-value posts
     "knowledge_min_confidence": 0.7,    # assertions below this never enter canonical stats
     "knowledge_accept_ai": False,       # let AI-inferred prompt/model feed the knowledge files
+    # --- Inspiration 2.0: Browser Intelligence (I8) ---
+    "browser_intel_mode": "auto",       # auto | deterministic | stagehand | browser_use | playwright | off
+    "browser_intel_browser_use_enabled": True,
+    "browser_intel_stagehand_enabled": True,
+    "browser_intel_ai_discovery": True,  # allow AI discovery/repair of workflows (within budget)
+    "browser_intel_daily_ai_calls": 100,  # AI browser decisions/extractions per UTC day
+    "browser_intel_max_minutes": 30,      # browser minutes per UTC day for AI-driven runs
+    "browser_intel_max_depth": 2,         # link-follow depth for AI discovery
+    "browser_intel_extra_domains": [],    # user-added allowlist hosts
+    # --- Inspiration 2.0: research (I13) ---
+    "research_default_limit": 120,        # candidate budget per research job
+    "research_per_source_limit": 60,      # cap per source per job
+    "research_max_comments": 25,          # thread depth budget (spec §75)
     "film_presets": {},                 # user shot-type favourites / overrides / custom presets (S2)
     "film_video_family": "kling",       # default video model family for Film Studio estimates/takes
     "film_image_family": "flux",        # default image family for start/end frames + asset refs
