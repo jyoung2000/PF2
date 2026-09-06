@@ -4,6 +4,7 @@ import { collectionsDoc, modelsDoc, inspirationDoc } from './screens_library.mjs
 import { filmDoc } from './screens_film.mjs'
 import { studioDoc, settingsDoc } from './screens_studio_settings.mjs'
 import { tokensDoc } from './screens_tokens.mjs'
+import { forgeDoc } from './screens_forge.mjs'
 
 const OUT = new URL('./', import.meta.url).pathname
 const files = {
@@ -16,6 +17,7 @@ const files = {
   'Film.dc.html': filmDoc(),
   'Studio.dc.html': studioDoc(),
   'Settings.dc.html': settingsDoc(),
+  'Forge.dc.html': forgeDoc(),
   'Tokens.dc.html': tokensDoc(),
 }
 for (const [name, html] of Object.entries(files)) writeFileSync(OUT + name, html)

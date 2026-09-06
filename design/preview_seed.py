@@ -487,6 +487,17 @@ def seed_film(base_url: str) -> None:
     c.post(f"/api/film/projects/{pid}/continuity")
     c.post(f"/api/film/projects/{pid}/gates/assets", json={"status": "approved"})
     c.post(f"/api/film/projects/{pid}/gates/storyboard", json={"status": "approved"})
+
+    # Forge demo content: an experiment with model-specific variants, a
+    # creative plan and a workflow from a template (all sample data)
+    exp = c.post("/api/forge/experiments", json={
+        "name": "Violinist noir",
+        "brief": "A noir portrait of a violinist under a streetlight, no rain, square"}).json()
+    for fam in ("sdxl", "flux", "seedream"):
+        c.post(f"/api/forge/experiments/{exp['id']}/variants", json={"compile_family": fam})
+    c.post("/api/forge/plans", json={
+        "brief": "Launch campaign for my new music player app, warm retro aesthetic"})
+    c.post("/api/forge/workflows/from-template/image_to_video")
     print(json.dumps({"project": pid, "shots": len(shots),
                       "qa": c.get(f"/api/film/projects/{pid}/qa").json()["verdict"]}))
 

@@ -188,6 +188,49 @@ The **Film** section turns PromptForge into a self-hosted AI film studio on top 
 
 Costs come from the pricing catalog (`pricing.json` → `/data/pricing.json`) and are shown as *unavailable* when no price exists. Provider capabilities (image→video, start/end frames, reference images) come from the catalog's `modes` per provider; TTS, music, SFX, talking heads and lip sync are reported as unsupported until an adapter declares them. Stock footage needs API keys (Pexels, Pixabay, Unsplash) while Archive.org, NASA and Wikimedia Commons work without; licenses are stored exactly as reported.
 
+## Forge: model-aware prompt engineering
+
+The **Forge** section turns a one-line idea into a generation-ready package:
+
+1. **Compose** — type the idea ("a cinematic 15-second 9:16 sci-fi trailer
+   with the same character across shots"). Forge extracts the intent (every
+   inference cites the text that produced it), ranks the catalog's models with
+   explained scores — task fit, capability fit, quality, your own success
+   history, cost, latency — and compiles a model-specific prompt: tag-style
+   with negative prompts for SDXL-class models, flowing natural language with
+   camera vocabulary for Flux-class, constraints it can't express folded back
+   into the prompt. Click any candidate to recompile the same intent for that
+   model. Constraints a model can't meet (a 15s ask against a 10s cap) are
+   said out loud and clamped, never silently dropped.
+2. **Models** — the intelligence registry: capability badges, aspect ratios,
+   durations, licensing and commercial-use notes, local-hardware needs, per
+   provider prices with live connection state, plus what your own library has
+   observed. Seeded metadata lives in `models_catalog.json`; your copy in
+   `DATA_DIR` is editable and wins.
+3. **Lab** — A/B prompt versions across models: run, score 1–5, keep winners,
+   fork with lineage. *Evaluate & refine* checks what is verifiable (output
+   aspect/duration/type, missing intent elements, conflicting styles) and
+   proposes a revision as a **new version with a word-level diff** — your
+   prompt is never overwritten. Vision-level judgement is reported as
+   unavailable rather than guessed.
+4. **Plans** — "launch campaign for my music player app" becomes an editable
+   asset pipeline (hero → socials → banner → vertical video) with locks,
+   dependencies (dependents receive the hero as a reference automatically),
+   rerun-failed-only and branching.
+5. **Workflows** — a node editor over plain JSON graphs: prompt → compile →
+   generate → approve → animate → export, with condition branches, a human
+   approval checkpoint, local ffmpeg clipping and honest per-node
+   availability. Templates include idea→image, still→motion and a
+   long-video→shorts pipeline.
+6. **Usage** — every job's model, provider, cost, latency, success rate and
+   fallback lineage, plus score-per-dollar from your Lab ratings.
+
+Everything degrades honestly: with no generation provider configured you can
+still compose, compare models, build plans and workflows — execution says
+exactly what to connect. Provider fallback is opt-in per job and always
+visible (a new linked job, never a silent switch). The same operations are
+exposed as typed tools under `/api/forge/tools` for agents/automation.
+
 ## The companion app (desktop GPU bridge)
 
 Your server stays light; your gaming PC does the AI thinking, free.
