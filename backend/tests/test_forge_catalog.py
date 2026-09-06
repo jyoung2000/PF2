@@ -107,3 +107,31 @@ def test_deprecated_models_are_ranked_down_but_never_hidden(client):
     assert "2026-09-24" in forced["unsupported"]
     typo = client.post("/api/forge/route", json={"brief": "a video", "family": "sorra"}).json()
     assert "not in the model catalog" in typo["unsupported"]
+
+
+def test_seed_file_is_found_and_shipped(app_env):
+    """Regression: the seed was not copied into the container image, so an
+    existing install silently lost every seeded model."""
+    from pathlib import Path
+    from promptforge.forge import catalog as cat
+    assert cat._SEED.exists(), f"seed not found at {cat._SEED}"
+    assert Path("/home/user/PF2/Dockerfile").read_text().count("models_catalog.json") >= 1
+
+
+def test_new_seed_models_reach_a_stale_user_copy(app_env):
+    """A user catalogue written before Phase 2 must still gain the new models
+    and the provenance fields (additive merge, D16 lifecycle)."""
+    import json
+    catalog.install_catalog()
+    path = catalog.catalog_path()
+    doc = json.loads(path.read_text())
+    doc["families"].pop("sora", None)                      # predates the entry
+    for e in doc["families"].values():
+        for k in ("source_urls", "evidence", "confidence", "deprecation"):
+            e.pop(k, None)
+    path.write_text(json.dumps(doc))
+
+    fams = catalog.load_families()
+    assert "sora" in fams and fams["sora"]["deprecation"]  # new model arrives
+    assert fams["flux"]["confidence"] is not None          # fields are restored
+    assert fams["flux"]["evidence"]

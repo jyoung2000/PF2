@@ -70,6 +70,7 @@ DEFAULTS: dict[str, Any] = {
     "fal_api_key": "",
     "replicate_api_token": "",
     "wavespeed_api_key": "",
+    "muapi_api_key": "",
     "baserow_url": "https://api.baserow.io",
     "baserow_token": "",
     "baserow_table_id": "",

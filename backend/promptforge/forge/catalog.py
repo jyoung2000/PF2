@@ -24,7 +24,18 @@ from ..generation import router as gen_router
 from ..knowledge import files as kfiles
 from ..models import Post
 
-_SEED = Path(__file__).resolve().parents[3] / "models_catalog.json"
+def _find_seed() -> Path:
+    """The repo root differs between a source checkout and the image layout,
+    so check both. A missing seed used to silently degrade to 'no models'."""
+    here = Path(__file__).resolve()
+    for parent in here.parents[2:5]:
+        candidate = parent / "models_catalog.json"
+        if candidate.exists():
+            return candidate
+    return here.parents[3] / "models_catalog.json"
+
+
+_SEED = _find_seed()
 
 MODALITIES = ("image", "video", "audio", "3d")
 

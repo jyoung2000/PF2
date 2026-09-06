@@ -34,6 +34,7 @@ COPY backend/ ./backend/
 COPY companion/ ./companion/
 COPY scripts/ ./scripts/
 COPY pricing.json ./pricing.json
+COPY models_catalog.json ./models_catalog.json
 COPY --from=frontend /fe/dist ./frontend/dist
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
