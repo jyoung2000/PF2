@@ -46,3 +46,39 @@ def validate_model_params(family: str, body: dict = Body(...)):
 def list_providers():
     with session_scope() as s:
         return {"providers": catalog.providers_overview(s)}
+
+
+# ------------------------------------------------- intent / route / compile ---
+@router.post("/intent")
+def extract_intent(body: dict = Body(...)):
+    from ..forge import intent
+    return intent.extract(str(body.get("brief") or ""))
+
+
+@router.post("/route")
+def route_brief(body: dict = Body(...)):
+    """Ranked, explainable model candidates for a brief (spec §3)."""
+    from ..forge import intent as intent_mod, router as forge_router
+    spec = body.get("intent") or intent_mod.extract(str(body.get("brief") or ""))
+    with session_scope() as s:
+        return forge_router.recommend(
+            s, spec, family=body.get("family"), provider=body.get("provider"),
+            connected_only=bool(body.get("connected_only")))
+
+
+@router.post("/compile")
+def compile_prompt(body: dict = Body(...)):
+    """Idea → PromptPackage (spec §4). Pass family to pin the model; pass a
+    previous package + family to recompile for a new model."""
+    from ..forge import compiler
+    with session_scope() as s:
+        if body.get("package") and body.get("family"):
+            return compiler.recompile(s, body["package"], body["family"],
+                                      provider=body.get("provider"),
+                                      use_llm=bool(body.get("use_llm")))
+        idea = str(body.get("idea") or "").strip()
+        if not idea:
+            raise HTTPException(422, "idea is required")
+        return compiler.compile_package(
+            s, idea, family=body.get("family"), provider=body.get("provider"),
+            params_override=body.get("params"), use_llm=bool(body.get("use_llm")))
