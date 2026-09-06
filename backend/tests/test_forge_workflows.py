@@ -105,7 +105,45 @@ def test_shorts_pipeline_honest_transcription_and_local_clipping(client, app_env
     assert "text-to-speech" not in (view["node_states"]["stt"]["error"] or "")
     assert "transcri" in view["node_states"]["stt"]["error"].lower() or \
            "speech" in view["node_states"]["stt"]["error"].lower()
-    clips = view["node_states"]["clips"]["output"]["clips"]
+    out = view["node_states"]["clips"]["output"]
+    clips = out["clips"]
     assert clips and all(c.endswith(".mp4") for c in clips)
+    # ranked picks are reported with the basis used (this 3s source is too
+    # short for real highlights, so it says so instead of pretending)
+    assert out["highlights"] and out["ranking_basis"] in ("structure", "even-split")
     from pathlib import Path
     assert all(Path(c).exists() for c in clips)
+
+
+def test_typed_ports_reject_incompatible_connections(client):
+    """Adopted from Vibe-Workflow's typed node model: a transcript cannot be
+    fed to a video upscaler, and the editor learns that before a run."""
+    bad = {"nodes": [{"id": "stt", "type": "transcribe_audio", "config": {}},
+                     {"id": "up", "type": "upscale_video", "config": {}}],
+           "edges": [{"from": "stt", "to": "up"}]}
+    r = client.post("/api/forge/workflows", json={"name": "bad", "graph": bad})
+    assert r.status_code == 422
+    err = " ".join(r.json()["detail"]["errors"])
+    assert "type-compatible" in err and "text" in err and "video" in err
+
+    good = {"nodes": [{"id": "p", "type": "prompt", "config": {"text": "a bird"}},
+                      {"id": "img", "type": "generate_image", "config": {}},
+                      {"id": "vid", "type": "image_to_video", "config": {}},
+                      {"id": "aud", "type": "video_to_audio", "config": {}}],
+            "edges": [{"from": "p", "to": "img"}, {"from": "img", "to": "vid"},
+                      {"from": "vid", "to": "aud"}]}
+    assert client.post("/api/forge/workflows", json={"name": "ok", "graph": good}).status_code == 200
+
+    # 'any' ports (input/approval/condition) stay permissive
+    permissive = {"nodes": [{"id": "in", "type": "input", "config": {"key": "x"}},
+                            {"id": "ok", "type": "approval", "config": {}},
+                            {"id": "up", "type": "upscale_video", "config": {}}],
+                  "edges": [{"from": "in", "to": "ok"}, {"from": "ok", "to": "up"}]}
+    assert client.post("/api/forge/workflows", json={"name": "p", "graph": permissive}).status_code == 200
+
+
+def test_node_type_catalogue_exposes_ports_and_availability(client):
+    types = {n["type"]: n for n in client.get("/api/forge/workflow-node-types").json()["node_types"]}
+    assert types["generate_image"]["ports"] == {"in": ["text"], "out": ["image"]}
+    assert types["generate_speech"]["supported"] is False       # honest, no provider
+    assert types["prompt"]["category"] == "local" and types["prompt"]["supported"] is True

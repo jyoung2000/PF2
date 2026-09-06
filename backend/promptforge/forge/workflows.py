@@ -24,6 +24,52 @@ LOCAL_NODES = {"input", "prompt", "compile", "evaluate", "condition",
                "approval", "clip_video", "export"}
 NODE_TYPES = TOOL_NODES | LOCAL_NODES
 
+# Typed ports (adopted from Vibe-Workflow's node model, which types every
+# output as text / image_url / video_url). Typing the ports lets the editor
+# reject "feed a transcript into a video upscaler" before a run burns money.
+# "any" accepts and produces anything.
+PORT_TYPES: dict[str, dict] = {
+    "input":             {"in": [],                    "out": ["any"]},
+    "prompt":            {"in": [],                    "out": ["text"]},
+    "compile":           {"in": ["text"],              "out": ["text"]},
+    "evaluate":          {"in": ["any"],               "out": ["text"]},
+    "condition":         {"in": ["any"],               "out": ["any"]},
+    "approval":          {"in": ["any"],               "out": ["any"]},
+    "export":            {"in": ["image", "video", "audio", "3d"], "out": ["any"]},
+    "clip_video":        {"in": ["video"],             "out": ["video"]},
+    "generate_image":    {"in": ["text"],              "out": ["image"]},
+    "edit_image":        {"in": ["image", "text"],     "out": ["image"]},
+    "generate_video":    {"in": ["text"],              "out": ["video"]},
+    "image_to_video":    {"in": ["image"],             "out": ["video"]},
+    "upscale_image":     {"in": ["image"],             "out": ["image"]},
+    "remove_background": {"in": ["image"],             "out": ["image"]},
+    "upscale_video":     {"in": ["video"],             "out": ["video"]},
+    "generate_speech":   {"in": ["text"],              "out": ["audio"]},
+    "generate_music":    {"in": ["text"],              "out": ["audio"]},
+    "generate_sfx":      {"in": ["text"],              "out": ["audio"]},
+    "transcribe_audio":  {"in": ["audio"],             "out": ["text"]},
+    "analyze_audio":     {"in": ["audio"],             "out": ["text"]},
+    "video_to_audio":    {"in": ["video"],             "out": ["audio"]},
+    "generate_3d":       {"in": ["text", "image"],     "out": ["3d"]},
+}
+
+
+def port_types(node_type: str) -> dict:
+    return PORT_TYPES.get(node_type, {"in": ["any"], "out": ["any"]})
+
+
+def _ports_compatible(src_type: str, dst_type: str) -> tuple[bool, str | None]:
+    produced = port_types(src_type)["out"]
+    accepted = port_types(dst_type)["in"]
+    if not accepted:
+        return False, f"'{dst_type}' takes no input"
+    if "any" in produced or "any" in accepted:
+        return True, None
+    if set(produced) & set(accepted):
+        return True, None
+    return False, (f"'{src_type}' produces {'/'.join(produced)} but "
+                   f"'{dst_type}' accepts {'/'.join(accepted)}")
+
 GENERATION_TIMEOUT_TICKS = 240   # scheduler ticks ≈ minutes
 
 
@@ -52,9 +98,15 @@ def validate_graph(graph: dict) -> dict:
         if n.get("type") == "input" and not (n.get("config") or {}).get("key"):
             errors.append(f"input node '{n.get('id')}' needs config.key")
     known = set(ids)
+    by_id = {n.get("id"): n for n in nodes}
     for e in edges:
         if e.get("from") not in known or e.get("to") not in known:
             errors.append(f"edge {e.get('from')}→{e.get('to')} references a missing node")
+            continue
+        src, dst = by_id[e["from"]], by_id[e["to"]]
+        ok, why = _ports_compatible(src.get("type", ""), dst.get("type", ""))
+        if not ok:
+            errors.append(f"edge {e['from']}→{e['to']} is not type-compatible: {why}")
     # topological order (DAG check)
     incoming = {i: set() for i in known}
     for e in edges:
@@ -92,6 +144,8 @@ def availability_report(s: Session, graph: dict) -> list[dict]:
                            "reason": None if ok else "ffmpeg is not installed"})
         else:
             report.append({"id": n.get("id"), "type": t, "supported": True, "reason": None})
+    for entry in report:
+        entry["ports"] = port_types(entry["type"])
     return report
 
 
@@ -178,23 +232,38 @@ def _exec_local(s: Session, run: WorkflowRun, node: dict, state: dict, graph: di
         src = _media_path(s, inc)
         if not src or not Path(src).exists():
             raise WorkflowError("clip_video has no incoming video file")
-        from ..film import footage
+        from ..film import footage, qa
+        from . import highlights
         cuts = footage.detect_cuts(Path(src), threshold=float(cfg.get("threshold", 0.35)))
         max_clip = float(cfg.get("max_clip_s", 15))
         n_clips = int(cfg.get("count", 3))
+        duration = float((qa.probe(Path(src)) or {}).get("duration") or 0) or (
+            max(cuts) + max_clip if cuts else max_clip)
+        transcript = str(inc.get("text") or "")
+        picked = highlights.pick(cuts, duration, count=n_clips, max_clip_s=max_clip,
+                                 transcript=transcript, use_llm=bool(cfg.get("use_llm")))
         out_dir = get_config().data_dir / "forge" / "clips"
         out_dir.mkdir(parents=True, exist_ok=True)
-        bounds = [0.0] + cuts
+        # 9:16 reframe (centre crop) when asked — the shorts shape
+        reframe = str(cfg.get("aspect_ratio") or "")
+        vf = ("crop='min(iw,ih*9/16)':ih,scale=720:1280"
+              if reframe == "9:16" else None)
         clips = []
-        for i, start in enumerate(bounds[:n_clips]):
+        for i, h in enumerate(picked["highlights"]):
             dest = out_dir / f"run{run.id}-{node['id']}-{i}.mp4"
-            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(start), "-i", src,
-                            "-t", str(max_clip), "-c:v", "libx264", "-preset", "ultrafast",
-                            "-pix_fmt", "yuv420p", "-an", str(dest)], check=True, timeout=600)
+            cmd = ["ffmpeg", "-y", "-v", "error", "-ss", str(h["start_s"]), "-i", src,
+                   "-t", str(round(h["end_s"] - h["start_s"], 2))]
+            if vf:
+                cmd += ["-vf", vf]
+            cmd += ["-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+                    "-an", str(dest)]
+            subprocess.run(cmd, check=True, timeout=600)
             clips.append(str(dest))
         return {"status": "succeeded",
                 "output": {"clips": clips, "path": clips[0] if clips else None,
-                           "cuts_detected": len(cuts)}}
+                           "cuts_detected": len(cuts),
+                           "highlights": picked["highlights"],
+                           "ranking_basis": picked["basis"], "note": picked["note"]}}
     if t == "export":
         inc = _incoming_output(graph, states, node["id"])
         src = _media_path(s, inc)
@@ -401,7 +470,8 @@ TEMPLATES: dict[str, dict] = {
         "graph": {"nodes": [
             {"id": "in", "type": "input", "config": {"key": "video"}},
             {"id": "stt", "type": "transcribe_audio", "config": {}},
-            {"id": "clips", "type": "clip_video", "config": {"count": 3, "max_clip_s": 15}},
+            {"id": "clips", "type": "clip_video",
+             "config": {"count": 3, "max_clip_s": 15, "aspect_ratio": "9:16"}},
             {"id": "export", "type": "export", "config": {}},
         ], "edges": [{"from": "in", "to": "stt"}, {"from": "in", "to": "clips"},
                      {"from": "clips", "to": "export"}]}},

@@ -347,6 +347,29 @@ def fork_plan(plan_id: int):
 
 
 # ---------------------------------------------------------------- workflows ---
+@router.get("/workflow-node-types")
+def workflow_node_types():
+    """Node catalogue with typed ports — what the editor offers and what may
+    legally connect to what."""
+    from ..forge import tools
+    from ..forge import workflows as wf_mod
+    with session_scope() as s:
+        avail = {t["name"]: t for t in tools.availability(s)}
+    out = []
+    for t in sorted(wf_mod.NODE_TYPES):
+        entry = {"type": t, "ports": wf_mod.port_types(t),
+                 "category": "tool" if t in wf_mod.TOOL_NODES else "local"}
+        if t in avail:
+            entry["supported"] = avail[t]["supported"]
+            entry["reason"] = avail[t].get("reason")
+            entry["label"] = avail[t]["label"]
+        else:
+            entry["supported"] = True
+            entry["label"] = t.replace("_", " ")
+        out.append(entry)
+    return {"node_types": out}
+
+
 @router.get("/workflows")
 def list_workflows():
     from sqlalchemy import select
