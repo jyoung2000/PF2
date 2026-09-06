@@ -1,0 +1,41 @@
+{
+ "thread": {
+  "post": {
+   "uri": "at://did:plc:bbb/app.bsky.feed.post/3kdef",
+   "author": {
+    "handle": "kenji.bsky.social"
+   },
+   "record": {
+    "text": "kling test, prompt in thread"
+   }
+  },
+  "replies": [
+   {
+    "post": {
+     "uri": "at://did:plc:bbb/app.bsky.feed.post/3krep",
+     "likeCount": 12,
+     "author": {
+      "handle": "kenji.bsky.social"
+     },
+     "record": {
+      "text": "Prompt: slow dolly through a rainy tokyo alley, anamorphic flare"
+     }
+    },
+    "replies": []
+   },
+   {
+    "post": {
+     "uri": "at://did:plc:zzz/app.bsky.feed.post/3kx",
+     "likeCount": 30,
+     "author": {
+      "handle": "fan.bsky.social"
+     },
+     "record": {
+      "text": "this is incredible"
+     }
+    },
+    "replies": []
+   }
+  ]
+ }
+}

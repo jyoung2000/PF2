@@ -1,0 +1,58 @@
+[
+ {
+  "kind": "Listing",
+  "data": {
+   "children": [
+    {
+     "kind": "t3",
+     "data": {
+      "id": "vid001",
+      "author": "kenji"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "kind": "Listing",
+  "data": {
+   "children": [
+    {
+     "kind": "t1",
+     "data": {
+      "id": "c1",
+      "author": "kenji",
+      "score": 40,
+      "permalink": "/r/aivideo/comments/vid001/kling/c1/",
+      "body": "Prompt: slow dolly in through rainy tokyo alley, shallow depth of field, neon reflections",
+      "replies": {
+       "kind": "Listing",
+       "data": {
+        "children": [
+         {
+          "kind": "t1",
+          "data": {
+           "id": "c2",
+           "author": "kenji",
+           "score": 9,
+           "body": "Negative: text, logo, watermark. Model: Kling 2.5, 6s"
+          }
+         }
+        ]
+       }
+      }
+     }
+    },
+    {
+     "kind": "t1",
+     "data": {
+      "id": "c3",
+      "author": "randomuser",
+      "score": 80,
+      "body": "amazing! what model is this? I bet it's Sora"
+     }
+    }
+   ]
+  }
+ }
+]

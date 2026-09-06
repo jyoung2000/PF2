@@ -1,0 +1,63 @@
+{
+ "posts": [
+  {
+   "uri": "at://did:plc:aaa/app.bsky.feed.post/3kabc",
+   "cid": "bafy1",
+   "author": {
+    "did": "did:plc:aaa",
+    "handle": "mara.bsky.social",
+    "displayName": "Mara"
+   },
+   "record": {
+    "text": "made with Flux \u2014 prompt: neon-drenched alley, 35mm, volumetric fog",
+    "createdAt": "2026-09-01T10:00:00.000Z",
+    "langs": [
+     "en"
+    ]
+   },
+   "embed": {
+    "images": [
+     {
+      "fullsize": "https://cdn.bsky.app/img/full/aaa.jpg",
+      "thumb": "https://cdn.bsky.app/img/thumb/aaa.jpg",
+      "alt": "a neon alley"
+     }
+    ]
+   },
+   "likeCount": 120,
+   "replyCount": 8,
+   "repostCount": 14,
+   "quoteCount": 2
+  },
+  {
+   "uri": "at://did:plc:bbb/app.bsky.feed.post/3kdef",
+   "cid": "bafy2",
+   "author": {
+    "did": "did:plc:bbb",
+    "handle": "kenji.bsky.social"
+   },
+   "record": {
+    "text": "kling test, prompt in thread",
+    "createdAt": "2026-09-02T11:00:00.000Z"
+   },
+   "embed": {
+    "playlist": "https://video.bsky.app/watch/bbb/playlist.m3u8",
+    "thumbnail": "https://video.bsky.app/thumb/bbb.jpg"
+   },
+   "likeCount": 44,
+   "replyCount": 3
+  },
+  {
+   "uri": "at://did:plc:ccc/app.bsky.feed.post/3kghi",
+   "cid": "bafy3",
+   "author": {
+    "did": "did:plc:ccc",
+    "handle": "textonly.bsky.social"
+   },
+   "record": {
+    "text": "no media here",
+    "createdAt": "2026-09-03T12:00:00.000Z"
+   }
+  }
+ ]
+}

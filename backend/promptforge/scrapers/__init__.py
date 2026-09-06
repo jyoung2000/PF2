@@ -6,10 +6,17 @@ from .base import ScrapedPost, SourceAdapter  # noqa: F401
 
 
 def _adapter_classes() -> list[type[SourceAdapter]]:
+    from .bluesky import BlueskyAdapter
     from .civitai import CivitaiAdapter
     from .lexica import LexicaAdapter
+    from .reddit import RedditAdapter
     from .x import XAdapter
-    classes: list[type[SourceAdapter]] = [CivitaiAdapter, LexicaAdapter, XAdapter]
+    from .youtube import YouTubeAdapter
+    # Tier 0/1 sources need no browser at all — Inspiration works with none
+    # of the browser stack installed and no AI provider configured (I9/I10).
+    classes: list[type[SourceAdapter]] = [
+        CivitaiAdapter, LexicaAdapter, RedditAdapter, BlueskyAdapter,
+        YouTubeAdapter, XAdapter]
     try:
         from .midjourney import MidjourneyAdapter
         from .tensorart import TensorArtAdapter
@@ -18,6 +25,11 @@ def _adapter_classes() -> list[type[SourceAdapter]]:
         classes += [MidjourneyAdapter, TensorArtAdapter, SeaArtAdapter, PixAIAdapter]
     except ImportError:
         pass  # Tier 2 files land in Phase 5
+    try:
+        from .social_sites import SITES
+        classes += SITES
+    except ImportError:
+        pass
     return classes
 
 
