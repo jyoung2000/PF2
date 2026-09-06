@@ -51,6 +51,7 @@ def _register_optional_models() -> None:
     `models.Base` (Film Studio, S1). Import registers them on the metadata."""
     try:
         from .film import models as _film_models  # noqa: F401
+        from .forge import models as _forge_models  # noqa: F401
     except ImportError:
         pass
 

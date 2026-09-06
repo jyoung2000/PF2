@@ -111,3 +111,121 @@ def get_job(job_id: int):
             return tools.job_status(s, job_id)
     except tools.ToolError as e:
         raise HTTPException(404, detail=e.detail)
+
+
+# ---------------------------------------------------------------- test lab ---
+@router.post("/experiments")
+def create_experiment(body: dict = Body(...)):
+    from ..forge import experiments
+    name = str(body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(422, "name is required")
+    with session_scope() as s:
+        exp = experiments.create_experiment(s, name, body.get("brief"))
+        s.commit()
+        return experiments.experiment_view(s, exp.id)
+
+
+@router.get("/experiments")
+def list_experiments():
+    from sqlalchemy import select
+    from ..forge.models import PromptExperiment, PromptVariant
+    with session_scope() as s:
+        rows = list(s.execute(select(PromptExperiment)
+                              .order_by(PromptExperiment.id.desc())).scalars())
+        counts = {}
+        for exp in rows:
+            counts[exp.id] = s.query(PromptVariant).filter_by(experiment_id=exp.id).count()
+        return {"experiments": [
+            {"id": e.id, "name": e.name, "brief": e.brief, "archived": e.archived,
+             "variant_count": counts.get(e.id, 0),
+             "created_at": e.created_at.isoformat() if e.created_at else None}
+            for e in rows]}
+
+
+@router.get("/experiments/{experiment_id}")
+def get_experiment(experiment_id: int):
+    from ..forge import experiments
+    try:
+        with session_scope() as s:
+            return experiments.experiment_view(s, experiment_id)
+    except experiments.LabError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/experiments/{experiment_id}/variants")
+def add_variant(experiment_id: int, body: dict = Body(default={})):
+    from ..forge import experiments
+    try:
+        with session_scope() as s:
+            if body.get("compile_family"):
+                v = experiments.compile_variant(s, experiment_id, body["compile_family"],
+                                                provider=body.get("provider"),
+                                                use_llm=bool(body.get("use_llm")))
+            else:
+                v = experiments.add_variant(
+                    s, experiment_id, package=body.get("package"),
+                    prompt=body.get("prompt"), negative=body.get("negative"),
+                    family=body.get("family"), provider=body.get("provider"),
+                    params=body.get("params"), label=body.get("label"))
+            s.commit()
+            return experiments.experiment_view(s, experiment_id)
+    except experiments.LabError as e:
+        raise HTTPException(409, str(e))
+
+
+@router.post("/variants/{variant_id}/fork")
+def fork_variant(variant_id: int, body: dict = Body(default={})):
+    from ..forge import experiments
+    try:
+        with session_scope() as s:
+            v = experiments.fork_variant(s, variant_id, body.get("changes") or {},
+                                         label=body.get("label"))
+            s.commit()
+            return experiments.experiment_view(s, v.experiment_id)
+    except experiments.LabError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/variants/{variant_id}/run")
+def run_variant(variant_id: int, body: dict = Body(default={})):
+    from ..forge import experiments, tools
+    try:
+        with session_scope() as s:
+            run = experiments.run_variant(s, variant_id,
+                                          allow_fallback=bool(body.get("allow_fallback")))
+            s.commit()
+            return {"run_id": run.id, "generation_id": run.generation_id,
+                    "provider": run.provider, "family": run.family,
+                    "status": run.status, "cost": run.cost}
+    except experiments.LabError as e:
+        raise HTTPException(404, str(e))
+    except tools.ToolError as e:
+        raise HTTPException(409, detail=e.detail)
+
+
+@router.post("/runs/{run_id}/score")
+def score_run(run_id: int, body: dict = Body(default={})):
+    from ..forge import experiments
+    try:
+        with session_scope() as s:
+            run = experiments.score_run(s, run_id, score=body.get("score"),
+                                        notes=body.get("notes"), winner=body.get("winner"))
+            s.commit()
+            return {"id": run.id, "user_score": run.user_score,
+                    "user_notes": run.user_notes}
+    except experiments.LabError as e:
+        raise HTTPException(409, str(e))
+
+
+@router.post("/runs/{run_id}/refine")
+def refine_run(run_id: int, body: dict = Body(default={})):
+    from ..forge import evaluate, experiments
+    try:
+        with session_scope() as s:
+            out = evaluate.refine_run(s, run_id, use_llm=bool(body.get("use_llm")),
+                                      create_variant=body.get("create_variant", True))
+            s.commit()
+            return out
+    except experiments.LabError as e:
+        raise HTTPException(404, str(e))
