@@ -6,10 +6,13 @@ frame-grab for video). Metadata extraction happens in ingest BEFORE calling
 compress_* — never after."""
 from __future__ import annotations
 
+import ipaddress
 import json
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 from PIL import Image
@@ -23,6 +26,47 @@ THUMB_QUALITY = 70
 
 class MediaError(Exception):
     pass
+
+
+# §197: a media URL comes from scraped page content, i.e. from a stranger.
+# Before PF2 fetches one it must be an ordinary web URL — not a local file,
+# not a script URL, and not a cloud metadata endpoint whose only purpose
+# would be to hand an attacker this machine's credentials.
+_ALLOWED_SCHEMES = ("http", "https")
+_METADATA_HOSTS = {
+    "metadata.google.internal", "metadata.goog", "metadata",
+    "instance-data", "instance-data.ec2.internal",
+}
+_METADATA_NETS = (
+    ipaddress.ip_network("169.254.0.0/16"),     # AWS/GCP/Azure IMDS + link-local
+    ipaddress.ip_network("fe80::/10"),
+)
+_HOST_RE = re.compile(r"^\[?([^\]]+)\]?$")
+
+
+def is_downloadable(url: str) -> bool:
+    """True when PF2 may fetch this URL as media.
+
+    Private and loopback addresses are deliberately ALLOWED: a self-hosted
+    PromptForge legitimately talks to its own LAN (an Ollama box, a stand-in
+    server, the user's NAS). What is refused is anything that is not a web
+    fetch at all, and the link-local metadata range, where an SSRF turns into
+    stolen cloud credentials."""
+    try:
+        parsed = urlparse((url or "").strip())
+    except ValueError:
+        return False
+    if parsed.scheme.lower() not in _ALLOWED_SCHEMES or not parsed.hostname:
+        return False
+    host = parsed.hostname.lower().rstrip(".")
+    if host in _METADATA_HOSTS:
+        return False
+    m = _HOST_RE.match(host)
+    try:
+        ip = ipaddress.ip_address(m.group(1) if m else host)
+    except ValueError:
+        return True                     # a name; DNS is not resolved here
+    return not any(ip in net for net in _METADATA_NETS)
 
 
 def guess_media_type(url: str, content_type: str | None = None) -> str:
@@ -41,6 +85,8 @@ def guess_media_type(url: str, content_type: str | None = None) -> str:
 def download(url: str, dest: Path, client: httpx.Client, max_bytes: int = 500_000_000) -> int:
     """Stream url → dest with the SAME client/session that scraped it (signed
     URLs). Returns byte count."""
+    if not is_downloadable(url):
+        raise MediaError(f"refusing to fetch {str(url)[:80]!r}: not a permitted media URL")
     dest.parent.mkdir(parents=True, exist_ok=True)
     total = 0
     with client.stream("GET", url, follow_redirects=True) as resp:

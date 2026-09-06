@@ -447,7 +447,7 @@ export interface ResearchJob {
   id: number
   query: string
   label: string | null
-  status: 'queued' | 'running' | 'complete' | 'partial' | 'paused' | 'cancelled' | 'failed'
+  status: 'queued' | 'running' | 'completed' | 'partial' | 'paused' | 'cancelled' | 'failed'
   sources: string[]
   params: {
     intent?: {

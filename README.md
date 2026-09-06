@@ -120,6 +120,58 @@ Upload the exported file with the card's upload button (X card) or copy it to
 solves captchas or evades blocks: if a site throws a challenge during a scrape,
 the adapter logs it and backs off — and in the Connect window, *you* answer it.
 
+## Inspiration: research across every source
+
+**Inspiration** is where PromptForge goes looking. It reads a dozen sources,
+works out what each post actually is, and tells you why anything it shows you
+is worth your time.
+
+**Nothing here requires Grok, X, or any AI provider.** Reddit, Bluesky,
+YouTube and Civitai answer research queries with no login at all; Grok and X
+are optional providers that add features when you connect them and take
+nothing away when you don't. Turn every AI provider off and the whole section
+still works — you lose the optional trend summary and the ability to teach a
+new browser site a workflow, and the screens say exactly that instead of
+breaking.
+
+- **Research** — ask a question in your own words ("kling camera movement
+  prompts with workflows"). PromptForge reads the question deterministically,
+  routes it to the sources that can actually answer it, crawls each within a
+  budget, ingests through the normal pipeline, and ranks the results by
+  relevance to *that* question. Every source reports its own outcome — a
+  source that failed says why, rather than quietly shrinking the results.
+  Presets for the common asks, pause/resume/refresh/re-run with cursors, and
+  JSON/CSV/Markdown export.
+- **Discover** — six ranked shelves (trending, best prompts, latest, hidden
+  gems, workflows, cross-platform) where **every result carries the reasons it
+  is there**. Ask a shelf a question and relevance to it outranks the shelf's
+  own signal. Alongside: signals ranked by how many platforms they show up on
+  (four posts across four platforms beats twelve on one), prompt phrases that
+  keep travelling together, and what is still gaining — measured from repeat
+  observations of the same post, never estimated for a post seen once.
+- **Where a prompt came from** — every prompt is labelled *observed* (the
+  creator published it), *reconstructed* (PromptForge assembled it from
+  published fragments, which it lists) or *inferred* (rules or a model
+  produced it). A weaker source never overwrites a stronger one, an AI's words
+  never become "the creator's prompt", and nothing is ever invented: no
+  published prompt means no prompt.
+- **Creators across platforms** — the same person on X, Reddit and Bluesky is
+  linked on evidence you can check (the identical media on both, a shared
+  off-platform site, one profile naming the other) and never on a matching
+  name. Linked identities are shown together and never merged: each platform
+  keeps its own posts, stats and provenance.
+- **Browser sites** — sites with no usable API are read by a browser, always
+  by the most deterministic route that works: a cached workflow replayed by
+  Playwright. An AI browser engine is used only to *learn* or *repair* that
+  workflow, inside a domain allowlist, a read-only action vocabulary and a
+  daily budget you control in Settings → Browser intelligence. Page text is
+  always data — never an instruction — and PromptForge never solves a CAPTCHA,
+  bypasses a login, or evades a rate limit.
+- **Search** — seventeen qualifiers, completed as you type: `model:`, `tag:`,
+  `source:`, `creator:`, `has:workflow`, `prompt_source:explicit`,
+  `confidence:>0.8`, `technique:`, `camera:`, `ai:true`, `engagement:>1000`,
+  `research:<job id>`, `sort:inspiration`, and the rest.
+
 ## X.com: monitored creators + Grok curation
 
 X posts carry no structured generation metadata, so PromptForge mines prompts
@@ -443,6 +495,28 @@ integrations. Everything configurable from the GUI at runtime.
   code copied). Verified live with Playwright journeys (zero page errors)
   and the sandbox container booted on seeded data, across `docker restart`,
   and on the legacy-shaped DB.
+- ✅ Inspiration 2.0 (I8–I16, +116 backend tests → 435, +4 frontend tests → 50):
+  research across every source, with Grok and X demoted to optional providers.
+  Browser Intelligence behind one abstraction (policy → Playwright replay →
+  Stagehand/Browser Use only to learn or repair a workflow, all inside a domain
+  allowlist, a read-only op vocabulary and a daily budget); a shared prompt
+  miner with a strict source ladder that never invents a prompt and never lets
+  an AI's words outrank the creator's; new login-free sources (Reddit, Bluesky,
+  YouTube) plus five configured browser sites that say "Needs setup" until a
+  workflow exists rather than pretending; research jobs (interpret → route →
+  crawl → ingest → rank → export) with per-source outcomes including failures;
+  cross-source creator identity linked on observable evidence and never on a
+  name; cross-platform signals, prompt-pattern mining and engagement growth
+  measured only from repeat observations; Research + Discover screens where
+  every result carries its reasons. The §200 security audit is executable (22
+  tests, incl. a prompt-injection fixture and a source-wide grep proving no
+  captcha/proxy-rotation/stealth machinery exists); 1,000 posts stay responsive;
+  a database written before 2.0 boots with every row intact; the container was
+  verified three ways, including one with the new tables and column dropped.
+  Two real bugs found on the way and now regression-tested: the browser-intel
+  requirements file was never installed by the image, and media downloads had
+  no URL validation (SSRF). Full write-up, including what is *not* proven:
+  `docs/inspiration-2.0-report.md`.
 - ⏸ Deferred (documented): Windows `.exe` is built per-machine via the included
   PyInstaller script/workflow (no Windows builder in the dev environment);
   SeaArt + PixAI adapters are marked *experimental* in the GUI (their internal

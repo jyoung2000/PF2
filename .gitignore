@@ -34,6 +34,8 @@ Thumbs.db
 # Companion pairing token (never commit)
 companion/companion_token.json
 .sandbox-ca.crt
+# Sandbox-only container variant used for Docker verification (D50/D79/D86)
+scratchpad/
 
 # Claude Design canvas build outputs (seeded page + screenshots)
 design/promptforge-gui.html

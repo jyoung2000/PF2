@@ -22,9 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY backend/requirements.txt backend/requirements-browser.txt ./backend/
+COPY backend/requirements.txt backend/requirements-browser.txt \
+     backend/requirements-browserintel.txt ./backend/
 RUN pip install -r backend/requirements.txt \
     && pip install -r backend/requirements-browser.txt \
+    # separate step on purpose: stagehand needs websockets>=16.1.1 while an
+    # unused browser-use CLI helper pins 15.0.1, so pip cannot co-resolve them
+    && pip install -r backend/requirements-browserintel.txt \
     # Playwright Chromium for the Tier 2 (browser) scrapers; world-readable so
     # the runtime user (PUID) can launch it
     && (crawl4ai-setup || python -m playwright install --with-deps chromium) \

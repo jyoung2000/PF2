@@ -24,7 +24,7 @@ import { toastError, toastSuccess } from '../lib/toast'
 
 const LIVE_STATES = new Set(['queued', 'running'])
 const STATE_STYLE: Record<string, string> = {
-  complete: 'text-emerald-300',
+  completed: 'text-emerald-300',
   partial: 'text-amber-300',
   running: 'text-ember',
   queued: 'text-mute',

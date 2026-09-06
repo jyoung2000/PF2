@@ -68,7 +68,7 @@ describe('ResearchTab', () => {
       grok_available: false,
       detail: '3 source(s) can answer a research query without any AI provider.',
     } as never)
-    vi.mocked(startResearch).mockResolvedValue({ ...job, status: 'complete' } as never)
+    vi.mocked(startResearch).mockResolvedValue({ ...job, status: 'completed' } as never)
   })
 
   it('shows what the query was read as, and every source outcome including failures', async () => {

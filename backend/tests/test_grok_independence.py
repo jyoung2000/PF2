@@ -247,3 +247,124 @@ def test_C_local_llm_powers_the_optional_layers(client, no_grok):
         assert r.json().get("grounded_in") or r.json().get("summary")
     # and Grok is still not configured
     assert client.get("/api/inspiration/discovery/status").json()["grok_available"] is False
+
+
+# ---------- the I11–I15 surfaces, under the same three configurations -------
+def test_A_research_runs_end_to_end_without_grok(client, no_grok, monkeypatch):
+    """§146: a full research job — interpret, route, crawl, ingest, rank,
+    export — with no Grok in any form."""
+    import promptforge.intel.research as research
+
+    monkeypatch.setattr(research, "_source_client",
+                        lambda name, s: _reddit_client(), raising=False)
+    monkeypatch.setattr(get_adapter("reddit"), "make_client",
+                        lambda s: _reddit_client())
+    monkeypatch.setattr(get_adapter("bluesky"), "make_client",
+                        lambda s: _bluesky_client())
+
+    r = client.post("/api/inspiration/research",
+                    json={"query": "kling camera movement prompts",
+                          "sources": ["reddit", "bluesky"], "limit": 20})
+    assert r.status_code == 200
+    job = r.json()
+    assert job["sources"], job
+    intent = job["params"]["intent"]
+    assert "kling" in [m.lower() for m in intent["models"]]
+    assert intent["evidence"], "the interpretation must cite what it read"
+
+    # run it inline so the test never sleeps on a thread
+    with session_scope() as s:
+        from promptforge.models import ResearchJob
+        research.run_job(job["id"])
+        done = research.job_dict(s, s.get(ResearchJob, job["id"]))
+    assert done["status"] in ("completed", "partial"), done
+    assert set(done["progress"]) == {"reddit", "bluesky"}
+
+    for fmt in ("json", "csv", "md"):
+        assert client.get(f"/api/inspiration/research/{job['id']}/export.{fmt}").status_code == 200
+
+
+def test_A_prompt_ladder_and_signals_need_no_grok(client, no_grok, monkeypatch):
+    from promptforge.pipeline.ingest import ingest_batch
+    reddit = get_adapter("reddit")
+    with session_scope() as s:
+        posts = reddit.search(s, _reddit_client(), "prompt", limit=20)
+    monkeypatch.setattr("promptforge.pipeline.media.download",
+                        lambda url, dest, client, **kw: (dest.write_bytes(_png()), 8)[1])
+    ingest_batch("reddit", posts, httpx.Client(transport=httpx.MockTransport(
+        lambda r: httpx.Response(200, content=_png()))), gate=False)
+
+    from promptforge.models import Post
+    with session_scope() as s:
+        stored = s.query(Post).filter(Post.platform == "reddit").all()
+    assert stored and any(
+        prompt_parser.is_explicit_source(p.prompt_source) for p in stored)
+
+    intel = client.get(f"/api/inspiration/posts/{stored[0].id}/intel").json()
+    assert intel["prompt_provenance"]["kind"] in ("observed", "reconstructed", "inferred")
+    assert intel["prompt_provenance"]["label"]
+
+    for path in ("/api/inspiration/analytics/signals",
+                 "/api/inspiration/analytics/patterns",
+                 "/api/inspiration/analytics/growth",
+                 "/api/inspiration/analytics/signals/summary",
+                 "/api/inspiration/discover?mode=best_prompts",
+                 "/api/inspiration/creators/links/suggestions"):
+        assert client.get(path).status_code == 200, path
+    assert client.get("/api/inspiration/analytics/signals/summary"
+                      ).json()["requires_ai"] is False
+
+
+def test_B_every_new_screen_works_with_no_llm_at_all(client, no_llm):
+    """§147: the whole Inspiration 2.0 surface renders and answers with no AI
+    provider configured — the AI-only extras say so, nothing 500s."""
+    for path in ("/api/inspiration/analytics/signals",
+                 "/api/inspiration/analytics/patterns",
+                 "/api/inspiration/analytics/growth",
+                 "/api/inspiration/discover?mode=trending",
+                 "/api/inspiration/discover?mode=cross_platform&q=kling",
+                 "/api/inspiration/research",
+                 "/api/inspiration/research/presets",
+                 "/api/inspiration/creators/links/suggestions",
+                 "/api/inspiration/browser",
+                 "/api/search?q=prompt_source:explicit+confidence:>0.8"):
+        r = client.get(path)
+        assert r.status_code == 200, f"{path} → {r.status_code} {r.text[:200]}"
+
+    # a research job still routes and runs — deterministic sources only
+    r = client.post("/api/inspiration/research",
+                    json={"query": "comfyui workflow", "sources": ["reddit"], "run": False})
+    assert r.status_code == 200 and r.json()["sources"] == ["reddit"]
+
+    # AI-only workflow repair refuses with a reason instead of pretending
+    from promptforge.models import BrowserWorkflow
+    with session_scope() as s:
+        wf = BrowserWorkflow(source="tiktok", task="search", version=1, status="broken",
+                             actions=[{"op": "goto", "url": "https://www.tiktok.com/search"}])
+        s.add(wf)
+        s.flush()
+        wf_id = wf.id
+    r = client.post(f"/api/inspiration/workflows/{wf_id}/repair")
+    assert r.status_code in (409, 429)
+    assert r.json()["detail"]
+
+
+def test_C_local_llm_never_becomes_a_requirement(client, no_grok):
+    """§148: turning a local provider ON must not change any deterministic
+    answer — the AI layers are additive, never load-bearing."""
+    before = client.get("/api/inspiration/analytics/signals").json()
+    with session_scope() as s:
+        settings_store.put(s, "llm_provider", "mock")
+    after = client.get("/api/inspiration/analytics/signals").json()
+    assert before["signals"] == after["signals"]
+    assert client.get("/api/inspiration/discover?mode=best_prompts").status_code == 200
+    assert client.get("/api/inspiration/discovery/status").json()["requires_grok"] is False
+
+
+def _png() -> bytes:
+    import io
+
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (64, 64), (30, 40, 60)).save(buf, "PNG")
+    return buf.getvalue()
