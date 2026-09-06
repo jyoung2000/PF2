@@ -30,12 +30,26 @@ class LLMNotConfigured(LLMError):
     pass
 
 
+class VisionUnsupported(LLMError):
+    """Raised when a client cannot look at images (Phase 2 evaluation)."""
+
+
 class LLMClient:
     name = "base"
     free = False
 
     def complete(self, system: str, user: str, max_tokens: int = 1500) -> str:
         raise NotImplementedError
+
+    # -- vision (Phase 2) ---------------------------------------------------
+    supports_vision = False
+
+    def complete_vision(self, system: str, user: str, images: list[bytes],
+                        max_tokens: int = 1500) -> str:
+        """Answer about the given image bytes. Clients that cannot see raise
+        VisionUnsupported so the evaluator can report honestly."""
+        raise VisionUnsupported(
+            f"{self.name} is not configured for image analysis.")
 
     def test(self) -> dict:
         """{ok: bool, detail: str, models?: [...]}. Never raises."""
@@ -56,12 +70,20 @@ class MockLLM(LLMClient):
     def __init__(self, responses: list[str] | None = None):
         self.responses = list(responses or [])
         self.calls: list[tuple[str, str]] = []
+        self.vision_calls: list[tuple[str, str, int]] = []
+
+    supports_vision = True
 
     def complete(self, system: str, user: str, max_tokens: int = 1500) -> str:
         self.calls.append((system, user))
         if self.responses:
             return self.responses.pop(0)
         return '{"note": "mock response"}'
+
+    def complete_vision(self, system: str, user: str, images: list[bytes],
+                        max_tokens: int = 1500) -> str:
+        self.vision_calls.append((system, user, len(images)))
+        return self.complete(system, user, max_tokens)
 
 
 # a process-wide mock instance so tests can preload responses through settings

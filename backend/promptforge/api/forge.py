@@ -220,15 +220,33 @@ def score_run(run_id: int, body: dict = Body(default={})):
 
 @router.post("/runs/{run_id}/refine")
 def refine_run(run_id: int, body: dict = Body(default={})):
+    """Evaluate (metadata + multimodal when an evaluator exists) then propose
+    a refinement as a new variant with a diff."""
     from ..forge import evaluate, experiments
     try:
         with session_scope() as s:
-            out = evaluate.refine_run(s, run_id, use_llm=bool(body.get("use_llm")),
-                                      create_variant=body.get("create_variant", True))
+            out = evaluate.refine_run(
+                s, run_id, use_llm=bool(body.get("use_llm")),
+                create_variant=body.get("create_variant", True),
+                with_multimodal=body.get("multimodal", True))
             s.commit()
             return out
     except experiments.LabError as e:
         raise HTTPException(404, str(e))
+
+
+@router.get("/evaluators")
+def list_evaluators():
+    """What can actually judge a result right now (spec: never fake it)."""
+    from ..forge import vision
+    with session_scope() as s:
+        backends = vision.available_backends(s)
+    return {"backends": backends, "vision_available": any(b["kind"] == "vision" for b in backends),
+            "reason": None if backends else
+            "No vision-capable evaluator is configured — set an Anthropic or "
+            "OpenAI-compatible provider in Settings → Knowledge engine, or "
+            "connect MuAPI in Settings → AI providers. Until then evaluation "
+            "stays metadata-only and says so."}
 
 
 # ---------------------------------------------------------- creative plans ---

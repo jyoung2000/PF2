@@ -27,12 +27,31 @@ class OpenAIClient(LLMClient):
             kw["transport"] = transport
         self.http = httpx.Client(**kw)
 
+    supports_vision = True
+
+    def complete_vision(self, system: str, user: str, images: list[bytes],
+                        max_tokens: int = 1500) -> str:
+        """Chat-completions with image_url parts — the shape OpenAI, Grok and
+        OpenAI-compatible gateways all accept (Phase 2 evaluation)."""
+        import base64
+        parts: list[dict] = [{"type": "text", "text": user}]
+        for raw in images[:8]:
+            b64 = base64.b64encode(raw).decode("ascii")
+            parts.append({"type": "image_url",
+                          "image_url": {"url": f"data:image/png;base64,{b64}"}})
+        return self._post({"model": self.model, "max_tokens": max_tokens,
+                           "messages": [{"role": "system", "content": system},
+                                        {"role": "user", "content": parts}]})
+
     def complete(self, system: str, user: str, max_tokens: int = 1500) -> str:
+        return self._post({"model": self.model, "max_tokens": max_tokens,
+                           "messages": [{"role": "system", "content": system},
+                                        {"role": "user", "content": user}]})
+
+    def _post(self, payload: dict) -> str:
         resp = self.http.post(
             f"{self.base}/chat/completions",
-            json={"model": self.model, "max_tokens": max_tokens,
-                  "messages": [{"role": "system", "content": system},
-                               {"role": "user", "content": user}]})
+            json=payload)
         if resp.status_code == 401:
             raise LLMError(f"The endpoint at {self.base} rejected the API key "
                            "(401) — check key and base URL.")
