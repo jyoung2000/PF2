@@ -13,6 +13,7 @@ import { ProjectsPage } from './ProjectsPage'
 import { StoryboardPage } from './StoryboardPage'
 import { StoryPage } from './StoryPage'
 import { TimelinePage } from './TimelinePage'
+import { EditorPage } from './EditorPage'
 
 export interface FilmCtx {
   project: Project | null
@@ -38,6 +39,7 @@ const TABS = [
   { to: 'director', label: 'Director' },
   { to: 'storyboard', label: 'Storyboard' },
   { to: 'timeline', label: 'Timeline' },
+  { to: 'editor', label: 'Editor' },
 ]
 
 export function FilmPage() {
@@ -120,6 +122,7 @@ export function FilmPage() {
             <Route path="director" element={<NeedsProject><DirectorPage /></NeedsProject>} />
             <Route path="storyboard" element={<NeedsProject><StoryboardPage /></NeedsProject>} />
             <Route path="timeline" element={<NeedsProject><TimelinePage /></NeedsProject>} />
+            <Route path="editor" element={<NeedsProject><EditorPage /></NeedsProject>} />
           </Routes>
         )}
       </div>
