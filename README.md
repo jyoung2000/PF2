@@ -225,6 +225,29 @@ The **Forge** section turns a one-line idea into a generation-ready package:
 6. **Usage** — every job's model, provider, cost, latency, success rate and
    fallback lineage, plus score-per-dollar from your Lab ratings.
 
+Model facts carry provenance: each catalogue entry records where it came from
+(a cited source, or an honest "seeded from general knowledge"), a confidence,
+and any known deprecation — the router reports a deprecation as an unsupported
+constraint instead of quietly recommending a sunsetting model.
+
+### Multimodal tools and evaluation
+
+Connect a provider that declares them and these run for real: image and video
+upscaling, background removal, speech synthesis, transcription, audio
+analysis, music/SFX, video→audio and text/image→3D. Audio, 3D and text results
+land in an artifact store (they are not library posts) but keep the same job
+lineage. MuAPI declares all of them out of the box; it is one provider among
+several and nothing depends on it.
+
+**Evaluation** looks at the actual result when an evaluator is available: a
+vision-capable LLM (Anthropic, OpenAI-compatible, Grok) or MuAPI's vision
+endpoint scores prompt adherence, composition, subject presence, quality,
+consistency and typography with evidence and a confidence; video is sampled
+into keyframes; audio is transcribed and compared to the script; 3D gets local
+format checks. With no evaluator the report says *content was not judged*,
+gives the reason, returns no score and drops confidence — it is never
+simulated.
+
 Everything degrades honestly: with no generation provider configured you can
 still compose, compare models, build plans and workflows — execution says
 exactly what to connect. Provider fallback is opt-in per job and always
