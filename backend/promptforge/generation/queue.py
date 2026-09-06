@@ -74,6 +74,12 @@ def _fail(gid: int, message: str) -> None:
             g.finished_at = utcnow()
     bus.error("generation", f"#{gid} failed — {message}")
     _notify_film(gid, "failed")
+    # §12.5: opt-in, one-step, always-visible provider fallback
+    try:
+        from ..forge.tools import attempt_fallback
+        attempt_fallback(gid)
+    except Exception as e:
+        bus.warn("generation", f"#{gid} fallback attempt errored: {e}")
 
 
 def _notify_film(gid: int, status: str) -> None:

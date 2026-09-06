@@ -82,3 +82,32 @@ def compile_prompt(body: dict = Body(...)):
         return compiler.compile_package(
             s, idea, family=body.get("family"), provider=body.get("provider"),
             params_override=body.get("params"), use_llm=bool(body.get("use_llm")))
+
+
+# ------------------------------------------------------------- tool layer ---
+@router.get("/tools")
+def list_tools():
+    from ..forge import tools
+    with session_scope() as s:
+        return {"tools": tools.availability(s)}
+
+
+@router.post("/tools/{name}")
+def invoke_tool(name: str, body: dict = Body(default={})):
+    from ..forge import tools
+    try:
+        with session_scope() as s:
+            return tools.invoke(s, name, body,
+                                allow_fallback=bool(body.get("allow_fallback")))
+    except tools.ToolError as e:
+        raise HTTPException(409, detail=e.detail)
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: int):
+    from ..forge import tools
+    try:
+        with session_scope() as s:
+            return tools.job_status(s, job_id)
+    except tools.ToolError as e:
+        raise HTTPException(404, detail=e.detail)
