@@ -95,6 +95,12 @@ def start() -> None:
                            id="film_jobs", max_instances=1, coalesce=True)
     except ImportError:
         pass
+    try:
+        from .forge import workflows as forge_workflows
+        _scheduler.add_job(forge_workflows.tick_unfinished, "interval", minutes=1,
+                           id="forge_workflows", max_instances=1, coalesce=True)
+    except ImportError:
+        pass
     _scheduler.start()
     bus.info("system", "scheduler started")
 

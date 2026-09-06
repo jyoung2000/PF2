@@ -326,3 +326,127 @@ def fork_plan(plan_id: int):
             return planner.plan_view(s, clone.id)
     except planner.PlanError as e:
         raise HTTPException(404, str(e))
+
+
+# ---------------------------------------------------------------- workflows ---
+@router.get("/workflows")
+def list_workflows():
+    from sqlalchemy import select
+    from ..forge.models import Workflow, WorkflowRun
+    from ..forge.workflows import TEMPLATES
+    with session_scope() as s:
+        out = []
+        for w in s.execute(select(Workflow).order_by(Workflow.id.desc())).scalars():
+            runs = s.query(WorkflowRun).filter_by(workflow_id=w.id).count()
+            out.append({"id": w.id, "name": w.name, "description": w.description,
+                        "node_count": len((w.graph or {}).get("nodes") or []),
+                        "run_count": runs, "is_template": w.is_template,
+                        "updated_at": w.updated_at.isoformat() if w.updated_at else None})
+        return {"workflows": out,
+                "templates": [{"key": k, "name": t["name"], "description": t["description"]}
+                              for k, t in TEMPLATES.items()]}
+
+
+@router.post("/workflows")
+def create_workflow(body: dict = Body(...)):
+    from ..forge import workflows as wf_mod
+    from ..forge.models import Workflow
+    graph = body.get("graph") or {}
+    v = wf_mod.validate_graph(graph)
+    if not v["ok"]:
+        raise HTTPException(422, detail={"errors": v["errors"]})
+    with session_scope() as s:
+        w = Workflow(name=str(body.get("name") or "Untitled workflow"),
+                     description=body.get("description"), graph=graph)
+        s.add(w)
+        s.commit()
+        return {"id": w.id, "name": w.name, "validation": v,
+                "availability": wf_mod.availability_report(s, graph)}
+
+
+@router.post("/workflows/from-template/{key}")
+def workflow_from_template(key: str):
+    from ..forge import workflows as wf_mod
+    try:
+        with session_scope() as s:
+            w = wf_mod.instantiate_template(s, key)
+            s.commit()
+            return {"id": w.id, "name": w.name, "graph": w.graph,
+                    "availability": wf_mod.availability_report(s, w.graph)}
+    except wf_mod.WorkflowError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/workflows/{workflow_id}")
+def get_workflow(workflow_id: int):
+    from ..forge import workflows as wf_mod
+    from ..forge.models import Workflow
+    with session_scope() as s:
+        w = s.get(Workflow, workflow_id)
+        if w is None:
+            raise HTTPException(404, "workflow not found")
+        return {"id": w.id, "name": w.name, "description": w.description,
+                "graph": w.graph, "is_template": w.is_template,
+                "validation": wf_mod.validate_graph(w.graph or {}),
+                "availability": wf_mod.availability_report(s, w.graph or {})}
+
+
+@router.put("/workflows/{workflow_id}")
+def update_workflow(workflow_id: int, body: dict = Body(...)):
+    from ..forge import workflows as wf_mod
+    from ..forge.models import Workflow
+    with session_scope() as s:
+        w = s.get(Workflow, workflow_id)
+        if w is None:
+            raise HTTPException(404, "workflow not found")
+        if "graph" in body:
+            v = wf_mod.validate_graph(body["graph"] or {})
+            if not v["ok"]:
+                raise HTTPException(422, detail={"errors": v["errors"]})
+            w.graph = body["graph"]
+        for key in ("name", "description"):
+            if body.get(key) is not None:
+                setattr(w, key, body[key])
+        s.commit()
+        return {"id": w.id, "name": w.name,
+                "availability": wf_mod.availability_report(s, w.graph or {})}
+
+
+@router.post("/workflows/{workflow_id}/run")
+def start_workflow_run(workflow_id: int, body: dict = Body(default={})):
+    from ..forge import workflows as wf_mod
+    try:
+        with session_scope() as s:
+            run = wf_mod.start_run(s, workflow_id, inputs=body.get("inputs") or {})
+            s.commit()
+            return wf_mod.tick_run(s, run.id)
+    except wf_mod.WorkflowError as e:
+        raise HTTPException(409, str(e))
+
+
+@router.get("/workflow-runs/{run_id}")
+def get_workflow_run(run_id: int, tick: bool = False):
+    from ..forge import workflows as wf_mod
+    from ..forge.models import WorkflowRun
+    try:
+        with session_scope() as s:
+            if tick:
+                return wf_mod.tick_run(s, run_id)
+            run = s.get(WorkflowRun, run_id)
+            if run is None:
+                raise HTTPException(404, "run not found")
+            return wf_mod.run_view(s, run)
+    except wf_mod.WorkflowError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/workflow-runs/{run_id}/approve")
+def approve_workflow_node(run_id: int, body: dict = Body(...)):
+    from ..forge import workflows as wf_mod
+    try:
+        with session_scope() as s:
+            out = wf_mod.approve(s, run_id, str(body.get("node_id") or ""))
+            s.commit()
+            return out
+    except wf_mod.WorkflowError as e:
+        raise HTTPException(409, str(e))
