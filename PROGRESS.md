@@ -240,7 +240,7 @@ commit per sub-task or logical unit; end each phase with its gate (full test sui
 
 ## Forge — model-aware prompt engineering + execution platform (one-shot spec, phases F1–F9)
 - [x] F1 Audit + plan: baseline suite green (239 backend + 20 frontend), `docs/architecture-forge.md` (existing/new architecture, boundaries, migration, flags, fallback), `docs/integration-ideas.md` (§16/§21 registry). ✓: docs committed.
-- [ ] F2 Model Intelligence Registry: `models_catalog.json` (seed → DATA_DIR copy, additive merge) + `forge/catalog.py` (normalized entries, capability resolver, parameter validator, recommendations input) + `/api/forge/models*`. ✓: tests.
+- [x] F2 Model Intelligence Registry: `models_catalog.json` (seed → DATA_DIR copy, additive merge) + `forge/catalog.py` (normalized entries, capability resolver, parameter validator, recommendations input) + `/api/forge/models*`. ✓: 4 tests (seed lifecycle, additive merge, validator, registry merge). Done: `forge/catalog.py`, `api/forge.py`, seed `models_catalog.json` (15 families, full §2 schema, honest nulls).
 - [ ] F3 Intent + router + prompt compiler: `forge/intent.py` (deterministic, evidence-tagged), `forge/router.py` (ranked, explainable, overridable; §12 policy), `forge/compiler.py` (PromptPackage, recompile on model switch). ✓: tests.
 - [ ] F4 Tool layer + fallback: `forge/tools.py` typed tools over the generation queue; generation start factored into a service; opt-in one-step fallback recorded on the job. ✓: tests with mocked providers.
 - [ ] F5 Test Lab + evaluation: prompt_experiments/prompt_variants/variant_runs tables; deterministic evaluator + optional LLM critique; refinement = new version with diff. ✓: tests.

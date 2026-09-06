@@ -1,0 +1,983 @@
+{
+ "_note": "PromptForge model intelligence seed. Copied to DATA_DIR/models_catalog.json on first boot; the copy is yours to edit and wins over this seed. Entries are best-effort as of last_verified \u2014 verify licensing and limits against the provider before commercial use.",
+ "families": {
+  "flux": {
+   "display_name": "Flux.1 Dev",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "image_to_image",
+    "reference_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.8,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "21:9"
+   ],
+   "resolutions": [
+    "512-1440px per side"
+   ],
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": true,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "FLUX.1 [dev] non-commercial license for local weights; hosted API terms differ per provider",
+   "commercial_use": "via hosted providers under their terms; local weights are non-commercial",
+   "local_hardware": "~24 GB VRAM for local inference (bf16); smaller with quantization",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "responds strongly to camera/lens language and concrete lighting; no negative prompt"
+   },
+   "strengths": [
+    "prompt adherence",
+    "text rendering (short)",
+    "photorealism",
+    "detail"
+   ],
+   "weaknesses": [
+    "no negative prompt",
+    "slower than turbo-class models"
+   ],
+   "fallback_families": [
+    "flux-pro",
+    "sdxl"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "flux-pro": {
+   "display_name": "Flux.1 Pro / Kontext",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "reference_to_image",
+    "editing"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.9,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "21:9"
+   ],
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (no public weights)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "Kontext excels at instruction-style edits referencing the input image"
+   },
+   "strengths": [
+    "best-in-family quality",
+    "instruction editing",
+    "identity preservation"
+   ],
+   "weaknesses": [
+    "cost",
+    "API-only"
+   ],
+   "fallback_families": [
+    "flux"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "sdxl": {
+   "display_name": "SDXL",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "image_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.6,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9"
+   ],
+   "resolutions": [
+    "~1 megapixel native (1024x1024 class)"
+   ],
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": true,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "CreativeML Open RAIL++-M (open weights)",
+   "commercial_use": "yes, within the RAIL license terms",
+   "local_hardware": "8-12 GB VRAM",
+   "prompt": {
+    "style": "tags",
+    "camera_language": true,
+    "max_terms": 75,
+    "notes": "comma-separated tag style + negative prompt; quality tags help; keep under ~75 tokens"
+   },
+   "strengths": [
+    "huge ecosystem (LoRA/controlnet)",
+    "cheap",
+    "local-friendly",
+    "negative prompts"
+   ],
+   "weaknesses": [
+    "hands/text",
+    "prompt adherence vs newer models"
+   ],
+   "fallback_families": [
+    "sd3",
+    "flux"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "sd3": {
+   "display_name": "Stable Diffusion 3.5",
+   "modality": "image",
+   "tasks": [
+    "text_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.7,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9",
+    "21:9"
+   ],
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "Stability Community License (open weights, revenue threshold)",
+   "commercial_use": "free under $1M annual revenue, license above",
+   "local_hardware": "16-24 GB VRAM (large); 8 GB for medium",
+   "prompt": {
+    "style": "hybrid",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "natural language works; negative prompt supported"
+   },
+   "strengths": [
+    "typography",
+    "prompt adherence",
+    "open weights"
+   ],
+   "weaknesses": [
+    "ecosystem smaller than SDXL"
+   ],
+   "fallback_families": [
+    "sdxl",
+    "flux"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "seedream": {
+   "display_name": "Seedream",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "image_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.85,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "21:9"
+   ],
+   "resolutions": [
+    "up to 4096px (4.0)"
+   ],
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": true,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (ByteDance)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "strong bilingual (EN/ZH) understanding; describe composition plainly"
+   },
+   "strengths": [
+    "aesthetics",
+    "high resolution",
+    "text rendering",
+    "identity consistency"
+   ],
+   "weaknesses": [
+    "API-only"
+   ],
+   "fallback_families": [
+    "flux",
+    "qwen-image"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "qwen-image": {
+   "display_name": "Qwen-Image",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "editing"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.75,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "Apache-2.0 (open weights)",
+   "commercial_use": "yes",
+   "local_hardware": "~24 GB VRAM (20B MMDiT); quantized variants smaller",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": "exceptional dense text rendering incl. CJK; spell text in quotes"
+   },
+   "strengths": [
+    "text/typography in-image",
+    "open license",
+    "editing"
+   ],
+   "weaknesses": [
+    "young ecosystem"
+   ],
+   "fallback_families": [
+    "flux",
+    "sd3"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "ideogram": {
+   "display_name": "Ideogram",
+   "modality": "image",
+   "tasks": [
+    "text_to_image"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.8,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "10:16",
+    "16:10"
+   ],
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "API-only",
+   "commercial_use": "per Ideogram terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": "best-in-class typography \u2014 put exact wording in quotes"
+   },
+   "strengths": [
+    "typography/logos/posters",
+    "style controls"
+   ],
+   "weaknesses": [
+    "photorealism vs Flux-class"
+   ],
+   "fallback_families": [
+    "recraft",
+    "qwen-image"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "recraft": {
+   "display_name": "Recraft V3",
+   "modality": "image",
+   "tasks": [
+    "text_to_image",
+    "vector"
+   ],
+   "input_types": [
+    "text"
+   ],
+   "output_types": [
+    "image",
+    "svg"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.8,
+   "context_window": null,
+   "aspect_ratios": null,
+   "resolutions": null,
+   "max_duration_s": null,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": false,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": true,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only",
+   "commercial_use": "per Recraft terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": false,
+    "max_terms": null,
+    "notes": "supports true vector/SVG output and brand-style controls"
+   },
+   "strengths": [
+    "design/brand assets",
+    "vector output",
+    "long text"
+   ],
+   "weaknesses": [
+    "cinematic photorealism"
+   ],
+   "fallback_families": [
+    "ideogram"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "kling": {
+   "display_name": "Kling",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video",
+    "start_end_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.85,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "9:16",
+    "16:9"
+   ],
+   "resolutions": [
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": true,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": true,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "API-only (Kuaishou)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "describe subject, motion, camera move and lighting as one flowing sentence"
+   },
+   "strengths": [
+    "motion quality",
+    "start/end frame control",
+    "physical plausibility"
+   ],
+   "weaknesses": [
+    "queue latency",
+    "cost at 1080p"
+   ],
+   "fallback_families": [
+    "wan",
+    "hailuo"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "wan": {
+   "display_name": "Wan",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.7,
+   "context_window": null,
+   "aspect_ratios": [
+    "9:16",
+    "16:9",
+    "1:1"
+   ],
+   "resolutions": [
+    "480p",
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": true,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "Apache-2.0 (open weights)",
+   "commercial_use": "yes",
+   "local_hardware": "14B: 24+ GB VRAM; 1.3B runs on 8-12 GB",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "2.2+ handles multi-shot descriptions; name the camera move explicitly"
+   },
+   "strengths": [
+    "open weights",
+    "cost",
+    "motion for the price"
+   ],
+   "weaknesses": [
+    "fine detail vs Veo/Kling"
+   ],
+   "fallback_families": [
+    "kling",
+    "ltx-video"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "veo": {
+   "display_name": "Veo",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.95,
+   "context_window": null,
+   "aspect_ratios": [
+    "9:16",
+    "16:9"
+   ],
+   "resolutions": [
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 8,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": true,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (Google)",
+   "commercial_use": "per Google/provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "cinematic vocabulary lands well; can generate synced audio/dialogue"
+   },
+   "strengths": [
+    "overall quality",
+    "native audio",
+    "physics"
+   ],
+   "weaknesses": [
+    "cost",
+    "duration cap"
+   ],
+   "fallback_families": [
+    "kling",
+    "wan"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "hailuo": {
+   "display_name": "Hailuo / MiniMax",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.75,
+   "context_window": null,
+   "aspect_ratios": [
+    "9:16",
+    "16:9",
+    "1:1"
+   ],
+   "resolutions": [
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (MiniMax)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "supports bracketed camera directives like [push in], [pan left]"
+   },
+   "strengths": [
+    "expressive character motion",
+    "camera directives"
+   ],
+   "weaknesses": [
+    "resolution options"
+   ],
+   "fallback_families": [
+    "kling",
+    "wan"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "seedance": {
+   "display_name": "Seedance",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "cloud",
+   "free_tier": null,
+   "latency_class": "medium",
+   "quality_prior": 0.75,
+   "context_window": null,
+   "aspect_ratios": [
+    "1:1",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "21:9"
+   ],
+   "resolutions": [
+    "480p",
+    "720p",
+    "1080p"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": true,
+    "character_consistency": true,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "API-only (ByteDance)",
+   "commercial_use": "per provider terms",
+   "local_hardware": null,
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "strong multi-shot narrative coherence \u2014 describe the sequence of shots"
+   },
+   "strengths": [
+    "multi-shot coherence",
+    "speed/price balance"
+   ],
+   "weaknesses": [
+    "audio not generated"
+   ],
+   "fallback_families": [
+    "kling",
+    "hailuo"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "ltx-video": {
+   "display_name": "LTX-Video",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "fast",
+   "quality_prior": 0.5,
+   "context_window": null,
+   "aspect_ratios": [
+    "9:16",
+    "16:9",
+    "1:1"
+   ],
+   "resolutions": [
+    "up to 1216x704 class"
+   ],
+   "max_duration_s": 10,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": true
+   },
+   "licensing": "LTXV open weights (Lightricks license)",
+   "commercial_use": "yes for most uses \u2014 check license tiers",
+   "local_hardware": "12-24 GB VRAM; realtime-class on high-end GPUs",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": "needs long, chronological, very literal prompts; underspecified prompts drift"
+   },
+   "strengths": [
+    "speed",
+    "local-friendly",
+    "cost"
+   ],
+   "weaknesses": [
+    "quality below cloud flagships",
+    "prompt sensitivity"
+   ],
+   "fallback_families": [
+    "wan"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  },
+  "hunyuan": {
+   "display_name": "Hunyuan Video",
+   "modality": "video",
+   "tasks": [
+    "text_to_video",
+    "image_to_video"
+   ],
+   "input_types": [
+    "text",
+    "image"
+   ],
+   "output_types": [
+    "video"
+   ],
+   "availability": "both",
+   "free_tier": null,
+   "latency_class": "slow",
+   "quality_prior": 0.7,
+   "context_window": null,
+   "aspect_ratios": [
+    "9:16",
+    "16:9"
+   ],
+   "resolutions": [
+    "540p",
+    "720p"
+   ],
+   "max_duration_s": 6,
+   "supports": {
+    "reference_images": false,
+    "image_to_image": false,
+    "image_to_video": true,
+    "start_end_frames": false,
+    "audio": false,
+    "multi_reference": false,
+    "character_consistency": false,
+    "editing": false,
+    "enhancement": false,
+    "negative_prompt": false
+   },
+   "licensing": "Tencent community license (open weights, restrictions incl. EU/UK/KR territories)",
+   "commercial_use": "yes under the community license below 100M MAU \u2014 read the territory limits",
+   "local_hardware": "45+ GB VRAM native; quantized ~24 GB",
+   "prompt": {
+    "style": "natural_language",
+    "camera_language": true,
+    "max_terms": null,
+    "notes": null
+   },
+   "strengths": [
+    "open weights at high quality",
+    "motion realism"
+   ],
+   "weaknesses": [
+    "heavy locally",
+    "duration cap"
+   ],
+   "fallback_families": [
+    "wan",
+    "kling"
+   ],
+   "last_verified": "2026-09-06",
+   "source": "seeded \u2014 best-effort as of the ship date; edit in Settings or DATA_DIR/models_catalog.json"
+  }
+ }
+}

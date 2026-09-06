@@ -117,7 +117,8 @@ def create_app() -> FastAPI:
     app.include_router(scrapers.router)
     for modname in ("search", "collections", "tags", "settings", "integrations",
                     "knowledge", "studio", "generation", "companion",
-                    "models_meta", "ws", "monitoring", "grok", "inspiration", "film"):
+                    "models_meta", "ws", "monitoring", "grok", "inspiration", "film",
+                    "forge"):
         try:
             module = __import__(f"promptforge.api.{modname}", fromlist=["router"])
             app.include_router(module.router)
