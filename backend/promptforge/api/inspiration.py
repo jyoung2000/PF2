@@ -252,3 +252,208 @@ def get_snapshot(platform: str, file: str):
     if data is None:
         raise HTTPException(404, "No such snapshot")
     return data
+
+
+# ------------------------------------------- discovery (Grok-free, I10) -----
+class DiscoverBody(BaseModel):
+    query: str
+    sources: list[str] | None = None
+    limit: int = 20
+    per_source: int = 40
+
+
+@router.get("/discovery/status")
+def discovery_status(db: Session = Depends(get_db)):
+    """What creator/source discovery can do right now — and proof that it
+    does not need Grok (§29)."""
+    from ..intel import discovery
+    return discovery.discovery_status(db)
+
+
+@router.post("/creators/discover")
+def discover_creators(body: DiscoverBody, db: Session = Depends(get_db)):
+    """Find creators worth following by searching PF2's own sources. No AI
+    provider is used; nothing is followed automatically (§30)."""
+    from ..intel import discovery
+    if not body.query.strip():
+        raise HTTPException(422, "A query is required.")
+    return discovery.discover_creators(
+        db, body.query.strip(), sources=body.sources,
+        limit=max(1, min(100, body.limit)),
+        per_source=max(1, min(100, body.per_source)))
+
+
+@router.get("/creators/{creator_id}/similar")
+def creator_similar(creator_id: int, limit: int = 12, db: Session = Depends(get_db)):
+    from ..intel import discovery
+    if db.get(Creator, creator_id) is None:
+        raise HTTPException(404, "No such creator")
+    return discovery.similar_creators(db, creator_id, max(1, min(50, limit)))
+
+
+# ------------------------------------------------ browser intelligence ------
+@router.get("/browser")
+def browser_status(db: Session = Depends(get_db)):
+    """Engine availability + today's AI/browser budget use + workflow health."""
+    from .. import browserintel as bi
+    from ..browserintel import diagnostics, workflows as wf_store
+    return {**bi.availability(),
+            "usage": bi.get_usage(db),
+            "workflows": [wf_store.workflow_dict(w) for w in wf_store.list_workflows(db)],
+            "diagnostics": diagnostics.list_diagnostics(limit=10)}
+
+
+@router.post("/workflows/{workflow_id}/repair")
+def repair_workflow(workflow_id: int, db: Session = Depends(get_db)):
+    from .. import browserintel as bi
+    from ..models import BrowserWorkflow
+    wf = db.get(BrowserWorkflow, workflow_id)
+    if wf is None:
+        raise HTTPException(404, "No such workflow")
+    try:
+        return bi.repair_workflow(wf.source, wf.task)
+    except bi.BudgetExhausted as e:
+        raise HTTPException(429, str(e))
+    except bi.EngineUnavailable as e:
+        raise HTTPException(409, {"code": "engine_unavailable", "message": str(e)})
+    except bi.PolicyViolation as e:
+        raise HTTPException(422, str(e))
+
+
+@router.post("/workflows/{workflow_id}/disable")
+def disable_workflow(workflow_id: int, db: Session = Depends(get_db)):
+    from ..models import BrowserWorkflow
+    wf = db.get(BrowserWorkflow, workflow_id)
+    if wf is None:
+        raise HTTPException(404, "No such workflow")
+    wf.status = "disabled"
+    db.flush()
+    from ..browserintel import workflows as wf_store
+    return wf_store.workflow_dict(wf)
+
+
+# ---------------------------------------------------- research jobs (I13) ---
+class ResearchBody(BaseModel):
+    query: str = ""
+    sources: list[str] | None = None
+    preset: str | None = None
+    limit: int | None = None
+    per_source: int | None = None
+    label: str | None = None
+    run: bool = True          # False → create the job without running it
+
+
+@router.get("/research/presets")
+def research_presets():
+    from ..intel import research
+    return {"presets": [{"key": k, **v} for k, v in research.PRESETS.items()]}
+
+
+@router.post("/research")
+def start_research(body: ResearchBody, db: Session = Depends(get_db)):
+    """Interpret the request, route it to the capable sources and start the
+    crawl. Deterministic end to end — no AI provider needed (§29)."""
+    from ..intel import research
+    if not (body.query or "").strip() and not body.preset:
+        raise HTTPException(422, "Give a research query (or pick a preset).")
+    job = research.create_job(db, (body.query or "").strip(), sources=body.sources,
+                              preset=body.preset, limit=body.limit,
+                              per_source=body.per_source, label=body.label)
+    out = research.job_dict(db, job)
+    if not job.sources:
+        out["warning"] = ("No source can answer this yet — connect one under "
+                          "Inspiration → Sources (Reddit and Bluesky need no login).")
+    elif body.run:
+        db.commit()
+        research.start_async(job.id)
+    return out
+
+
+@router.get("/research")
+def list_research(limit: int = 25, db: Session = Depends(get_db)):
+    from ..intel import research
+    return {"jobs": research.list_jobs(db, limit)}
+
+
+@router.get("/research/{job_id}")
+def get_research(job_id: int, include_results: bool = True, db: Session = Depends(get_db)):
+    from ..intel import research
+    from ..models import ResearchJob
+    job = db.get(ResearchJob, job_id)
+    if job is None:
+        raise HTTPException(404, "No such research job")
+    out = research.job_dict(db, job)
+    if include_results:
+        out["items"] = _cards(db, (job.result_post_ids or [])[:60])
+    return out
+
+
+@router.post("/research/{job_id}/{action}")
+def control_research(job_id: int, action: str, db: Session = Depends(get_db)):
+    from ..intel import research
+    from ..models import ResearchJob
+    job = db.get(ResearchJob, job_id)
+    if job is None:
+        raise HTTPException(404, "No such research job")
+    if action == "pause":
+        job.status = "paused"
+    elif action == "cancel":
+        job.status = "cancelled"
+    elif action in ("resume", "run"):
+        job.status = "queued"
+        db.commit()
+        research.start_async(job.id)
+    elif action in ("rerun", "refresh"):
+        new = research.rerun(db, job, refresh=(action == "refresh"))
+        db.commit()
+        research.start_async(new.id)
+        return research.job_dict(db, new)
+    else:
+        raise HTTPException(422, "action must be pause|resume|cancel|rerun|refresh")
+    db.flush()
+    return research.job_dict(db, job)
+
+
+@router.get("/research/{job_id}/export.{fmt}")
+def export_research(job_id: int, fmt: str, db: Session = Depends(get_db)):
+    """JSON / CSV / Markdown export of a job's prompt records (§101)."""
+    from fastapi.responses import PlainTextResponse
+
+    from ..intel import research
+    from ..models import ResearchJob
+    job = db.get(ResearchJob, job_id)
+    if job is None:
+        raise HTTPException(404, "No such research job")
+    if fmt not in ("json", "csv", "md"):
+        raise HTTPException(422, "format must be json, csv or md")
+    posts = db.execute(select(Post).where(
+        Post.id.in_(job.result_post_ids or []))).scalars().all()
+    rows = [{
+        "prompt": p.prompt, "negative": p.negative_prompt,
+        "model": p.model_name, "model_family": p.model_family,
+        "techniques": ", ".join(p.technique_tags or []),
+        "platform": p.platform, "creator": p.author, "url": p.source_url,
+        "prompt_source": p.prompt_source,
+        "confidence": ((p.assertions or {}).get("prompt") or {}).get("confidence"),
+        "inspiration_score": p.inspiration_score,
+    } for p in posts]
+    if fmt == "json":
+        return {"job": research.job_dict(db, job), "records": rows}
+    if fmt == "csv":
+        import csv
+        import io
+        buf = io.StringIO()
+        w = csv.DictWriter(buf, fieldnames=list(rows[0]) if rows else
+                           ["prompt", "model", "platform", "url"])
+        w.writeheader()
+        w.writerows(rows)
+        return PlainTextResponse(buf.getvalue(), media_type="text/csv")
+    lines = [f"# Inspiration research — {job.query}", "",
+             f"*{len(rows)} records · sources: {', '.join(job.sources or [])}*", ""]
+    for r in rows:
+        lines += [f"## {r['creator'] or 'unknown'} · {r['platform']}",
+                  f"- **Model:** {r['model'] or '—'}",
+                  f"- **Prompt source:** {r['prompt_source'] or 'unknown'}",
+                  f"- **Source:** {r['url'] or '—'}", "",
+                  "```", (r["prompt"] or "(no published prompt)"), "```", ""]
+    return PlainTextResponse("\n".join(lines), media_type="text/markdown")

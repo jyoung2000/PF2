@@ -127,6 +127,8 @@ def check_budget(s: Session, client: LLMClient) -> None:
 
 def build_client(s: Session) -> LLMClient:
     provider = (settings_store.get(s, "llm_provider") or "").strip().lower()
+    if provider in ("none", "off", "disabled"):   # explicit "no AI" (I10)
+        provider = ""
     if not provider:
         raise LLMNotConfigured(
             "No AI provider configured — pick one in Settings → Knowledge "

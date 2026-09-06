@@ -190,7 +190,10 @@ def test_missing_session_marks_error_not_crash(client, fake_adapter):
     assert monitoring.run_account(account["id"], manual=True) is None
     with db_mod.session_scope() as s:
         a = s.get(MonitoredAccount, account["id"])
-        assert a.status == "error" and "capture_login" in a.last_error
+        # I10: an unconfigured source is "needs_setup", not an error — and the
+        # message says what to do (§107)
+        assert a.status == "needs_setup"
+        assert "connect" in a.last_error.lower() or "capture_login" in a.last_error
 
 
 def test_api_crud_and_bulk(client, fake_adapter):

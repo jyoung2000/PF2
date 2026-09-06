@@ -1,8 +1,15 @@
-"""Follow-list monitoring (Phase X2, D52): walk active accounts on their
-intervals, pull each timeline through the XAdapter (newest first, stopping at
-the last_post_id cursor), push finds through the normal pipeline, apply
-per-account auto-tag / auto-collection, advance the cursor. One failing
-account never blocks the rest."""
+"""Follow-list monitoring (Phase X2, D52; source-neutral since I10).
+
+Walk active monitored creators on their intervals, pull each timeline through
+THAT CREATOR'S OWN adapter (X, Reddit, Bluesky, YouTube, … — anything whose
+adapter declares the `author` capability), push finds through the normal
+pipeline, apply per-account auto-tag / auto-collection, advance the cursor.
+One failing account never blocks the rest, and a platform whose adapter is
+missing or unconfigured is reported on the row rather than crashing the tick.
+
+Nothing here needs Grok or X: `added_by="grok"` is only an evidence label
+(D71) and creator discovery has a provider-neutral path (intel/discovery.py).
+"""
 from __future__ import annotations
 
 import re
@@ -17,47 +24,21 @@ from .db import session_scope
 from .logbus import bus
 from .models import (Collection, CollectionPost, MonitoredAccount, Post,
                      PostTag, Tag)
+from .intel import handles
 from .pipeline.ingest import IngestStats, ingest_batch
 from .scrapers import get_adapter
 
-HANDLE_RE = re.compile(r"^[A-Za-z0-9_]{1,15}$")
-_URL_RE = re.compile(
-    r"^(?:https?://)?(?:www\.)?(?:x\.com|twitter\.com)/(@?[A-Za-z0-9_]{1,15})"
-    r"(?:[/?].*)?$", re.I)
+# kept for backwards compatibility with existing callers/tests: both default
+# to X but now delegate to the per-platform rules (I10).
+HANDLE_RE = handles.rule("x")["re"]
 
 
-def normalize_handle(raw: str) -> str | None:
-    """@handle, bare handle, or profile URL → lowercase handle (or None)."""
-    raw = (raw or "").strip().rstrip(",;")
-    if not raw:
-        return None
-    m = _URL_RE.match(raw)
-    if m:
-        raw = m.group(1)
-    raw = raw.lstrip("@").strip()
-    if not HANDLE_RE.match(raw):
-        return None
-    if raw.lower() in ("home", "explore", "search", "i", "settings", "messages",
-                       "notifications", "login"):
-        return None  # reserved X paths pasted by accident
-    return raw.lower()
+def normalize_handle(raw: str, platform: str = "x") -> str | None:
+    return handles.normalize(raw, platform)
 
 
-def parse_bulk(text: str) -> tuple[list[str], list[str]]:
-    """Bulk paste → (valid handles deduped, rejected raw tokens)."""
-    valid: list[str] = []
-    rejected: list[str] = []
-    seen: set[str] = set()
-    for token in re.split(r"[\s,;]+", text or ""):
-        if not token.strip():
-            continue
-        handle = normalize_handle(token)
-        if handle is None:
-            rejected.append(token.strip())
-        elif handle not in seen:
-            seen.add(handle)
-            valid.append(handle)
-    return valid, rejected
+def parse_bulk(text: str, platform: str = "x") -> tuple[list[str], list[str]]:
+    return handles.parse_bulk(text, platform)
 
 
 # ------------------------------------------------------------- polling ------
@@ -117,9 +98,19 @@ def _apply_auto_actions(account: MonitoredAccount, new_ids: list[int]) -> None:
                     collection.cover_post_id = pid
 
 
+def _fetch_author_posts(adapter, s, client, handle: str, *, since_id, media_only: bool):
+    """Call whichever author API this adapter offers (X keeps its richer
+    signature; the social adapters take a simple limit)."""
+    try:
+        return adapter.fetch_account(s, client, handle, since_id=since_id,
+                                     media_only=media_only)
+    except AttributeError:
+        return adapter.fetch_author(s, client, handle, limit=60)
+
+
 def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
-    """Poll one monitored account. Never raises; outcome lands on the row."""
-    adapter = get_adapter("x")
+    """Poll one monitored creator on its own platform. Never raises; the
+    outcome always lands on the row."""
     src = "monitoring"
     with session_scope() as s:
         account = s.get(MonitoredAccount, account_id)
@@ -128,29 +119,52 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
         if not account.active and not manual:
             return None
         handle = account.handle
-        since_id = int(account.last_post_id) if account.last_post_id else None
+        platform = account.platform or "x"
+        adapter = get_adapter(platform)
+        since_id = None
+        if account.last_post_id and str(account.last_post_id).isdigit():
+            since_id = int(account.last_post_id)
         media_only = account.media_only
-        if adapter is None or not adapter.is_configured(s):
+        if adapter is None:
             account.status = "error"
-            account.last_error = ("X login session missing — click Connect X "
-                                  "account (or upload a scripts/capture_login.py "
-                                  "x export)")
+            account.last_error = (f"No adapter for platform '{platform}' — it may have "
+                                  "been removed or renamed.")
             account.last_checked = datetime.now(timezone.utc)
-            bus.warn(src, f"@{handle}: skipped — no X session")
+            bus.warn(src, f"{platform}/@{handle}: skipped — no adapter")
+            return None
+        can_author = (hasattr(adapter, "fetch_account") or hasattr(adapter, "fetch_author")
+                      or "author" in (getattr(adapter, "capabilities", None) or frozenset()))
+        if not can_author:
+            account.status = "unsupported"
+            account.last_error = (f"{adapter.label} doesn't expose creator timelines, so "
+                                  "this creator can't be polled. Their posts still arrive "
+                                  "through search/discovery.")
+            account.last_checked = datetime.now(timezone.utc)
+            return None
+        if not adapter.is_configured(s):
+            account.status = "needs_setup"
+            reason = None
+            if hasattr(adapter, "needs_setup_reason"):
+                reason = adapter.needs_setup_reason(s)
+            account.last_error = reason or (
+                f"{getattr(adapter, 'label', platform)} is not connected yet — open "
+                "Inspiration → Sources to set it up.")
+            account.last_checked = datetime.now(timezone.utc)
+            bus.warn(src, f"{platform}/@{handle}: skipped — {account.last_error}")
             return None
 
     stats: IngestStats | None = None
     client = None
     try:
-        bus.info(src, f"@{handle}: polling (cursor {since_id or 'none'})")
+        bus.info(src, f"{platform}/@{handle}: polling (cursor {since_id or 'none'})")
         with session_scope() as s:
             client = adapter.make_client(s)
-            posts = adapter.fetch_account(s, client, handle,
-                                          since_id=since_id,
-                                          media_only=media_only)
-        stats = ingest_batch("x", posts, client, gate=False)  # followed accounts skip the score gate (D64)
-        max_id = max((int(str(p.platform_post_id).split("-")[0])
-                      for p in posts), default=None)
+            posts = _fetch_author_posts(adapter, s, client, handle,
+                                        since_id=since_id, media_only=media_only)
+        stats = ingest_batch(platform, posts, client, gate=False)  # followed creators skip the score gate (D64)
+        numeric_ids = [int(str(p.platform_post_id).split("-")[0]) for p in posts
+                       if str(p.platform_post_id).split("-")[0].isdigit()]
+        max_id = max(numeric_ids, default=None)
         with session_scope() as s:
             account = s.get(MonitoredAccount, account_id)
             if account is None:
@@ -160,7 +174,9 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
             account.status = "ok"
             account.last_error = None
             ev = dict(account.evidence or {})
-            if ev.get("source") == "grok" and not ev.get("verified") and stats.found:
+            # a discovery CLAIM (from Grok or from PF2's own source search)
+            # only becomes verified when PF2 itself sees real posts (D71)
+            if ev.get("source") and not ev.get("verified") and stats.found:
                 # PF2 itself reached the account and saw real posts: the claim
                 # is now backed by source evidence (never by the LLM alone)
                 ev.update({"verified": True,
@@ -173,7 +189,7 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
                 account.last_post_id = str(max_id)
             acct_snapshot = account
         _apply_auto_actions(acct_snapshot, stats.new_ids)
-        bus.info(src, f"@{handle}: {stats.new} new, {stats.duplicates} dupes")
+        bus.info(src, f"{platform}/@{handle}: {stats.new} new, {stats.duplicates} dupes")
     except Exception as e:
         message = f"{type(e).__name__}: {e}"
         not_found = "404" in message or "NotFound" in message
@@ -183,7 +199,7 @@ def run_account(account_id: int, manual: bool = False) -> IngestStats | None:
                 account.last_checked = datetime.now(timezone.utc)
                 account.status = "not_found" if not_found else "error"
                 account.last_error = message[:500]
-        bus.error(src, f"@{handle}: poll failed — {message}")
+        bus.error(src, f"{platform}/@{handle}: poll failed — {message}")
     finally:
         if client is not None:
             try:
@@ -220,7 +236,16 @@ def monitor_tick() -> int:
     from . import scheduler
     ran = 0
     for account_id in ids:
-        with scheduler._run_lock:
+        with session_scope() as s:
+            acct = s.get(MonitoredAccount, account_id)
+            platform = (acct.platform if acct else "x") or "x"
+        adapter = get_adapter(platform)
+        # only browser runs contend for Chromium (D22); HTTP sources (Reddit,
+        # Bluesky, YouTube…) poll without taking the global scraper lock
+        if int(getattr(adapter, "tier", 2) or 2) >= 2:
+            with scheduler._run_lock:
+                run_account(account_id)
+        else:
             run_account(account_id)
         ran += 1
     return ran

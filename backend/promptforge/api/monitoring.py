@@ -37,11 +37,16 @@ def _account_dict(a: MonitoredAccount, db: Session) -> dict:
         "last_error": a.last_error,
         "last_new": a.last_new,
         "total_posts": total_posts,
-        "profile_url": f"https://x.com/{a.handle}",
+        "profile_url": _profile_url(a),
         "created_at": a.created_at.isoformat() if a.created_at else None,
         "evidence": a.evidence or {},
         "creator": _creator_summary(db, a),
     }
+
+
+def _profile_url(a: MonitoredAccount) -> str | None:
+    from ..intel import handles as handle_rules
+    return handle_rules.profile_url(a.handle, a.platform or "x")
 
 
 def _creator_summary(db: Session, a: MonitoredAccount) -> dict | None:
@@ -61,12 +66,26 @@ def _creator_summary(db: Session, a: MonitoredAccount) -> dict | None:
 def list_accounts(db: Session = Depends(get_db)):
     rows = db.execute(select(MonitoredAccount)
                       .order_by(MonitoredAccount.created_at.desc())).scalars().all()
-    from ..scrapers import get_adapter
+    from ..intel import handles as handle_rules
+    from ..scrapers import all_adapters, get_adapter
     adapter = get_adapter("x")
     session_ok = bool(adapter and adapter.is_configured(db))
+    platforms = []
+    for name, ad in all_adapters().items():
+        can_author = (hasattr(ad, "fetch_account") or hasattr(ad, "fetch_author")
+                      or "author" in (getattr(ad, "capabilities", None) or frozenset()))
+        if not can_author:
+            continue
+        platforms.append({
+            "name": name, "label": ad.label, "tier": ad.tier,
+            "configured": bool(ad.is_configured(db)),
+            "needs_setup": ad.needs_setup_reason(db) if hasattr(ad, "needs_setup_reason") else None,
+            "experimental": bool(getattr(ad, "experimental", False)),
+            "profile_example": handle_rules.profile_url("creator", name)})
     return {
         "accounts": [_account_dict(a, db) for a in rows],
-        "x_session_ok": session_ok,
+        "x_session_ok": session_ok,          # legacy field, kept for the old UI
+        "platforms": platforms,
         "defaults": {
             "interval": settings_store.get(db, "monitor_default_interval"),
             "auto_tag": settings_store.get(db, "monitor_default_tag"),
@@ -75,15 +94,26 @@ def list_accounts(db: Session = Depends(get_db)):
 
 
 class BulkAddBody(BaseModel):
-    evidence: dict | None = None      # Grok discovery claim (review-before-add, I5)
+    evidence: dict | None = None      # discovery claim (review-before-add, I5/I10)
     text: str
     added_by: str = "manual"
     notes: str | None = None
+    platform: str = "x"               # I10: creators live on any source
 
 
 @router.post("/accounts")
 def add_accounts(body: BulkAddBody, db: Session = Depends(get_db)):
-    handles, rejected = monitoring.parse_bulk(body.text)
+    from ..intel import handles as handle_rules
+    from ..scrapers import get_adapter as _get_adapter
+    platform = (body.platform or "x").lower()
+    if _get_adapter(platform) is None:
+        raise HTTPException(422, f"Unknown platform '{platform}'.")
+    # a pasted profile URL may name its own platform — trust the URL
+    detected = {handle_rules.detect_platform(tok)
+                for tok in (body.text or "").split() if tok.strip()} - {None}
+    if len(detected) == 1:
+        platform = detected.pop()
+    handles, rejected = monitoring.parse_bulk(body.text, platform)
     if not handles and not rejected:
         raise HTTPException(422, "Paste at least one @handle or profile URL.")
     default_interval = int(settings_store.get(db, "monitor_default_interval") or 60)
@@ -91,23 +121,26 @@ def add_accounts(body: BulkAddBody, db: Session = Depends(get_db)):
     created, existing = [], []
     for handle in handles:
         dup = db.execute(select(MonitoredAccount).where(
-            MonitoredAccount.platform == "x",
+            MonitoredAccount.platform == platform,
             MonitoredAccount.handle == handle)).scalar_one_or_none()
         if dup is not None:
             existing.append(handle)
             continue
+        added_by = body.added_by if body.added_by in ("manual", "grok", "search") else "manual"
         account = MonitoredAccount(
-            handle=handle, platform="x",
-            added_by=body.added_by if body.added_by in ("manual", "grok") else "manual",
+            handle=handle, platform=platform, added_by=added_by,
             notes=body.notes, check_interval=default_interval,
-            evidence=({**(body.evidence or {}), "source": "grok", "verified": False}
-                      if body.added_by == "grok" else {}),
+            # a discovery claim (Grok OR PF2's own source search) is evidence
+            # only until a real poll verifies it (D71/I10)
+            evidence=({**(body.evidence or {}), "source": added_by,
+                       "verified": added_by == "search" and bool(body.evidence)}
+                      if added_by != "manual" else {}),
             auto_tag=default_tag)
         db.add(account)
         db.flush()
         created.append(_account_dict(account, db))
     return {"created": created, "already_monitored": existing,
-            "rejected": rejected}
+            "rejected": rejected, "platform": platform}
 
 
 class AccountPatch(BaseModel):
