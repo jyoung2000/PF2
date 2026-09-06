@@ -474,7 +474,7 @@ def take_dict(t: FilmTake) -> dict:
             "cost_estimate": t.cost_estimate, "cost_actual": t.cost_actual,
             "duration_s": t.duration_s, "media_url": _media_url(t.media_path),
             "thumb_url": _media_url(t.thumb_path), "width": t.width, "height": t.height,
-            "post_id": t.post_id, "qa": t.qa, "error": t.error,
+            "post_id": t.post_id, "qa": t.qa, "review": t.review, "error": t.error,
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "finished_at": t.finished_at.isoformat() if t.finished_at else None}
 

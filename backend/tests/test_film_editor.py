@@ -377,3 +377,34 @@ def test_preview_manifest_matches_flatten(client, app_env):
     assert [round(s["start_s"], 1) for s in segs[:3]] == [0.0, 1.0, 3.0]
     assert segs[1]["trim_start_s"] == 0.0     # V2 clip plays from its own head
     assert segs[2]["trim_start_s"] == 3.0     # V1 resumes 3s into its source
+
+
+# ---------------------------------------------------- E6: review queue ---
+def test_review_queue_flow(client, app_env):
+    p, shots = _project(client)
+    t1 = _import_take(client, shots[0], 2.0)
+    t2 = _import_take(client, shots[1], 2.0)
+    _build(client, p["id"])
+    q = client.get(f"/api/film/projects/{p['id']}/review-queue").json()
+    assert q["counts"]["pending"] == 2
+    first = next(i for i in q["pending"] if i["take"]["id"] == t1["id"])
+    assert first["selected_on_shot"] is True and first["sequence_clip_id"] is not None
+    assert first["shot_label"] == "1.1"
+    # approve one, reject the other with a note
+    r = client.post(f"/api/film/takes/{t1['id']}/review", json={"status": "approved"})
+    assert r.status_code == 200 and r.json()["take"]["review"]["status"] == "approved"
+    client.post(f"/api/film/takes/{t2['id']}/review", json={"status": "rejected", "note": "wrong light"})
+    q = client.get(f"/api/film/projects/{p['id']}/review-queue").json()
+    assert q["counts"]["pending"] == 0 and len(q["decided"]) == 2
+    rej = next(i for i in q["decided"] if i["take"]["id"] == t2["id"])
+    assert rej["review"]["note"] == "wrong light"
+    # clearing puts it back in the queue
+    client.post(f"/api/film/takes/{t2['id']}/review", json={"status": None})
+    assert client.get(f"/api/film/projects/{p['id']}/review-queue").json()["counts"]["pending"] == 1
+    # invalid inputs
+    assert client.post(f"/api/film/takes/{t1['id']}/review", json={"status": "meh"}).status_code == 422
+    with db_mod.session_scope() as s:
+        s.add(FilmTake(shot_id=shots[2], project_id=p["id"], number=1, kind="video", status="queued"))
+    # a queued take can't be reviewed
+    takes = client.get(f"/api/film/shots/{shots[2]}/takes").json()["takes"]
+    assert client.post(f"/api/film/takes/{takes[0]['id']}/review", json={"status": "approved"}).status_code == 422

@@ -187,6 +187,7 @@ class FilmTake(Base):
     height: Mapped[int | None] = mapped_column(Integer)
     post_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id", ondelete="SET NULL"))
     qa: Mapped[dict | None] = mapped_column(JSON)
+    review: Mapped[dict | None] = mapped_column(JSON)   # {status: approved|rejected, note, at, actor}
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

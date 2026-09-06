@@ -1772,3 +1772,22 @@ def seq_preview(project_id: int, db: Session = Depends(get_db)):
     if not seq_svc.exists(db, p.id):
         raise HTTPException(404, "No sequence — build one from the storyboard first")
     return seq_svc.preview_manifest(db, p)
+
+
+# ------------------------------------------------------ review queue (E6) ---
+class ReviewBody(BaseModel):
+    status: str | None = None      # approved | rejected | null (clear)
+    note: str | None = None
+
+
+@router.post("/takes/{take_id}/review")
+def review_take(take_id: int, body: ReviewBody, db: Session = Depends(get_db)):
+    t = _take(db, take_id)
+    _s3_guard(take_svc.set_review, db, t, body.status, note=body.note)
+    return {"take": proj_svc.take_dict(t)}
+
+
+@router.get("/projects/{project_id}/review-queue")
+def review_queue(project_id: int, db: Session = Depends(get_db)):
+    _project(db, project_id)
+    return take_svc.review_queue(db, project_id)

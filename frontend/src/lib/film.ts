@@ -149,6 +149,7 @@ export interface Take {
   height: number | null
   post_id: number | null
   qa: QaResult | null
+  review: { status: 'approved' | 'rejected'; note?: string | null; at?: string; actor?: string } | null
   error: string | null
   created_at: string | null
   finished_at: string | null
@@ -429,6 +430,9 @@ export const film = {
   takes: (shotId: number) => api.get<{ takes: Take[]; selected_take_id: number | null }>(`${F}/shots/${shotId}/takes`),
   importTake: (shotId: number, file: File, kind = 'footage') => upload<{ take: Take; shot: Shot }>(`${F}/shots/${shotId}/takes/import`, file, { kind }),
   selectTake: (id: number) => api.post<Shot>(`${F}/takes/${id}/select`),
+  reviewTake: (id: number, status: 'approved' | 'rejected' | null, note?: string) =>
+    api.post<{ take: Take }>(`${F}/takes/${id}/review`, { status, note }),
+  reviewQueue: (pid: number) => api.get<{ pending: any[]; decided: any[]; failed: any[]; counts: { pending: number; failed: number } }>(`${F}/projects/${pid}/review-queue`),
   compareTakes: (a: number, b: number) => api.get<any>(`${F}/takes/${a}/compare/${b}`),
   takeQa: (id: number) => api.post<QaResult>(`${F}/takes/${id}/qa`),
   setFrame: (shotId: number, which: 'start_frame' | 'end_frame', body: { kind: string; post_id?: number; ref_id?: number; locked?: boolean }) =>

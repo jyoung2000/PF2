@@ -576,3 +576,56 @@ def sync_pending(s: Session, project_id: int | None = None) -> int:
 def takes_of(s: Session, shot_id: int) -> list[FilmTake]:
     return list(s.execute(select(FilmTake).where(FilmTake.shot_id == shot_id)
                           .order_by(FilmTake.number.asc())).scalars())
+
+
+# ------------------------------------------------------------ review (E6) ---
+REVIEW_STATUSES = ("approved", "rejected")
+
+
+def set_review(s: Session, take: FilmTake, status: str | None, note: str | None = None,
+               actor: str = "user") -> FilmTake:
+    """Approve/reject a finished take (None clears back to pending)."""
+    if status is not None and status not in REVIEW_STATUSES:
+        raise TakeError(f"Review status must be one of {', '.join(REVIEW_STATUSES)} (or null to clear).")
+    if take.status not in ("succeeded", "imported"):
+        raise TakeError("Only finished takes can be reviewed.")
+    take.review = None if status is None else {
+        "status": status, "note": note,
+        "at": datetime.now(timezone.utc).isoformat(), "actor": actor}
+    s.flush()
+    events.log(s, take.project_id,
+               f"Take {take.number} of shot #{take.shot_id} {status or 'review cleared'}",
+               kind="qa", stage="editor", actor=actor, entity=("take", take.id),
+               data={"status": status, "note": note})
+    return take
+
+
+def review_queue(s: Session, project_id: int) -> dict:
+    """Everything awaiting a decision: finished-but-unreviewed takes (with
+    shot context + whether they're live in the storyboard/sequence) and
+    failed takes (regenerate candidates)."""
+    from .models import FilmScene, FilmShot, FilmTimelineClip
+    rows = s.execute(select(FilmTake).where(FilmTake.project_id == project_id)
+                     .order_by(FilmTake.id.desc())).scalars()
+    used_by_clip: dict[int, int] = {}
+    for cid, tid in s.execute(select(FilmTimelineClip.id, FilmTimelineClip.take_id)
+                              .where(FilmTimelineClip.project_id == project_id,
+                                     FilmTimelineClip.take_id.is_not(None))):
+        used_by_clip.setdefault(tid, cid)
+    pending, decided, failed = [], [], []
+    for t in rows:
+        sh = s.get(FilmShot, t.shot_id)
+        if sh is None:
+            continue
+        sc = s.get(FilmScene, sh.scene_id)
+        from . import projects as proj_svc
+        item = {"take": proj_svc.take_dict(t),
+                "shot_id": sh.id, "shot_label": f"{(sc.position if sc else 0) + 1}.{sh.position + 1}",
+                "shot_title": sh.title, "selected_on_shot": sh.selected_take_id == t.id,
+                "sequence_clip_id": used_by_clip.get(t.id), "review": t.review}
+        if t.status == "failed":
+            failed.append(item)
+        elif t.status in ("succeeded", "imported"):
+            (decided if t.review else pending).append(item)
+    return {"pending": pending, "decided": decided[:30], "failed": failed[:30],
+            "counts": {"pending": len(pending), "failed": len(failed)}}

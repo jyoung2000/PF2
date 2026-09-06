@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddPayload, MediaBin } from '../../components/editor/MediaBin'
+import { ReviewQueue } from '../../components/editor/ReviewQueue'
 import { Inspector } from '../../components/editor/Inspector'
 import { PreviewPlayer } from '../../components/editor/PreviewPlayer'
 import { ClipOp, Timeline } from '../../components/editor/Timeline'
@@ -33,6 +34,8 @@ export function EditorPage() {
   const [playhead, setPlayheadState] = useState(0)
   const [help, setHelp] = useState(false)
   const [takePick, setTakePick] = useState<SeqClip | null>(null)
+  const [review, setReview] = useState(false)
+  const [reviewCount, setReviewCount] = useState(0)
   const playheadRef = useRef(0)
   const originRef = useRef({ t0: 0, ph: 0 })
   const sqRef = useRef<Sequence | null>(null)
@@ -48,6 +51,7 @@ export function EditorPage() {
   const load = useCallback(() => {
     if (!project) return
     seqApi.get(project.id).then(setSq).catch((e) => toastError(errorMessage(e)))
+    film.reviewQueue(project.id).then((q) => setReviewCount(q.counts.pending)).catch(() => undefined)
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(load, [load])
 
@@ -232,6 +236,9 @@ export function EditorPage() {
         <button className="btn !px-2" onClick={() => setZoomIdx(Math.max(0, zoomIdx - 1))} title={`Zoom out (${shortcutHint('zoomOut')})`}>−</button>
         <span className="text-faint tabular-nums w-14 text-center">{pxPerSec}px/s</span>
         <button className="btn !px-2" onClick={() => setZoomIdx(Math.min(ZOOM_LADDER.length - 1, zoomIdx + 1))} title={`Zoom in (${shortcutHint('zoomIn')})`}>+</button>
+        <button className="btn relative" onClick={() => setReview(true)} title="Generation review queue" data-testid="btn-review">
+          Review{reviewCount > 0 && <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-ember text-ink text-[10px] font-bold">{reviewCount}</span>}
+        </button>
         <span className="ml-auto text-faint">{selection.length ? `${selection.length} selected` : 'all changes saved'}</span>
         <button className="btn-ghost" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)">⌨ shortcuts</button>
         <button className="btn-ghost" onClick={() => window.confirm('Rebuild from the storyboard? Your edit is replaced (undo restores it).') && apply(seqApi.build(project.id, true))} data-testid="btn-rebuild">Rebuild from storyboard</button>
@@ -249,6 +256,10 @@ export function EditorPage() {
         onMarkerSelect={(id) => { setMarkerSel(id); if (id != null) setSelection([]) }}
       />
       {help && <ShortcutsOverlay onClose={() => setHelp(false)} />}
+      {review && (
+        <ReviewQueue projectId={project.id} onClose={() => { setReview(false); load() }}
+                     onSequence={setSq} onOpenShot={(shotId) => navigate('/film/storyboard', { state: { shotId } })} />
+      )}
       {takePick && (
         <TakePicker clip={takePick} onClose={() => setTakePick(null)}
                     onPick={(t, alsoShot) => {
