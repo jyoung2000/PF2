@@ -26,6 +26,7 @@ const REGEN_GROUPS = ['face', 'hair', 'body', 'clothing', 'expression', 'pose', 
 
 export function StoryboardPage() {
   const { project, reloadProject, presets, reloadPresets } = useFilm()
+  const navigate = useNavigate()
   const location = useLocation() as { state?: { sceneId?: number; shotId?: number } }
   const [params] = useSearchParams()
   const scenes = project?.scenes ?? []
@@ -142,6 +143,7 @@ export function StoryboardPage() {
                   {mode === 'grid' && ([2, 4, 6, 9] as const).map((d) => <button key={d} className={`chip !px-1.5 ${density === d ? '!border-ember text-fg' : ''}`} onClick={() => setDensity(d)} aria-label={`${d} panels`}>{d}</button>)}
                   <button className="btn text-[12px]" onClick={addShot}>+ shot</button>
                   <button className="btn text-[12px]" onClick={async () => { try { await film.directScene(scene.id); toastSuccess('Scene proposal ready in Director'); } catch (e) { toastError(errorMessage(e)) } }}>Direct scene</button>
+                  <button className="btn text-[12px]" title="Open the sequence editor — first open builds the timeline from this storyboard" onClick={() => navigate('/film/editor', { state: { shotId } })} data-testid="open-in-editor">🎬 Editor</button>
                 </div>
               </div>
               {mode === 'grid' ? (

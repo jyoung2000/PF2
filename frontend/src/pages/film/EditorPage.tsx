@@ -4,7 +4,7 @@
 // playhead derives from a performance.now() origin (never accumulated) and
 // React state updates are throttled to ~30 Hz.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AddPayload, MediaBin } from '../../components/editor/MediaBin'
 import { Inspector } from '../../components/editor/Inspector'
 import { PreviewPlayer } from '../../components/editor/PreviewPlayer'
@@ -21,6 +21,8 @@ import { useFilm } from './FilmPage'
 export function EditorPage() {
   const { project, reloadProject } = useFilm()
   const navigate = useNavigate()
+  const location = useLocation() as { state?: { shotId?: number } }
+  const pendingShotRef = useRef<number | null>(location.state?.shotId ?? null)
   const [sq, setSq] = useState<Sequence | null>(null)
   const [selection, setSelection] = useState<number[]>([])
   const [markerSel, setMarkerSel] = useState<number | null>(null)
@@ -48,6 +50,18 @@ export function EditorPage() {
     seqApi.get(project.id).then(setSq).catch((e) => toastError(errorMessage(e)))
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(load, [load])
+
+  // storyboard → editor selection sync: arriving with a shot id selects its
+  // clip and moves the playhead there
+  useEffect(() => {
+    if (!sq?.exists || pendingShotRef.current == null) return
+    const target = sq.tracks.flatMap((t) => t.clips).find((c) => c.shot_id === pendingShotRef.current)
+    pendingShotRef.current = null
+    if (target) {
+      setSelection([target.id])
+      setPlayhead(target.start_s)
+    }
+  }, [sq?.exists]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // one wrapper for every mutation: optimistic callers pass the promise;
   // errors surface as a toast and the authoritative state is reloaded
@@ -235,7 +249,14 @@ export function EditorPage() {
         onMarkerSelect={(id) => { setMarkerSel(id); if (id != null) setSelection([]) }}
       />
       {help && <ShortcutsOverlay onClose={() => setHelp(false)} />}
-      {takePick && <TakePicker clip={takePick} onClose={() => setTakePick(null)} onPick={(t) => { apply(seqApi.setTake(takePick.id, t.id)); setTakePick(null) }} />}
+      {takePick && (
+        <TakePicker clip={takePick} onClose={() => setTakePick(null)}
+                    onPick={(t, alsoShot) => {
+                      apply(seqApi.setTake(takePick.id, t.id))
+                      if (alsoShot) film.selectTake(t.id).then(() => reloadProject()).catch((e) => toastError(errorMessage(e)))
+                      setTakePick(null)
+                    }} />
+      )}
     </div>
   )
 }
@@ -265,8 +286,9 @@ function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
   )
 }
 
-function TakePicker({ clip, onClose, onPick }: { clip: SeqClip; onClose: () => void; onPick: (t: Take) => void }) {
+function TakePicker({ clip, onClose, onPick }: { clip: SeqClip; onClose: () => void; onPick: (t: Take, alsoShot: boolean) => void }) {
   const [takes, setTakes] = useState<Take[] | null>(null)
+  const [alsoShot, setAlsoShot] = useState(false)
   useEffect(() => {
     if (clip.shot_id) film.takes(clip.shot_id).then((r) => setTakes(r.takes.filter((t) => t.status === 'succeeded' || t.status === 'imported'))).catch(() => setTakes([]))
     else setTakes([])
@@ -279,12 +301,18 @@ function TakePicker({ clip, onClose, onPick }: { clip: SeqClip; onClose: () => v
         {takes?.length === 0 && <p className="text-[12px] text-faint">No finished takes on this clip's shot{clip.shot_id ? '' : ' (the clip has no shot link)'}.</p>}
         <div className="grid grid-cols-3 gap-2">
           {takes?.map((t) => (
-            <button key={t.id} className={`rounded-el overflow-hidden border text-left ${t.id === clip.take_id ? 'border-ember' : 'border-line hover:border-ember/60'}`} onClick={() => onPick(t)}>
+            <button key={t.id} className={`rounded-el overflow-hidden border text-left ${t.id === clip.take_id ? 'border-ember' : 'border-line hover:border-ember/60'}`} onClick={() => onPick(t, alsoShot)}>
               {t.thumb_url ? <img src={t.thumb_url} alt="" className="w-full aspect-video object-cover" /> : <div className="aspect-video bg-well" />}
               <div className="text-[10.5px] px-1 py-0.5 text-faint">take {t.number} · {t.kind}{t.duration_s ? ` · ${t.duration_s.toFixed(1)}s` : ''}</div>
             </button>
           ))}
         </div>
+        {clip.shot_id && (
+          <label className="flex items-center gap-1.5 mt-3 text-[12px] text-mute">
+            <input type="checkbox" checked={alsoShot} onChange={(e) => setAlsoShot(e.target.checked)} data-testid="also-shot" />
+            Also make it the shot's selected take (updates the storyboard)
+          </label>
+        )}
       </div>
     </div>
   )
