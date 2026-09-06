@@ -87,3 +87,16 @@ def test_rerun_failed_only_and_fork(client, fake_provider):
     for a in clone["assets"]:
         assert all(d in ids for d in a["depends_on"])
         assert a["status"] == "planned"                        # fresh branch
+
+
+def test_asset_kind_is_authoritative_over_brief_wording(client, app_env):
+    """'music player' must not re-route image assets to audio (spec §8)."""
+    p = client.post("/api/forge/plans", json={
+        "brief": "Launch campaign for my new music player app, warm retro aesthetic"}).json()
+    for a in p["assets"]:
+        assert a["family"], f"{a['purpose']} compiled with no model"
+        assert a["prompt"], f"{a['purpose']} has no prompt"
+    from promptforge.forge import intent
+    i = intent.extract("promo for my music player app")
+    assert i["modality"] == "image"          # product, not an audio request
+    assert intent.extract("a 30 second music jingle")["modality"] == "audio"

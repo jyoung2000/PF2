@@ -8,7 +8,7 @@ import { useFetch } from '../lib/hooks'
 import { SettingsMap } from '../lib/settings'
 import { toastError, toastSuccess } from '../lib/toast'
 import { Spinner } from './Primitives'
-import { ConnBadge, Section, TextSetting } from './SettingsKit'
+import { ConnBadge, Section, TextSetting, ToggleSetting } from './SettingsKit'
 
 interface ProviderInfo {
   name: string
@@ -155,6 +155,14 @@ export function ProvidersCard({
             }}
           />
         ))}
+      </div>
+      <div className="space-y-2 border-t border-line pt-3">
+        <p className="text-[12.5px] text-faint max-w-measure">
+          Forge routing (spec: explicit choice → free/local where capable → best configured;
+          fallback is per-request and always visible on the job).
+        </p>
+        <ToggleSetting settings={settings} k="forge_prefer_free" save={save}
+          label="Prefer free/local options when they can do the job (Forge routing)" />
       </div>
       <div className="flex items-center gap-3 flex-wrap pt-1">
         <span className="text-[13px]">

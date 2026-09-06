@@ -108,7 +108,12 @@ def create_plan(s: Session, brief: str, name: str | None = None,
             idea += f". {a['prompt_hint']}"
         if a["kind"] == "video":
             idea += " (short video)"
-        pkg = compiler.compile_package(s, idea)
+        # the asset spec's kind is authoritative — wording in the brief must
+        # not re-route an image asset to another modality
+        from . import intent as intent_mod
+        forced = intent_mod.extract(idea)
+        forced["modality"] = a["kind"]
+        pkg = compiler.compile_package(s, idea, intent_override=forced)
         params = dict(pkg.get("params") or {})
         if a.get("aspect_ratio"):
             params["aspect_ratio"] = a["aspect_ratio"]

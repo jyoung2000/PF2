@@ -450,3 +450,11 @@ def approve_workflow_node(run_id: int, body: dict = Body(...)):
             return out
     except wf_mod.WorkflowError as e:
         raise HTTPException(409, str(e))
+
+
+# -------------------------------------------------------------------- usage ---
+@router.get("/usage")
+def usage_report():
+    from ..forge import usage
+    with session_scope() as s:
+        return usage.report(s)

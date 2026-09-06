@@ -115,3 +115,20 @@ def test_opt_in_fallback_creates_visible_linked_job(client, fake_provider):
     # one step only: a failing fallback never chains a third job
     with db_mod.session_scope() as s:
         assert tools.attempt_fallback(second_id) is None
+
+
+def test_usage_report_tracks_costs_failures_and_fallbacks(client, fake_provider):
+    fake_provider.fail_next = True
+    r = client.post("/api/forge/tools/generate_image",
+                    json={"prompt": "x", "family": "flux", "allow_fallback": True}).json()
+    gen_queue.process_generation(r["job_id"])          # fails → fallback queued
+    with db_mod.session_scope() as s:
+        from promptforge.models import Generation
+        second = s.query(Generation).order_by(Generation.id.desc()).first().id
+    gen_queue.process_generation(second)
+    u = client.get("/api/forge/usage").json()
+    assert u["totals"]["generations"] == 2
+    assert u["totals"]["failed"] == 1 and u["totals"]["succeeded"] == 1
+    assert u["totals"]["fallbacks"] == 1
+    assert any(m["failed"] == 1 for m in u["models"])
+    assert u["recent"][0]["fallback_of"] == r["job_id"]

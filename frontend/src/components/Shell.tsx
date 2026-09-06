@@ -17,6 +17,7 @@ const NAV = [
   { to: '/models', label: 'Models' },
   { to: '/inspiration', label: 'Inspiration' },
   { to: '/film', label: 'Film' },
+  { to: '/forge', label: 'Forge' },
   { to: '/studio', label: 'Studio' },
   { to: '/settings', label: 'Settings' },
 ]

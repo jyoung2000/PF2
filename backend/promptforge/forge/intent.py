@@ -9,12 +9,14 @@ import re
 VIDEO_RE = re.compile(
     r"\b(video|trailer|clip|animation|animated|footage|b-?roll|shorts?|reel|"
     r"time-?lapse|hyperlapse|cinemagraph|motion)\b", re.I)
+# "music player / music app" is a product being depicted, not an audio ask
 AUDIO_RE = re.compile(
-    r"\b(narrat(?:e|ion)|voice-?over|speech|spoken|song|music|jingle|sound ?track|audio)\b", re.I)
+    r"\b(narrat(?:e|ion)|voice-?over|speech|spoken|song|jingle|sound ?track|audio|"
+    r"music(?!\s+(?:player|app|library|store|video)))\b", re.I)
 THREED_RE = re.compile(r"\b(3d model|3d asset|mesh|glb|gltf|obj file|point cloud|3d)\b", re.I)
 IMAGE_RE = re.compile(
     r"\b(image|photo(?:graph)?|picture|poster|logo|illustration|render|artwork|"
-    r"wallpaper|thumbnail|icon|banner)\b", re.I)
+    r"wallpaper|thumbnail|icon|banner|graphic|screenshot|key art)\b", re.I)
 
 DURATION_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*[- ]?(?:s\b|secs?\b|seconds?\b)", re.I)
 RATIO_RE = re.compile(r"\b(\d{1,2})\s*[:x]\s*(\d{1,2})\b")
