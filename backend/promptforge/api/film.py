@@ -1509,3 +1509,258 @@ def asset_generate(asset_id: int, body: AssetGenBody, db: Session = Depends(get_
     except asset_gen.AssetGenError as e:
         raise HTTPException(422, str(e))
     return out
+
+
+# ------------------------------------------------------- editor sequence ---
+from ..film import sequence as seq_svc                       # noqa: E402
+from ..film.models import (FilmMarker, FilmTimelineClip,     # noqa: E402
+                           FilmTimelineTrack)
+
+
+def _sguard(fn, *args, **kw):
+    try:
+        return fn(*args, **kw)
+    except seq_svc.SequenceConflict as e:
+        raise HTTPException(409, str(e))
+    except seq_svc.SequenceError as e:
+        raise HTTPException(422, str(e))
+
+
+def _seq_track(db: Session, track_id: int) -> FilmTimelineTrack:
+    t = db.get(FilmTimelineTrack, track_id)
+    if t is None:
+        raise HTTPException(404, "Track not found")
+    return t
+
+
+def _seq_clip(db: Session, clip_id: int) -> FilmTimelineClip:
+    c = db.get(FilmTimelineClip, clip_id)
+    if c is None:
+        raise HTTPException(404, "Clip not found")
+    return c
+
+
+def _seq_marker(db: Session, marker_id: int) -> FilmMarker:
+    m = db.get(FilmMarker, marker_id)
+    if m is None:
+        raise HTTPException(404, "Marker not found")
+    return m
+
+
+@router.get("/projects/{project_id}/sequence")
+def get_sequence(project_id: int, db: Session = Depends(get_db)):
+    return seq_svc.sequence_dict(db, _project(db, project_id))
+
+
+class SequenceBuild(BaseModel):
+    replace: bool = False
+
+
+@router.post("/projects/{project_id}/sequence/build")
+def build_sequence(project_id: int, body: SequenceBuild | None = None, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return _sguard(seq_svc.build_from_storyboard, db, p, replace=bool(body and body.replace))
+
+
+@router.delete("/projects/{project_id}/sequence")
+def delete_sequence(project_id: int, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    if not seq_svc.exists(db, p.id):
+        raise HTTPException(404, "No sequence to delete")
+    _sguard(seq_svc.drop_sequence, db, p)
+    return {"ok": True}
+
+
+class TrackCreate(BaseModel):
+    kind: str = "video"
+    label: str | None = None
+
+
+@router.post("/projects/{project_id}/sequence/tracks")
+def add_seq_track(project_id: int, body: TrackCreate, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    _sguard(seq_svc.add_track, db, p, body.kind, body.label)
+    return seq_svc.sequence_dict(db, p)
+
+
+class TrackPatch(BaseModel):
+    label: str | None = None
+    muted: bool | None = None
+    solo: bool | None = None
+    locked: bool | None = None
+    position: int | None = None
+
+
+@router.patch("/sequence/tracks/{track_id}")
+def patch_seq_track(track_id: int, body: TrackPatch, db: Session = Depends(get_db)):
+    t = _seq_track(db, track_id)
+    p = _project(db, t.project_id)
+    _sguard(seq_svc.patch_track, db, p, t, **body.model_dump())
+    return seq_svc.sequence_dict(db, p)
+
+
+@router.delete("/sequence/tracks/{track_id}")
+def delete_seq_track(track_id: int, db: Session = Depends(get_db)):
+    t = _seq_track(db, track_id)
+    p = _project(db, t.project_id)
+    _sguard(seq_svc.delete_track, db, p, t)
+    return seq_svc.sequence_dict(db, p)
+
+
+class ClipCreate(BaseModel):
+    track_id: int
+    source_kind: str = "take"
+    start_s: float = 0.0
+    duration_s: float | None = None
+    take_id: int | None = None
+    footage_id: int | None = None
+    audio_track_id: int | None = None
+    shot_id: int | None = None
+    label: str | None = None
+    data: dict | None = None
+
+
+@router.post("/projects/{project_id}/sequence/clips")
+def add_seq_clip(project_id: int, body: ClipCreate, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    t = _seq_track(db, body.track_id)
+    if t.project_id != p.id:
+        raise HTTPException(422, "Track belongs to another project")
+    return _sguard(seq_svc.add_clip, db, p, t, body.source_kind, body.start_s,
+                   duration_s=body.duration_s, take_id=body.take_id, footage_id=body.footage_id,
+                   audio_track_id=body.audio_track_id, shot_id=body.shot_id, label=body.label,
+                   data=body.data)
+
+
+class ClipPatch(BaseModel):
+    track_id: int | None = None
+    start_s: float | None = None
+    duration_s: float | None = None
+    trim_start_s: float | None = None
+    speed: float | None = None
+    gain_db: float | None = None
+    muted: bool | None = None
+    fade_in_s: float | None = None
+    fade_out_s: float | None = None
+    effects: dict | None = None
+    transition_after: dict | None = None
+    label: str | None = None
+    data: dict | None = None
+    label_op: str | None = None      # undo-history label for this edit
+
+
+@router.patch("/sequence/clips/{clip_id}")
+def patch_seq_clip(clip_id: int, body: ClipPatch, db: Session = Depends(get_db)):
+    c = _seq_clip(db, clip_id)
+    p = _project(db, c.project_id)
+    fields = body.model_dump(exclude_unset=True)
+    label_op = fields.pop("label_op", None)
+    return _sguard(seq_svc.patch_clip, db, p, c, label_op=label_op, **fields)
+
+
+class BatchOps(BaseModel):
+    ops: list[dict]
+    label: str = "move clips"
+
+
+@router.post("/projects/{project_id}/sequence/clips/batch")
+def batch_seq_clips(project_id: int, body: BatchOps, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return _sguard(seq_svc.batch_patch, db, p, body.ops, label=body.label)
+
+
+class SplitBody(BaseModel):
+    at_s: float
+
+
+@router.post("/sequence/clips/{clip_id}/split")
+def split_seq_clip(clip_id: int, body: SplitBody, db: Session = Depends(get_db)):
+    c = _seq_clip(db, clip_id)
+    p = _project(db, c.project_id)
+    return _sguard(seq_svc.split_clip, db, p, c, body.at_s)
+
+
+class ClipTake(BaseModel):
+    take_id: int
+
+
+@router.post("/sequence/clips/{clip_id}/take")
+def seq_clip_take(clip_id: int, body: ClipTake, db: Session = Depends(get_db)):
+    c = _seq_clip(db, clip_id)
+    p = _project(db, c.project_id)
+    t = db.get(FilmTake, body.take_id)
+    if t is None:
+        raise HTTPException(404, "Take not found")
+    return _sguard(seq_svc.replace_take, db, p, c, t)
+
+
+class DeleteClips(BaseModel):
+    ids: list[int]
+    ripple: bool = False
+
+
+@router.post("/projects/{project_id}/sequence/delete-clips")
+def delete_seq_clips(project_id: int, body: DeleteClips, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return _sguard(seq_svc.delete_clips, db, p, body.ids, ripple=body.ripple)
+
+
+class InsertGap(BaseModel):
+    at_s: float
+    gap_s: float
+
+
+@router.post("/projects/{project_id}/sequence/insert-gap")
+def seq_insert_gap(project_id: int, body: InsertGap, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return _sguard(seq_svc.ripple_insert, db, p, body.at_s, body.gap_s)
+
+
+class MarkerCreate(BaseModel):
+    t_s: float
+    label: str = ""
+    color: str = "amber"
+    note: str | None = None
+
+
+@router.post("/projects/{project_id}/sequence/markers")
+def add_seq_marker(project_id: int, body: MarkerCreate, db: Session = Depends(get_db)):
+    p = _project(db, project_id)
+    return _sguard(seq_svc.add_marker, db, p, body.t_s, label=body.label, color=body.color, note=body.note)
+
+
+class MarkerPatch(BaseModel):
+    t_s: float | None = None
+    label: str | None = None
+    color: str | None = None
+    note: str | None = None
+
+
+@router.patch("/sequence/markers/{marker_id}")
+def patch_seq_marker(marker_id: int, body: MarkerPatch, db: Session = Depends(get_db)):
+    m = _seq_marker(db, marker_id)
+    p = _project(db, m.project_id)
+    return _sguard(seq_svc.patch_marker, db, p, m, **body.model_dump(exclude_unset=True))
+
+
+@router.delete("/sequence/markers/{marker_id}")
+def delete_seq_marker(marker_id: int, db: Session = Depends(get_db)):
+    m = _seq_marker(db, marker_id)
+    p = _project(db, m.project_id)
+    return _sguard(seq_svc.delete_marker, db, p, m)
+
+
+@router.post("/projects/{project_id}/sequence/undo")
+def seq_undo(project_id: int, db: Session = Depends(get_db)):
+    return _sguard(seq_svc.undo, db, _project(db, project_id))
+
+
+@router.post("/projects/{project_id}/sequence/redo")
+def seq_redo(project_id: int, db: Session = Depends(get_db)):
+    return _sguard(seq_svc.redo, db, _project(db, project_id))
+
+
+@router.get("/projects/{project_id}/sequence/history")
+def seq_history(project_id: int, db: Session = Depends(get_db)):
+    _project(db, project_id)
+    return seq_svc.history(db, project_id)

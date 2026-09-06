@@ -305,6 +305,89 @@ class FilmAudioTrack(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+TRACK_KINDS = ("video", "audio", "caption")
+CLIP_SOURCES = ("take", "footage", "audio", "caption")
+
+
+class FilmTimelineTrack(Base):
+    """Editor sequence track (spec: professional multi-track timeline). A
+    project has a *sequence* only once it is built from the storyboard (or
+    by hand); until then the storyboard-derived timeline drives preview and
+    export exactly as before."""
+    __tablename__ = "film_timeline_tracks"
+    __table_args__ = (Index("ix_film_tl_tracks_project", "project_id", "position"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(10), default="video")
+    position: Mapped[int] = mapped_column(Integer, default=0)   # 0 at the top of its kind group
+    label: Mapped[str] = mapped_column(String(60), default="")
+    muted: Mapped[bool] = mapped_column(Boolean, default=False)
+    solo: Mapped[bool] = mapped_column(Boolean, default=False)
+    locked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FilmTimelineClip(Base):
+    """One clip on a sequence track. Source is exactly one of: a take
+    (generated/imported shot media), a footage-corpus clip, a project audio
+    track's file, or caption text (in `data`). `shot_id` keeps the
+    storyboard link for selection sync and replace-from-take.
+    Timing: `start_s` on the timeline, `duration_s` on the timeline;
+    `trim_start_s` seconds into the SOURCE; source seconds consumed =
+    duration_s * speed."""
+    __tablename__ = "film_timeline_clips"
+    __table_args__ = (Index("ix_film_tl_clips_track", "track_id", "start_s"),
+                      Index("ix_film_tl_clips_project", "project_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"))
+    track_id: Mapped[int] = mapped_column(ForeignKey("film_timeline_tracks.id", ondelete="CASCADE"))
+    source_kind: Mapped[str] = mapped_column(String(10), default="take")
+    take_id: Mapped[int | None] = mapped_column(ForeignKey("film_takes.id", ondelete="SET NULL"))
+    footage_id: Mapped[int | None] = mapped_column(ForeignKey("film_clips.id", ondelete="SET NULL"))
+    audio_track_id: Mapped[int | None] = mapped_column(ForeignKey("film_audio_tracks.id", ondelete="SET NULL"))
+    shot_id: Mapped[int | None] = mapped_column(ForeignKey("film_shots.id", ondelete="SET NULL"))
+    label: Mapped[str | None] = mapped_column(String(200))
+    start_s: Mapped[float] = mapped_column(Float, default=0.0)
+    duration_s: Mapped[float] = mapped_column(Float, default=1.0)
+    trim_start_s: Mapped[float] = mapped_column(Float, default=0.0)
+    speed: Mapped[float] = mapped_column(Float, default=1.0)
+    gain_db: Mapped[float] = mapped_column(Float, default=0.0)
+    muted: Mapped[bool] = mapped_column(Boolean, default=False)
+    fade_in_s: Mapped[float] = mapped_column(Float, default=0.0)
+    fade_out_s: Mapped[float] = mapped_column(Float, default=0.0)
+    effects: Mapped[dict] = mapped_column(JSON, default=dict)   # opacity/scale/x/y/rotation/crop/color/blur
+    transition_after: Mapped[dict | None] = mapped_column(JSON)  # {kind, duration_s} into the NEXT adjacent clip
+    data: Mapped[dict] = mapped_column(JSON, default=dict)       # caption {text, style}, provenance, build info
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FilmMarker(Base):
+    __tablename__ = "film_markers"
+    __table_args__ = (Index("ix_film_markers_project", "project_id", "t_s"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"))
+    t_s: Mapped[float] = mapped_column(Float, default=0.0)
+    label: Mapped[str] = mapped_column(String(200), default="")
+    color: Mapped[str] = mapped_column(String(20), default="amber")
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FilmRevision(Base):
+    """Bounded undo/redo history for the sequence: two stacks of full
+    snapshots ({tracks, clips, markers}). Sequences are small, so whole-
+    state snapshots stay cheap and restores are exact."""
+    __tablename__ = "film_revisions"
+    __table_args__ = (Index("ix_film_revisions_project", "project_id", "stack", "id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("film_projects.id", ondelete="CASCADE"))
+    stack: Mapped[str] = mapped_column(String(8), default="undo")   # undo | redo
+    label: Mapped[str] = mapped_column(String(120), default="edit")
+    snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class FilmSubtitle(Base):
     """One subtitle track per project (spec O): cues with optional shot
     anchors so they follow timing changes; style for burn-in."""
