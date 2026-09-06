@@ -84,6 +84,12 @@ def start() -> None:
     except ImportError:
         pass
     try:
+        from .intel import creator_links as intel_creator_links
+        _scheduler.add_job(intel_creator_links.scan_job, "interval", minutes=60,
+                           id="intel_creator_links", max_instances=1, coalesce=True)
+    except ImportError:
+        pass
+    try:
         from .intel import queue as intel_queue
         _scheduler.add_job(intel_queue.tick, "interval", minutes=1,
                            id="intel_queue", max_instances=1, coalesce=True)

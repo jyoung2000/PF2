@@ -11,8 +11,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..intel import (clusters, creators, dedupe, prompt_parser, provenance, queue,
-                     scoring, similar, snapshots, sources, trends)
+from ..intel import (clusters, creator_links, creators, dedupe, prompt_parser,
+                     provenance, queue, scoring, signals, similar, snapshots, sources,
+                     trends)
 from ..models import Cluster, Creator, Post
 from ..schemas import post_card
 from .search import search as base_search
@@ -205,6 +206,49 @@ def analytics_trends(weeks: int = 12, db: Session = Depends(get_db)):
     return trends.weekly_series(db, max(2, min(weeks, 52)))
 
 
+# --------------------------------------- cross-source signals (I14) --------
+@router.get("/analytics/signals")
+def analytics_signals(weeks: int = 8, limit: int = 25, db: Session = Depends(get_db)):
+    """Signals ranked by how widely they travel across platforms, with
+    velocity. No AI provider is involved."""
+    return signals.cross_platform_signals(db, weeks=max(2, min(weeks, 52)),
+                                          limit=max(1, min(100, limit)))
+
+
+@router.get("/analytics/patterns")
+def analytics_patterns(weeks: int = 12, limit: int = 30, db: Session = Depends(get_db)):
+    """Phrase sets that keep travelling together in PUBLISHED prompts."""
+    return signals.prompt_patterns(db, weeks=max(2, min(weeks, 52)),
+                                   limit=max(1, min(100, limit)))
+
+
+@router.get("/analytics/growth")
+def analytics_growth(limit: int = 25, db: Session = Depends(get_db)):
+    """Posts still gaining, straight from repeat observations."""
+    return signals.engagement_growth(db, limit=max(1, min(100, limit)))
+
+
+@router.get("/analytics/signals/summary")
+def analytics_signal_summary(weeks: int = 8, db: Session = Depends(get_db)):
+    return signals.summary(db, weeks=max(2, min(weeks, 52)))
+
+
+@router.get("/discover")
+def discover(mode: str = "trending", limit: int = 40, platform: str | None = None,
+             media_type: str | None = None, q: str | None = None,
+             db: Session = Depends(get_db)):
+    """Discovery shelves — every result says why it is there (§46). With `q`,
+    relevance to that question outranks the shelf's own signal (§42)."""
+    out = signals.discover(db, mode=mode, limit=max(1, min(200, limit)),
+                           platform=platform, media_type=media_type, query=q)
+    ids = [r["post_id"] for r in out["results"]]
+    posts = {p.id: p for p in db.execute(select(Post).where(Post.id.in_(ids))).scalars()} if ids else {}
+    out["items"] = [{**post_card(posts[r["post_id"]]), "why": r["why"],
+                     "rank_score": r["score"], "relevance": r.get("relevance")}
+                    for r in out["results"] if r["post_id"] in posts]
+    return out
+
+
 @router.post("/analytics/summary")
 def analytics_summary(weeks: int = 12, db: Session = Depends(get_db)):
     data = trends.weekly_series(db, max(2, min(weeks, 52)))
@@ -328,6 +372,58 @@ def creator_similar(creator_id: int, limit: int = 12, db: Session = Depends(get_
     if db.get(Creator, creator_id) is None:
         raise HTTPException(404, "No such creator")
     return discovery.similar_creators(db, creator_id, max(1, min(50, limit)))
+
+
+# ------------------------------------ cross-source creator identity (I12) ---
+class LinkBody(BaseModel):
+    creator_a: int
+    creator_b: int
+    kind: str = "user"
+    detail: str | None = None
+
+
+@router.get("/creators/{creator_id}/identity")
+def creator_identity(creator_id: int, db: Session = Depends(get_db)):
+    """Every platform identity linked to this one — shown together, stored
+    apart. Nothing here merges rows or moves posts."""
+    if db.get(Creator, creator_id) is None:
+        raise HTTPException(404, "No such creator")
+    return creator_links.identity(db, creator_id)
+
+
+@router.get("/creators/links/suggestions")
+def link_suggestions(creator_id: int | None = None, limit: int = 50,
+                     db: Session = Depends(get_db)):
+    """Evidence-backed candidates only. A shared name is never evidence."""
+    return {"suggestions": creator_links.suggest_links(db, creator_id,
+                                                       max(1, min(200, limit))),
+            "evidence_kinds": list(creator_links.EVIDENCE_CONFIDENCE),
+            "note": "Two handles spelled the same are two strangers until "
+                    "something observable ties them together."}
+
+
+@router.post("/creators/links")
+def create_link(body: LinkBody, db: Session = Depends(get_db)):
+    row = creator_links.record_link(
+        db, body.creator_a, body.creator_b, body.kind, body.detail,
+        created_by="user" if body.kind == "user" else "system")
+    if row is None:
+        raise HTTPException(422, f"Cannot link those creators with evidence kind "
+                                 f"'{body.kind}' (known kinds: "
+                                 f"{', '.join(creator_links.EVIDENCE_CONFIDENCE)}).")
+    return {"link_id": row.id, "confidence": row.confidence, "evidence": row.evidence}
+
+
+@router.delete("/creators/links/{link_id}")
+def delete_link(link_id: int, db: Session = Depends(get_db)):
+    if not creator_links.unlink(db, link_id):
+        raise HTTPException(404, "No such link")
+    return {"ok": True}
+
+
+@router.post("/creators/links/scan")
+def scan_links(db: Session = Depends(get_db)):
+    return creator_links.scan(db)
 
 
 # ------------------------------------------------ browser intelligence ------

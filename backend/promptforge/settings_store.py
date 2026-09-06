@@ -129,6 +129,9 @@ DEFAULTS: dict[str, Any] = {
     "research_default_limit": 120,        # candidate budget per research job
     "research_per_source_limit": 60,      # cap per source per job
     "research_max_comments": 25,          # thread depth budget (spec §75)
+    # --- Inspiration 2.0: cross-source creator identity (I12) ---
+    "creator_link_min_confidence": 0.75,  # below this, a link is only ever SUGGESTED
+    "creator_link_auto_scan": True,       # run the evidence scan on the hourly pass
     "film_presets": {},                 # user shot-type favourites / overrides / custom presets (S2)
     "film_video_family": "kling",       # default video model family for Film Studio estimates/takes
     "film_image_family": "flux",        # default image family for start/end frames + asset refs

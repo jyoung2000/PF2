@@ -1,8 +1,8 @@
 // Inspiration Intelligence section (I7.1): Overview (sources + queue at a
 // glance), Sources (the scrapers dashboard), Creators (follow list + creator
 // intelligence), Clusters, Queue, Analytics. Image-first, data-driven.
-import { useEffect, useState } from 'react'
-import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError, listScrapers, PostCard, ScraperInfo } from '../api'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { EmptyState, Spinner, StatusDot } from '../components/Primitives'
@@ -10,12 +10,20 @@ import { timeAgo, timeUntil } from '../lib/format'
 import { useFetch } from '../lib/hooks'
 import {
   ClusterInfo,
+  createCreatorLink,
+  CreatorIdentity,
+  discover,
   CreatorInfo,
+  deleteCreatorLink,
   getAnalytics,
   getCluster,
   getCreator,
+  getCreatorIdentity,
+  getLinkSuggestions,
   getQueue,
+  getSignalSummary,
   getTrends,
+  LinkSuggestion,
   listClusters,
   listCreators,
   listSources,
@@ -30,6 +38,7 @@ const TABS = [
   { to: '', label: 'Overview', end: true },
   { to: 'sources', label: 'Sources' },
   { to: 'creators', label: 'Creators' },
+  { to: 'discover', label: 'Discover' },
   { to: 'clusters', label: 'Clusters' },
   { to: 'queue', label: 'Queue' },
   { to: 'analytics', label: 'Analytics' },
@@ -269,6 +278,116 @@ function CreatorsTab() {
   )
 }
 
+/** I12: the same person on several platforms. PF2 shows the identities
+ *  together and never merges them — each row keeps its own posts and stats,
+ *  and every link says what evidence tied it. */
+function IdentityPanel({ creatorId }: { creatorId: number }) {
+  const [identity, setIdentity] = useState<CreatorIdentity | null>(null)
+  const [suggestions, setSuggestions] = useState<LinkSuggestion[]>([])
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(() => {
+    getCreatorIdentity(creatorId).then(setIdentity).catch(() => setIdentity(null))
+    getLinkSuggestions(creatorId)
+      .then((r) => setSuggestions(r.suggestions))
+      .catch(() => setSuggestions([]))
+  }, [creatorId])
+  useEffect(load, [load])
+
+  const confirm = async (a: number, b: number, detail?: string) => {
+    setBusy(true)
+    try {
+      await createCreatorLink(a, b, 'user', detail)
+      toastSuccess('Identities linked')
+      load()
+    } catch (e) {
+      toastError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const remove = async (linkId: number) => {
+    setBusy(true)
+    try {
+      await deleteCreatorLink(linkId)
+      load()
+    } catch (e) {
+      toastError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const links = identity?.links ?? []
+  if (!links.length && !suggestions.length) return null
+  return (
+    <section className="card p-3">
+      <h3 className="label">Same creator elsewhere</h3>
+      {links.length > 0 && (
+        <>
+          <ul className="space-y-1 text-[12.5px]">
+            {identity!.members
+              .filter((m) => m.creator_id !== creatorId)
+              .map((m) => {
+                const link = links.find((l) => l.creator_id === m.creator_id)
+                return (
+                  <li key={m.creator_id} className="flex flex-wrap items-center gap-2">
+                    <Link to={`/inspiration/creators/${m.creator_id}`} className="text-ember hover:underline">
+                      @{m.handle}
+                    </Link>
+                    <span className="chip">{m.platform}</span>
+                    <span className="text-faint tabular-nums">{m.posts} posts</span>
+                    {link && (
+                      <>
+                        <span className="chip" title={String(link.evidence?.detail ?? '')}>
+                          {link.kind} · {Math.round((link.confidence ?? 0) * 100)}%
+                        </span>
+                        {link.created_by === 'user' && <span className="text-faint">confirmed by you</span>}
+                        <button className="text-faint hover:text-rose-300" disabled={busy} onClick={() => remove(link.link_id)}>
+                          unlink
+                        </button>
+                      </>
+                    )}
+                  </li>
+                )
+              })}
+          </ul>
+          <p className="text-[11.5px] text-faint mt-1">{identity!.note}</p>
+        </>
+      )}
+      {suggestions.length > 0 && (
+        <div className="mt-2">
+          <div className="text-[11.5px] text-faint mb-1">Suggested links (evidence-backed — a shared name is never evidence)</div>
+          <ul className="space-y-1 text-[12.5px]">
+            {suggestions.map((s) => {
+              const other = s.creator_a.id === creatorId ? s.creator_b : s.creator_a
+              return (
+                <li key={`${s.creator_a.id}-${s.creator_b.id}`} className="flex flex-wrap items-center gap-2">
+                  <Link to={`/inspiration/creators/${other.id}`} className="text-mute hover:text-ember">
+                    @{other.handle}
+                  </Link>
+                  <span className="chip">{other.platform}</span>
+                  <span className="chip">
+                    {s.kind} · {Math.round(s.confidence * 100)}%
+                  </span>
+                  <span className="text-faint truncate max-w-[22rem]">{s.evidence.detail}</span>
+                  <button
+                    className="btn-ghost !py-0.5 !px-2 !text-[11.5px]"
+                    disabled={busy}
+                    onClick={() => confirm(s.creator_a.id, s.creator_b.id, String(s.evidence.detail ?? ''))}
+                  >
+                    Confirm
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function CreatorDetail() {
   const { id } = useParams()
   const { data, loading } = useFetch(() => getCreator(Number(id)), [id])
@@ -297,6 +416,24 @@ function CreatorDetail() {
             {st.trend && <> · {st.trend}</>} · AI {pct(st.ai_ratio)} · prompts {pct(st.prompt_availability)} · metadata{' '}
             {pct(st.metadata_richness)} · avg inspiration {st.avg_inspiration ?? '—'}
           </p>
+          {(st.prompt_quality || st.workflow_richness) && (
+            <p className="text-[12px] text-faint tabular-nums mt-0.5">
+              {st.prompt_quality && (
+                <>
+                  prompt quality {pct(st.prompt_quality.score)}{' '}
+                  <span title="only prompts this creator actually published are counted">
+                    ({st.prompt_quality.explicit_prompts} published
+                    {st.prompt_quality.avg_words != null && <>, ~{st.prompt_quality.avg_words} words</>})
+                  </span>
+                </>
+              )}
+              {st.workflow_richness && (
+                <>
+                  {' '}· reproducibility {pct(st.workflow_richness.score)} ({st.workflow_richness.with_workflow ?? 0} workflows)
+                </>
+              )}
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {(st.models ?? []).map((m) => (
               <span key={m.family} className="chip !text-fg">
@@ -336,6 +473,7 @@ function CreatorDetail() {
           </div>
         )}
       </div>
+      <IdentityPanel creatorId={Number(id)} />
       {data.top_posts?.length ? (
         <section>
           <h3 className="label">Top posts</h3>
@@ -754,6 +892,204 @@ function AnalyticsTab() {
   )
 }
 
+// ------------------------------------------------------- discover (I14) ----
+const MODE_LABEL: Record<string, string> = {
+  trending: 'Trending',
+  best_prompts: 'Best prompts',
+  latest: 'Latest',
+  hidden_gems: 'Hidden gems',
+  workflows: 'Workflows',
+  cross_platform: 'Cross-platform',
+}
+const DIRECTION_STYLE: Record<string, string> = {
+  rising: 'text-emerald-300',
+  cooling: 'text-amber-300',
+  falling: 'text-rose-300',
+  steady: 'text-mute',
+  unknown: 'text-faint',
+}
+
+function Sparkline({ series }: { series: number[] }) {
+  const max = Math.max(1, ...series)
+  return (
+    <span className="inline-flex items-end gap-px h-4 align-middle">
+      {series.map((v, i) => (
+        <span key={i} className="w-1 bg-ember/70 rounded-sm" style={{ height: `${Math.max(8, (v / max) * 100)}%` }} />
+      ))}
+    </span>
+  )
+}
+
+/** I14: shelves you can ask a question of. Every row carries the reasons it
+ *  is there, so the ranking is always checkable — and none of it needs an AI
+ *  provider. */
+function DiscoverTab() {
+  const [mode, setMode] = useState('trending')
+  const [q, setQ] = useState('')
+  const [asked, setAsked] = useState('')
+  const { data: shelf, loading } = useFetch(() => discover(mode, { q: asked || undefined }), [mode, asked])
+  const { data: sig } = useFetch(() => getSignalSummary(8), [])
+  const { open, drawer } = useDrawer()
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {Object.keys(MODE_LABEL).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-2.5 py-1.5 text-[13px] rounded-el ${mode === m ? 'bg-well text-fg font-medium' : 'text-mute hover:text-fg'}`}
+          >
+            {MODE_LABEL[m]}
+          </button>
+        ))}
+        <form
+          className="ml-auto flex items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setAsked(q.trim())
+          }}
+        >
+          <input
+            className="input !py-1 !text-[12.5px] w-56"
+            placeholder="ask this shelf a question…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {asked && (
+            <button
+              type="button"
+              className="text-[12px] text-faint hover:text-fg"
+              onClick={() => {
+                setQ('')
+                setAsked('')
+              }}
+            >
+              clear
+            </button>
+          )}
+        </form>
+      </div>
+
+      {shelf && (
+        <p className="text-[12px] text-faint">
+          {shelf.ranked_by} · {shelf.considered} posts considered
+          {shelf.query && <> · answering “{shelf.query}”</>}
+        </p>
+      )}
+
+      {loading && !shelf ? (
+        <Spinner />
+      ) : !shelf?.items.length ? (
+        <EmptyState title="Nothing on this shelf yet" hint={shelf?.detail} />
+      ) : (
+        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {shelf.items.map((item) => (
+            <li key={item.id} className="card p-2.5 flex gap-2.5">
+              <button
+                className="w-20 h-20 shrink-0 rounded-el overflow-hidden border border-line bg-well"
+                onClick={() => open(item.id)}
+              >
+                {item.thumb_url ? <img src={item.thumb_url} alt="" className="w-full h-full object-cover" loading="lazy" /> : null}
+              </button>
+              <div className="min-w-0 text-[12px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="chip">{item.platform}</span>
+                  {item.relevance != null && <span className="chip">relevance {pct(item.relevance)}</span>}
+                </div>
+                <ul className="mt-1 space-y-0.5 text-mute">
+                  {item.why.map((w) => (
+                    <li key={w} className="truncate" title={w}>
+                      · {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {sig && (
+        <div className="grid lg:grid-cols-2 gap-3">
+          <section className="card p-3.5">
+            <h3 className="label">Travelling across platforms</h3>
+            {sig.cross_platform.signals.length === 0 ? (
+              <p className="text-[12px] text-faint">Nothing has been seen often enough yet.</p>
+            ) : (
+              <ul className="space-y-1 text-[12.5px]">
+                {sig.cross_platform.signals.slice(0, 8).map((s) => (
+                  <li key={`${s.kind}:${s.key}`} className="flex items-center gap-2 flex-wrap">
+                    <span className="chip">{s.kind}</span>
+                    <span className="font-medium">{s.key}</span>
+                    <Sparkline series={s.series} />
+                    <span className={DIRECTION_STYLE[s.direction] ?? 'text-mute'}>
+                      {s.direction} ×{s.velocity}
+                    </span>
+                    <span className="text-faint truncate" title={s.why}>
+                      {Object.keys(s.platforms).join(', ')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11.5px] text-faint mt-1">
+              {sig.cross_platform.cross_platform_count} of these show up on more than one platform.
+            </p>
+          </section>
+
+          <section className="card p-3.5">
+            <h3 className="label">Prompt patterns</h3>
+            {sig.prompt_patterns.patterns.length === 0 ? (
+              <p className="text-[12px] text-faint">Not enough published prompts yet.</p>
+            ) : (
+              <ul className="space-y-1 text-[12.5px]">
+                {sig.prompt_patterns.patterns.slice(0, 8).map((p) => (
+                  <li key={p.phrases.join('+')} className="flex items-center gap-2 flex-wrap">
+                    {p.phrases.map((ph) => (
+                      <span key={ph} className="chip !text-fg">
+                        {ph}
+                      </span>
+                    ))}
+                    <span className="text-faint" title={p.why}>
+                      {p.posts} posts · {p.platform_count} platform{p.platform_count === 1 ? '' : 's'}
+                      {p.notable && <> · ×{p.lift} vs chance</>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11.5px] text-faint mt-1">{sig.prompt_patterns.basis}</p>
+          </section>
+
+          <section className="card p-3.5 lg:col-span-2">
+            <h3 className="label">Still growing</h3>
+            {sig.engagement_growth.growing.length === 0 ? (
+              <p className="text-[12px] text-faint">{sig.engagement_growth.note}</p>
+            ) : (
+              <ul className="space-y-0.5 text-[12.5px]">
+                {sig.engagement_growth.growing.slice(0, 8).map((g) => (
+                  <li key={g.post_id}>
+                    <button className="text-ember hover:underline" onClick={() => open(g.post_id)}>
+                      post {g.post_id}
+                    </button>{' '}
+                    <span className="text-mute">{g.why}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11.5px] text-faint mt-1">
+              {sig.engagement_growth.posts_with_history} posts observed more than once ·{' '}
+              {sig.engagement_growth.posts_seen_once} seen once (no growth rate — never estimated)
+            </p>
+          </section>
+        </div>
+      )}
+      {drawer}
+    </div>
+  )
+}
+
 // ------------------------------------------------------------------- page ---
 export function InspirationPage() {
   return (
@@ -783,6 +1119,7 @@ export function InspirationPage() {
         <Route path="/sources" element={<ScrapersPage />} />
         <Route path="/creators" element={<CreatorsTab />} />
         <Route path="/creators/:id" element={<CreatorDetail />} />
+        <Route path="/discover" element={<DiscoverTab />} />
         <Route path="/clusters" element={<ClustersTab />} />
         <Route path="/clusters/:id" element={<ClusterDetail />} />
         <Route path="/queue" element={<QueueTab />} />

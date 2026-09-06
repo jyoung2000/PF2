@@ -108,9 +108,74 @@ export interface CreatorInfo {
     metadata_richness?: number
     top_post_ids?: number[]
     recent_post_ids?: number[]
+    // I12
+    prompt_quality?: {
+      explicit_prompts: number
+      avg_words?: number
+      median_words?: number
+      with_parameters?: number
+      with_negative?: number
+      structured?: number
+      score: number
+      detail?: string
+    }
+    workflow_richness?: {
+      with_workflow?: number
+      with_embedded_metadata?: number
+      with_named_model?: number
+      workflow_ratio?: number
+      score: number
+    }
+    prompt_sources?: { source: string; count: number }[]
+    cross_platform?: { linked_platforms: string[]; links: number; note: string }
   }
+  links?: CreatorLink[]
   top_posts?: PostCard[]
   recent_posts?: PostCard[]
+}
+
+/** I12: an evidence-carrying edge between two platform identities. PF2 shows
+ *  them together and never merges the rows. */
+export interface CreatorLink {
+  link_id: number
+  creator_id: number
+  platform: string
+  handle: string
+  display_name: string | null
+  profile_url: string | null
+  confidence: number
+  kind: string | null
+  evidence: Record<string, unknown>
+  created_by: string
+}
+
+export interface CreatorIdentity {
+  creator_id: number
+  platforms: string[]
+  members: {
+    creator_id: number
+    platform: string
+    handle: string
+    display_name: string | null
+    posts: number
+    followers: number | null
+    avg_engagement: number | null
+    prompt_availability: number | null
+  }[]
+  total_posts: number
+  links: (CreatorLink & { from: number })[]
+  merged: boolean
+  note: string
+}
+
+export interface LinkSuggestion {
+  creator_a: { id: number; platform: string; handle: string }
+  creator_b: { id: number; platform: string; handle: string }
+  kind: string
+  confidence: number
+  evidence: Record<string, unknown> & { detail?: string }
+  corroborated_by: string[]
+  auto_linkable: boolean
 }
 
 export interface SourceReport {
@@ -192,6 +257,73 @@ export const listSources = () => api.get<{ sources: SourceReport[] }>('/api/insp
 export const getQueue = () => api.get<QueueStats>('/api/inspiration/queue')
 export const getAnalytics = () => api.get<Analytics>('/api/inspiration/analytics')
 export const getTrends = (weeks = 12) => api.get<Trends>(`/api/inspiration/analytics/trends?weeks=${weeks}`)
+
+// ---- I14: cross-source signals + discovery shelves ---------------------
+export interface CrossSignal {
+  kind: string
+  key: string
+  total: number
+  platforms: Record<string, number>
+  platform_count: number
+  series: number[]
+  velocity: number
+  acceleration: number
+  direction: 'rising' | 'falling' | 'steady' | 'cooling' | 'unknown'
+  score: number
+  example_post_ids: number[]
+  why: string
+}
+
+export interface PromptPattern {
+  phrases: string[]
+  posts: number
+  lift: number
+  notable: boolean
+  platforms: string[]
+  platform_count: number
+  avg_engagement: number | null
+  example_post_ids: number[]
+  why: string
+}
+
+export interface GrowthRow {
+  post_id: number
+  gain: number
+  per_day: number
+  hours_observed: number
+  snapshots: number
+  from: number
+  to: number
+  why: string
+}
+
+export interface SignalSummary {
+  cross_platform: { weeks: string[]; signals: CrossSignal[]; cross_platform_count: number; posts_considered: number }
+  prompt_patterns: { patterns: PromptPattern[]; prompts_considered: number; notable: number; basis: string }
+  engagement_growth: { growing: GrowthRow[]; posts_with_history: number; posts_seen_once: number; note: string }
+  rising: CrossSignal[]
+  requires_ai: boolean
+}
+
+export interface DiscoverShelf {
+  mode: string
+  modes: string[]
+  detail: string
+  ranked_by: string
+  query: string | null
+  considered: number
+  results: { post_id: number; platform: string; score: number; relevance: number | null; why: string[] }[]
+  items: (PostCard & { why: string[]; rank_score: number; relevance?: number | null })[]
+}
+
+export const getSignalSummary = (weeks = 8) =>
+  api.get<SignalSummary>(`/api/inspiration/analytics/signals/summary?weeks=${weeks}`)
+export const discover = (mode = 'trending', opts: { q?: string; platform?: string; limit?: number } = {}) => {
+  const p = new URLSearchParams({ mode, limit: String(opts.limit ?? 40) })
+  if (opts.q) p.set('q', opts.q)
+  if (opts.platform) p.set('platform', opts.platform)
+  return api.get<DiscoverShelf>(`/api/inspiration/discover?${p}`)
+}
 export const listClusters = (kind?: string) =>
   api.get<{ clusters: ClusterInfo[] }>(`/api/inspiration/clusters${kind ? `?kind=${kind}` : ''}`)
 export const getCluster = (id: number, cursor = 0, order = 'score') =>
@@ -201,6 +333,21 @@ export const getCluster = (id: number, cursor = 0, order = 'score') =>
 export const listCreators = (sort = 'posts', q = '') =>
   api.get<{ creators: CreatorInfo[] }>(`/api/inspiration/creators?sort=${sort}${q ? `&q=${encodeURIComponent(q)}` : ''}`)
 export const getCreator = (id: number) => api.get<CreatorInfo>(`/api/inspiration/creators/${id}`)
+export const getCreatorIdentity = (id: number) =>
+  api.get<CreatorIdentity>(`/api/inspiration/creators/${id}/identity`)
+export const getLinkSuggestions = (creatorId?: number) =>
+  api.get<{ suggestions: LinkSuggestion[]; evidence_kinds: string[]; note: string }>(
+    `/api/inspiration/creators/links/suggestions${creatorId ? `?creator_id=${creatorId}` : ''}`,
+  )
+export const createCreatorLink = (creator_a: number, creator_b: number, kind = 'user', detail?: string) =>
+  api.post<{ link_id: number; confidence: number }>('/api/inspiration/creators/links', {
+    creator_a,
+    creator_b,
+    kind,
+    detail,
+  })
+export const deleteCreatorLink = (linkId: number) =>
+  api.delete<{ ok: boolean }>(`/api/inspiration/creators/links/${linkId}`)
 
 // ---- "Use as Inspiration" handoff -------------------------------------
 export interface InspirationContext {

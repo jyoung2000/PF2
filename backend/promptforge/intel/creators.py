@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 
 from ..models import Creator, MonitoredAccount, Post
-from . import provenance
+from . import creator_links, prompt_parser, provenance
 
 STALE_AFTER = timedelta(hours=1)
 
@@ -23,6 +23,52 @@ def _week(dt: datetime | None) -> str | None:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.strftime("%G-W%V")
+
+
+def prompt_quality(posts) -> dict:
+    """How USEFUL this creator's prompts are, not how many they have (I12).
+
+    Only prompts PF2 actually observed count — a reconstruction or an AI's
+    guess is never evidence of what the creator publishes (§21)."""
+    explicit = [p for p in posts
+                if p.prompt and prompt_parser.is_explicit_source(p.prompt_source)]
+    if not explicit:
+        return {"explicit_prompts": 0, "score": 0.0,
+                "detail": "no prompt this creator published has been observed yet"}
+    words = [len((p.prompt or "").split()) for p in explicit]
+    with_params = sum(1 for p in explicit if any(
+        k in (p.params or {}) for k in ("seed", "steps", "cfg_scale", "sampler")))
+    with_negative = sum(1 for p in explicit if p.negative_prompt)
+    structured = sum(1 for p in explicit if len((p.prompt or "").split(",")) >= 4)
+    n = len(explicit)
+    score = round(min(1.0,
+                      0.35 * min(1.0, (sum(words) / n) / 45)
+                      + 0.25 * (with_params / n)
+                      + 0.2 * (with_negative / n)
+                      + 0.2 * (structured / n)), 3)
+    return {"explicit_prompts": n, "avg_words": round(sum(words) / n, 1),
+            "median_words": round(statistics.median(words), 1),
+            "with_parameters": round(with_params / n, 3),
+            "with_negative": round(with_negative / n, 3),
+            "structured": round(structured / n, 3), "score": score}
+
+
+def workflow_richness(posts) -> dict:
+    """How reproducible this creator's output is: attached workflows,
+    embedded generation metadata, and named models."""
+    n = len(posts)
+    if not n:
+        return {"score": 0.0}
+    workflows = sum(1 for p in posts if p.has_workflow)
+    embedded = sum(1 for p in posts
+                   if (p.params or {}).get("metadata_format")
+                   or (p.params or {}).get("metadata_formats"))
+    named = sum(1 for p in posts if p.model_name and p.model_source in ("explicit", "metadata"))
+    return {"with_workflow": workflows, "with_embedded_metadata": embedded,
+            "with_named_model": named,
+            "workflow_ratio": round(workflows / n, 3),
+            "score": round(min(1.0, 0.5 * (workflows / n) + 0.3 * (embedded / n)
+                               + 0.2 * (named / n)), 3)}
 
 
 def compute_stats(s, creator: Creator) -> dict:
@@ -63,6 +109,8 @@ def compute_stats(s, creator: Creator) -> dict:
         trend = "rising" if last > first * 1.25 else ("falling" if last < first * 0.75 else "flat")
     top = sorted((p for p in posts if p.inspiration_score is not None),
                  key=lambda p: -p.inspiration_score)[:6]
+    sources = Counter(p.prompt_source for p in posts if p.prompt_source)
+    linked = creator_links.links_for(s, creator.id)
     return {
         "posts": n,
         "images": sum(1 for p in posts if p.media_type == "image"),
@@ -82,6 +130,15 @@ def compute_stats(s, creator: Creator) -> dict:
         "engagement_trajectory": trajectory,
         "trend": trend,
         "metadata_richness": round(sum(meta) / len(meta), 3) if meta else 0.0,
+        # I12: what makes this creator worth following, and where else they post
+        "prompt_quality": prompt_quality(posts),
+        "workflow_richness": workflow_richness(posts),
+        "prompt_sources": [{"source": k, "count": v} for k, v in sources.most_common()],
+        "cross_platform": {
+            "linked_platforms": sorted({row["platform"] for row in linked}),
+            "links": len(linked),
+            "note": "linked identities are shown together, never merged",
+        },
         "avg_inspiration": round(sum(insp) / len(insp), 1) if insp else None,
         "first_seen": creator.first_seen.isoformat() if creator.first_seen else None,
         "last_seen": creator.last_seen.isoformat() if creator.last_seen else None,
@@ -130,6 +187,7 @@ def creator_dict(s, creator: Creator, force: bool = False) -> dict:
         "avatar_url": creator.avatar_url, "verified": creator.verified,
         "followers": creator.followers, "following": creator.following, "bio": creator.bio,
         "monitored_account_id": monitored, "stats": st,
+        "links": creator_links.links_for(s, creator.id),
     }
 
 
@@ -149,6 +207,8 @@ def list_creators(s, platform: str | None = None, sort: str = "posts", limit: in
         "ai_ratio": lambda d: -(d["stats"].get("ai_ratio") or 0),
         "prompts": lambda d: -(d["stats"].get("prompt_availability") or 0),
         "inspiration": lambda d: -(d["stats"].get("avg_inspiration") or 0),
+        "prompt_quality": lambda d: -((d["stats"].get("prompt_quality") or {}).get("score") or 0),
+        "workflows": lambda d: -((d["stats"].get("workflow_richness") or {}).get("score") or 0),
         "recent": lambda d: (d["stats"].get("last_seen") or ""),
     }.get(sort, lambda d: -(d["stats"].get("posts") or 0))
     out.sort(key=keyfn)
